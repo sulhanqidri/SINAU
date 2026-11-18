@@ -21,7 +21,17 @@ Status legal/verifikasi lembaga berbeda dari status pembayaran/langganan. Keduan
 - Tenant boleh berada pada status `pending_verification` selama dokumen belum diperiksa.
 - Fitur yang berdampak tinggi atau memerlukan status terverifikasi dapat dibatasi sampai pemeriksaan selesai. Batas fitur harus ditampilkan secara jelas dan tidak boleh menghilangkan akses pengguna ke data yang telah dimasukkan.
 
-### 2. Masa tenggang verifikasi 7 hari\n\n- Masa tenggang verifikasi berlangsung selama 7 hari kalender sejak onboarding/pendaftaran berhasil diselesaikan (timestamp `registration_completed_at`).\n- Selama masa tersebut tenant berstatus `pending_verification` dan dapat melengkapi dokumen legal serta identifier resmi yang diwajibkan.\n- Jika sampai akhir hari ke-7 persyaratan verifikasi wajib belum dilengkapi, tenant otomatis masuk status `suspended`. Sistem harus menghitung tenggat di server menggunakan waktu tersimpan dan zona waktu kebijakan platform; bukan mengandalkan jam/perangkat pengguna.\n- Sebelum tenggat, sistem mengirim pengingat yang wajar dan menampilkan tanggal/jam batas verifikasi secara jelas.\n- Tenant yang suspended karena tenggat verifikasi tetap dapat login ke area terbatas untuk mengunggah/memperbaiki persyaratan, melihat alasan penangguhan, menghubungi dukungan, dan mengakses/mengekspor data sesuai hak. Fitur operasional utama dibatasi sampai verifikasi diselesaikan dan penangguhan dicabut.\n- Penangguhan tidak menghapus tenant, unit, pengguna, dokumen, maupun data akademik. Setelah persyaratan diterima, status verifikasi diperbarui dan tenant dapat diaktifkan kembali sesuai pemeriksaan; aktivasi tidak mengubah status subscription secara otomatis.\n- Jika dokumen/identifier sudah dikirim tepat waktu tetapi masih menunggu pemeriksaan internal, status tetap `pending_verification`; jangan menghukum tenant karena antrean pemeriksaan internal.\n\n### 3. NPSN/NSM dapat dilengkapi saat verifikasi
+### 2. Masa tenggang verifikasi 7 hari
+
+- Masa tenggang verifikasi berlangsung selama 7 hari kalender sejak onboarding/pendaftaran berhasil diselesaikan (timestamp `registration_completed_at`).
+- Selama masa tersebut tenant berstatus `pending_verification` dan dapat melengkapi dokumen legal serta identifier resmi yang diwajibkan.
+- Jika sampai akhir hari ke-7 persyaratan verifikasi wajib belum dilengkapi, tenant otomatis masuk status `suspended`. Sistem harus menghitung tenggat di server menggunakan waktu tersimpan dan zona waktu kebijakan platform; bukan mengandalkan jam/perangkat pengguna.
+- Sebelum tenggat, sistem mengirim pengingat yang wajar dan menampilkan tanggal/jam batas verifikasi secara jelas.
+- Tenant yang suspended karena tenggat verifikasi tetap dapat login ke area terbatas untuk mengunggah/memperbaiki persyaratan, melihat alasan penangguhan, menghubungi dukungan, dan mengakses/mengekspor data sesuai hak. Fitur operasional utama dibatasi sampai verifikasi diselesaikan dan penangguhan dicabut.
+- Penangguhan tidak menghapus tenant, unit, pengguna, dokumen, maupun data akademik. Setelah persyaratan diterima, status verifikasi diperbarui dan tenant dapat diaktifkan kembali sesuai pemeriksaan; aktivasi tidak mengubah status subscription secara otomatis.
+- Jika dokumen/identifier sudah dikirim tepat waktu tetapi masih menunggu pemeriksaan internal, status tetap `pending_verification`; jangan menghukum tenant karena antrean pemeriksaan internal.
+
+### 3. NPSN/NSM dapat dilengkapi saat verifikasi
 
 - Nama lembaga, bentuk pendidikan, jenjang, dan alamat unit tetap wajib pada pendaftaran.
 - NPSN/NSM atau identifier resmi relevan boleh kosong pada pendaftaran awal dan dilengkapi pada tahap verifikasi.
@@ -41,7 +51,8 @@ Status legal/verifikasi lembaga berbeda dari status pembayaran/langganan. Keduan
 ### 5. Status verifikasi dan subscription terpisah
 
 - `verification_status` dan `subscription_status` adalah dua dimensi lifecycle yang independen.
-- Contoh verification: `not_started`, `pending`, `verified`, `rejected`, `requires_changes`; tenggat verifikasi dicatat terpisah dari status.\n- Status tenant `suspended` dapat dipicu oleh verification deadline, subscription/billing, atau alasan kebijakan lain; simpan reason/source agar pemulihan tepat.
+- Contoh verification: `not_started`, `pending`, `verified`, `rejected`, `requires_changes`; tenggat verifikasi dicatat terpisah dari status.
+- Status tenant `suspended` dapat dipicu oleh verification deadline, subscription/billing, atau alasan kebijakan lain; simpan reason/source agar pemulihan tepat.
 - Status subscription mengikuti lifecycle billing tersendiri, misalnya trial, active, past_due, suspended, cancelled/expired sesuai desain billing.
 - Tenant dapat terverifikasi tetapi subscription tidak aktif, atau memiliki subscription trial/aktif tetapi verifikasi belum selesai.
 - Policy access menghitung kedua status secara eksplisit; tidak boleh menyimpulkan status verifikasi dari pembayaran atau sebaliknya.
@@ -81,4 +92,5 @@ Status legal/verifikasi lembaga berbeda dari status pembayaran/langganan. Keduan
 - Sumber otoritatif, format final, serta cakupan keunikan NPSN/NSM/identifier lainnya.
 - Daftar paket, harga, masa trial, dan kuota unit komersial.
 - Masa tenggang dan mode akses unit ketika downgrade membuat jumlah unit melebihi kuota.
-- Daftar fitur yang wajib menunggu verifikasi sebelum dapat digunakan.\n- Kanal, frekuensi, dan template pengingat sebelum tenggat verifikasi.
+- Daftar fitur yang wajib menunggu verifikasi sebelum dapat digunakan.
+- Kanal, frekuensi, dan template pengingat sebelum tenggat verifikasi.

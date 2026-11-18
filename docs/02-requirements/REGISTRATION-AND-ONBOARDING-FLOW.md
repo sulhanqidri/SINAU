@@ -308,11 +308,11 @@ Skema di atas adalah model konseptual, bukan perintah membuat migration final. N
 12. Tenant yang belum melengkapi persyaratan wajib sampai 7 hari kalender setelah pendaftaran selesai otomatis suspended.
 13. Tenant yang sudah menyerahkan persyaratan tepat waktu tidak disuspend karena keterlambatan pemeriksaan internal.
 14. Tenant suspended tetap dapat login secara terbatas untuk menyelesaikan verifikasi; data tidak dihapus.
-12. Downgrade tidak menghapus unit atau data; penambahan unit baru dibatasi jika melewati entitlement.
-13. Kegagalan saat pembuatan tenant/unit/membership tidak meninggalkan data parsial.
-14. Tenant/unit yang pending verification dibatasi sesuai kebijakan.
-15. Percobaan akses lintas tenant/unit ditolak dan tercatat bila relevan.
-16. UI registrasi dapat digunakan melalui desktop dan ponsel serta menjelaskan istilah dengan bahasa sederhana.
+15. Downgrade tidak menghapus unit atau data; penambahan unit baru dibatasi jika melewati entitlement.
+16. Kegagalan saat pembuatan tenant/unit/membership tidak meninggalkan data parsial.
+17. Tenant/unit yang pending verification dibatasi sesuai kebijakan.
+18. Percobaan akses lintas tenant/unit ditolak dan tercatat bila relevan.
+19. UI registrasi dapat digunakan melalui desktop dan ponsel serta menjelaskan istilah dengan bahasa sederhana.
 
 ## 10. Kebijakan yang sudah diputuskan dan hal terbuka
 

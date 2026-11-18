@@ -31,6 +31,7 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 | Persona, jobs-to-be-done, user journey | `docs/02-requirements/PERSONAS-AND-JOURNEYS.md` | Not started/audit path |
 | Acceptance criteria dan traceability | `docs/02-requirements/ACCEPTANCE-CRITERIA.md` | Existing baseline; perlu kelengkapan |
 | Peta proses bisnis end-to-end | `docs/02-requirements/BUSINESS-PROCESS-MAP.md` | Draft baseline v0.1.0; perlu validasi dan spesifikasi turunan |
+| Spesifikasi proses platform/tenant BP-PLT-01—04 | `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder dan penutupan keputusan terbuka |
 | Business glossary dan terminology | `docs/02-requirements/BUSINESS-GLOSSARY.md` | Not started/audit path |
 | Assumptions, constraints, risks, dependencies | `docs/02-requirements/ASSUMPTIONS-RISKS-DEPENDENCIES.md` | Not started |
 | Stakeholder, RACI, decision rights | `docs/02-requirements/STAKEHOLDERS-AND-RACI.md` | Not started |
@@ -39,7 +40,9 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 
 - [x] Peta proses bisnis end-to-end tingkat baseline tersedia di `docs/02-requirements/BUSINESS-PROCESS-MAP.md`.
 - [ ] Validasi process register, aktor, urutan, pengecualian, dan scope MVP dengan stakeholder.
-- [ ] Turunkan proses prioritas menjadi business process specification/swimlane per proses.
+- [x] Turunkan BP-PLT-01 sampai BP-PLT-04 ke spesifikasi proses platform/tenant draft di `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md`.
+- [ ] Validasi spesifikasi BP-PLT-01—04 dengan stakeholder dan tutup OPEN-PLT-01 sampai OPEN-PLT-10.
+- [ ] Turunkan proses prioritas berikutnya (organisasi/institusi, master data, akademik, presensi, asesmen) menjadi business process specification/swimlane per proses.
 - [ ] Lengkapi business rules, state machine, approval matrix, SLA, exception/recovery, dan acceptance criteria.
 - [ ] Buat traceability requirement → process → module → data/API → permission → screen → test.
 

@@ -35,6 +35,8 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 | Spesifikasi proses akademik, presensi, dan asesmen BP-ACA-01—03, BP-ATT-01, BP-ASM-01—02 | `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, kebijakan nilai/presensi, dan verifikasi regulasi |
 | Spesifikasi proses PPDB dan HR BP-ADM-01, BP-HR-01 | `docs/02-requirements/ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, regulasi penerimaan, kebijakan kepegawaian, dan privasi |
 | Spesifikasi proses platform/tenant BP-PLT-01—04 | `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder dan penutupan keputusan terbuka |
+| Audit konsistensi spesifikasi proses | `docs/02-requirements/PROCESS-SPECIFICATION-CONSISTENCY-AUDIT.md` | Draft 0.1.0; temuan dan remediasi menunggu keputusan pemilik produk |
+
 | Business glossary dan terminology | `docs/02-requirements/BUSINESS-GLOSSARY.md` | Not started/audit path |
 | Assumptions, constraints, risks, dependencies | `docs/02-requirements/ASSUMPTIONS-RISKS-DEPENDENCIES.md` | Not started |
 | Stakeholder, RACI, decision rights | `docs/02-requirements/STAKEHOLDERS-AND-RACI.md` | Not started |
@@ -43,6 +45,8 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 
 - [x] Peta proses bisnis end-to-end tingkat baseline tersedia di `docs/02-requirements/BUSINESS-PROCESS-MAP.md`.
 - [ ] Validasi process register, aktor, urutan, pengecualian, dan scope MVP dengan stakeholder.
+- [x] Audit konsistensi lintas process map, PRD, MVP Scope, spesifikasi proses, ADR, katalog, dan tracker; temuan dicatat di `docs/02-requirements/PROCESS-SPECIFICATION-CONSISTENCY-AUDIT.md`.
+- [ ] Remediasi temuan audit setelah keputusan pemilik produk; jangan renumber ID atau mengubah scope tanpa persetujuan.
 - [x] Turunkan BP-PLT-01 sampai BP-PLT-04 ke spesifikasi proses platform/tenant draft di `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md`.
 - [ ] Validasi spesifikasi BP-PLT-01—04 dengan stakeholder dan tutup OPEN-PLT-01 sampai OPEN-PLT-10.
 - [x] Turunkan BP-ACA-01—03, BP-ATT-01, dan BP-ASM-01—02 ke spesifikasi proses akademik/presensi/asesmen draft di `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md`.

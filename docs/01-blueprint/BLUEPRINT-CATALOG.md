@@ -30,9 +30,18 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 | MVP scope dan release boundary | `docs/02-requirements/MVP-SCOPE.md` | Existing baseline; perlu persetujuan |
 | Persona, jobs-to-be-done, user journey | `docs/02-requirements/PERSONAS-AND-JOURNEYS.md` | Not started/audit path |
 | Acceptance criteria dan traceability | `docs/02-requirements/ACCEPTANCE-CRITERIA.md` | Existing baseline; perlu kelengkapan |
+| Peta proses bisnis end-to-end | `docs/02-requirements/BUSINESS-PROCESS-MAP.md` | Draft baseline v0.1.0; perlu validasi dan spesifikasi turunan |
 | Business glossary dan terminology | `docs/02-requirements/BUSINESS-GLOSSARY.md` | Not started/audit path |
 | Assumptions, constraints, risks, dependencies | `docs/02-requirements/ASSUMPTIONS-RISKS-DEPENDENCIES.md` | Not started |
 | Stakeholder, RACI, decision rights | `docs/02-requirements/STAKEHOLDERS-AND-RACI.md` | Not started |
+
+### 2.1 Business process map dan spesifikasi proses
+
+- [x] Peta proses bisnis end-to-end tingkat baseline tersedia di `docs/02-requirements/BUSINESS-PROCESS-MAP.md`.
+- [ ] Validasi process register, aktor, urutan, pengecualian, dan scope MVP dengan stakeholder.
+- [ ] Turunkan proses prioritas menjadi business process specification/swimlane per proses.
+- [ ] Lengkapi business rules, state machine, approval matrix, SLA, exception/recovery, dan acceptance criteria.
+- [ ] Buat traceability requirement → process → module → data/API → permission → screen → test.
 
 ## 3. Organization, tenant, identity & SaaS blueprint
 

@@ -1,6 +1,6 @@
 # Rencana PoC Database dan Isolasi Tenant SINAU
 
-**Status:** Rencana pengujian PostgreSQL 18; draft SQL tersedia dan belum dieksekusi  
+**Status:** Harness PoC PostgreSQL 18 dan tes constraint otomatis tersedia; belum ada hasil eksekusi lokal yang diverifikasi  
 **Tanggal:** 2026-11-18  
 **Keputusan engine:** PostgreSQL 18 — [ADR-006](../09-decisions/ADR-006-POSTGRESQL-DATABASE.md)  
 **Terkait:** ADR-002, ADR-003, ADR-005
@@ -9,9 +9,9 @@
 
 Membuktikan bahwa desain shared database/shared schema SINAU menjaga integritas tenant/unit dan siap dioperasikan pada PostgreSQL 18 sebelum migration domain produksi dibuat. Keputusan engine PostgreSQL sudah disetujui; PoC ini memvalidasi desain skema, keamanan, kinerja awal, dan operasional — bukan membandingkan pilihan engine.
 
-Draft schema dan fixture sintetis PostgreSQL tersedia di [poc/database-isolation/postgresql](../../poc/database-isolation/postgresql/schema-and-fixtures.sql). Script belum dijalankan terhadap PostgreSQL nyata; hasil belum boleh dinyatakan lulus.
+Schema dan fixture sintetis, tes constraint otomatis, Docker Compose lokal, runner shell, benchmark opsional satu juta baris, dan workflow CI tersedia di [poc/database-isolation/postgresql](../../poc/database-isolation/postgresql/schema-and-fixtures.sql). Hasil lokal pemilik proyek belum diterima; PoC belum boleh dinyatakan lulus.
 
-Draft MySQL 8.4 yang masih berada di direktori PoC dipertahankan hanya sebagai artefak historis/rujukan dan bukan target pengujian atau implementasi MVP.
+Draft MySQL 8.4 yang masih berada di direktori PoC dipertahankan hanya sebagai artefak historis/rujukan dan bukan target pengujian atau implementasi MVP. Workflow CI PostgreSQL 18 menjalankan schema dan tes constraint saat perubahan PoC terkait masuk ke pull request.
 
 ## 2. Scope data sintetis
 
@@ -119,7 +119,23 @@ PoC PostgreSQL dinyatakan lulus bila:
 
 Satu saja bypass lintas tenant/unit adalah blocker, bukan sekadar temuan performa.
 
-## 9. Output PoC
+## 9. Menjalankan PoC lokal
+
+Dari root repository dengan Docker Compose v2:
+
+```bash
+bash poc/database-isolation/postgresql/run-poc.sh
+```
+
+Untuk benchmark opsional satu juta baris sintetis:
+
+```bash
+RUN_BENCHMARK=1 bash poc/database-isolation/postgresql/run-poc.sh
+```
+
+Runner memakai PostgreSQL 18 disposable di port host 55432. Script schema menghapus dan membuat ulang schema `sinau_poc`; jangan mengarahkan koneksi ke database lain. Workflow `.github/workflows/postgresql-poc.yml` menjalankan setup dan tes constraint di CI.
+
+## 10. Output PoC
 
 - Script/schema PoC PostgreSQL 18 dan automated tests.
 - Hasil eksekusi yang dapat direproduksi.
@@ -128,7 +144,7 @@ Satu saja bypass lintas tenant/unit adalah blocker, bukan sekadar temuan perform
 - Rekomendasi konfigurasi PostgreSQL dan prosedur operasional.
 - Checklist kesiapan migration produksi.
 
-## 10. Larangan selama PoC
+## 11. Larangan selama PoC
 
 - Jangan membuat migration domain produksi.
 - Jangan memakai data pribadi nyata.

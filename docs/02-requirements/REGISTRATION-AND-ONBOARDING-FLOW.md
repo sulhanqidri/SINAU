@@ -1,6 +1,6 @@
 # Registrasi dan Onboarding Pelanggan SINAU
 
-**Status:** Proposed product flow — siap direview sebelum implementasi  
+**Status:** Accepted product policy; alur operasional proposed untuk validasi sebelum implementasi  
 **Tanggal:** 2026-11-18  
 **Terkait:** ADR-001, ADR-003, PRODUCT-REQUIREMENTS.md, DOMAIN-MODEL.md
 
@@ -79,7 +79,7 @@ Field:
 - Alamat kantor.
 - Email dan nomor kontak organisasi.
 - Nama pengurus/penanggung jawab pendaftar.
-- Dokumen pendukung (opsional sesuai tahap verifikasi).
+- Dokumen legal pendukung tidak wajib diunggah saat registrasi awal; dapat dilengkapi pada tahap verifikasi.\n- Tenant dapat berstatus pending verification; fitur berisiko dapat dibatasi sampai pemeriksaan selesai.
 
 Setelah profil yayasan, pendaftar harus mendaftarkan minimal satu unit pendidikan pertama agar tenant dapat menyelesaikan onboarding operasional.
 
@@ -89,7 +89,7 @@ Field:
 - Nama resmi sekolah/madrasah (wajib).
 - Bentuk satuan pendidikan: sekolah umum atau madrasah (wajib).
 - Jenjang (wajib; pilihan bergantung bentuk satuan pendidikan).
-- NPSN atau NSM/identitas resmi yang relevan (opsional pada draft; validasi keunikan bila diisi).
+- NPSN atau NSM/identitas resmi relevan boleh kosong saat registrasi awal dan dilengkapi saat verifikasi. Jika diisi, format, tipe, dan keunikannya divalidasi server-side.
 - Alamat lengkap.
 - Email dan nomor telepon unit.
 - Nama kepala sekolah/madrasah (opsional pada draft).
@@ -105,7 +105,7 @@ Untuk tenant yayasan maupun mandiri, setiap unit memiliki field:
 - Jenjang yang sesuai:
   - `school`: SD, SMP, SMA, SMK.
   - `madrasah`: MI, MTs, MA, MAK.
-- NPSN/NSM atau identifier resmi relevan.
+- NPSN/NSM atau identifier resmi relevan (nullable saat registrasi; dapat dilengkapi saat verifikasi).
 - Alamat unit.
 - Kontak unit.
 - Status operasional.
@@ -119,7 +119,7 @@ Sebelum membuat tenant:
 - Tampilkan ringkasan akun, tipe pelanggan, profil organisasi, dan unit pertama.
 - Pengguna mengonfirmasi bahwa ia berwenang mengajukan pendaftaran.
 - Validasi field wajib, format identifier, duplikasi yang terdeteksi, dan konsistensi tipe/jenjang.
-- Jika identifier resmi belum tersedia, tandai status verifikasi sebagai pending, bukan mengarang nilai.
+- Jika identifier resmi belum tersedia, biarkan nullable dan tandai verifikasi unit pending. Jangan mengarang nilai.\n- Jika identifier diisi, validasi format dan keunikan; konflik ditangani tanpa mengungkap data lembaga lain.
 - Jangan mengungkap data pelanggan lain saat mendeteksi duplikasi; tampilkan instruksi menghubungi dukungan.
 
 ### Langkah 6 — Buat tenant, unit, dan akses administrator
@@ -153,25 +153,32 @@ Prinsip:
 
 ## 5. Penambahan unit setelah onboarding
 
-Khusus tenant `foundation`:
+Penambahan unit tersedia bagi tenant foundation maupun independent_provider berdasarkan entitlement paket, bukan semata-mata tipe tenant. Paket dasar dapat memberi kuota satu unit; paket multi-unit berbayar dapat menaikkan kuota. Harga dan nama paket ditentukan terpisah.
+
+Alur penambahan unit:
 1. Tenant admin memilih "Tambah unit pendidikan".
-2. Mengisi profil dan jenis/jenjang unit.
-3. Sistem memvalidasi hak tenant admin dan identifier unit.
-4. Unit dibuat di tenant yang sama.
-5. Pendaftar memilih pengelola awal unit atau mengundang user.
-6. Sistem membuat unit membership dan role sesuai persetujuan.
-7. Semua perubahan dicatat dalam audit.
+2. Server memeriksa membership, permission, status subscription, dan sisa entitlement unit.
+3. Jika kuota tersedia, admin mengisi profil, jenis/jenjang, dan identifier bila tersedia.
+4. Sistem memvalidasi format dan konflik identifier tanpa membocorkan data tenant lain.
+5. Unit dibuat di tenant yang sama; admin menugaskan pengelola unit.
+6. Sistem membuat membership/role dan mencatat audit.
+7. Jika kuota habis, penambahan ditolak dengan informasi paket dan jalur upgrade.
 
-Tenant `independent_provider` tidak menampilkan fitur pengelolaan banyak unit sebagai default MVP. Jika kebutuhan multi-unit mandiri disetujui kelak, itu harus menjadi keputusan produk dan aturan paket yang eksplisit, bukan asumsi tersembunyi.
+Tipe tenant tidak memberi kuota unit secara otomatis. Setiap unit tetap memiliki membership, permission, dan data akademik tersendiri.
 
-## 6. Status lifecycle yang disarankan
+## 6. Status lifecycle
 
-Status tenant:
+Status lifecycle tenant, verifikasi, dan subscription merupakan dimensi terpisah.
+
+Status tenant operasional:
 - `draft`: registrasi belum lengkap.
-- `pending_verification`: menunggu pemeriksaan yang diwajibkan.
-- `active`: dapat menggunakan fitur sesuai paket dan status verifikasi.
+- `active`: akses mengikuti subscription, entitlement, dan verification policy.
 - `suspended`: akses operasional dibatasi berdasarkan kebijakan.
 - `closed`: tenant ditutup sesuai proses retensi/ekspor data.
+
+Status verifikasi tenant/unit: `not_started`, `pending`, `verified`, `requires_changes`, `rejected`.
+
+Status subscription mengikuti lifecycle billing tersendiri, misalnya `trial`, `active`, `past_due`, `suspended`, dan `cancelled/expired`. Tenant dapat terverifikasi tetapi subscription tidak aktif, atau sebaliknya. Policy akses harus mengevaluasi keduanya secara eksplisit.
 
 Status unit:
 - `draft`
@@ -219,7 +226,7 @@ Profil foundation hanya ada untuk tenant bertipe foundation.
 - `education_form` — school/madrasah
 - `education_level_id`
 - `official_identifier_type` — NPSN/NSM/other
-- `official_identifier` (nullable sampai diverifikasi)
+- `official_identifier` (nullable saat pendaftaran; dilengkapi dan diverifikasi kemudian)
 - `address`
 - `contact_email`, `contact_phone`
 - `status`, `verification_status`
@@ -289,13 +296,13 @@ Skema di atas adalah model konseptual, bukan perintah membuat migration final. N
 6. Akun pendaftar memperoleh unit membership hanya pada unit yang ditugaskan saat onboarding.
 7. Pendaftar bukan platform admin.
 8. Foundation tenant dapat menambahkan unit dan mengundang admin unit lain.
-9. Independent provider tidak otomatis memperoleh alur multi-unit foundation pada MVP.
+9. Foundation dan independent provider dapat menambah unit berdasarkan entitlement paket; tenant dengan kuota sama diperlakukan konsisten.\n10. Dokumen legal foundation boleh dilengkapi setelah registrasi.\n11. NPSN/NSM boleh kosong saat registrasi; identifier yang diberikan divalidasi tanpa membocorkan data pihak lain.\n12. Verification status dan subscription status dapat berubah secara independen.\n13. Downgrade tidak menghapus unit atau data; penambahan unit baru dibatasi jika melewati entitlement.
 10. Kegagalan saat pembuatan tenant/unit/membership tidak meninggalkan data parsial.
 11. Tenant/unit yang pending verification dibatasi sesuai kebijakan.
 12. Percobaan akses lintas tenant/unit ditolak dan tercatat bila relevan.
 13. UI registrasi dapat digunakan melalui desktop dan ponsel serta menjelaskan istilah dengan bahasa sederhana.
 
-## 10. Pertanyaan yang masih perlu keputusan sebelum coding
+## 10. Kebijakan yang sudah diputuskan dan hal terbuka
 
 - Apakah dokumen legal yayasan wajib sebelum tenant aktif, atau dapat menyusul setelah trial?
 - Apakah NPSN/NSM wajib saat registrasi atau hanya saat verifikasi unit?

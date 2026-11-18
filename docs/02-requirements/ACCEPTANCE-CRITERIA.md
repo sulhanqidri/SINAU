@@ -1,10 +1,17 @@
 # Acceptance Criteria — MVP
 
 ## Tenant dan unit
+- Sistem mendukung tenant bertipe yayasan (foundation) dan sekolah/madrasah mandiri (independent_provider).
+- Tenant yayasan dapat menaungi lebih dari satu unit pendidikan, termasuk campuran sekolah umum dan madrasah.
+- Tenant mandiri dapat onboarding tanpa yayasan dan terhubung langsung dengan unit pendidikan pertamanya.
+- Kedua tipe tenant menggunakan modul akademik, data model, UI, dan aturan keamanan yang sama.
+- Jenis dan jenjang pendidikan ditetapkan per unit, bukan dari tipe tenant.
 - Pengguna tenant A tidak dapat membaca, mengubah, menghapus, mengekspor, atau mengunduh data tenant B.
 - Pengguna unit A tidak dapat mengakses unit B kecuali memiliki membership dan permission.
+- Membership tenant tidak otomatis membuka semua unit tanpa aturan permission eksplisit.
 - Manipulasi identifier di URL, payload, filter, dan API tidak melewati scope.
 - Cache, job, file, dan laporan tidak mencampur data antar scope.
+- Transfer unit antar tenant hanya melalui workflow terotorisasi, tercatat, dan menjaga histori.
 
 ## Data siswa
 - Siswa memiliki identitas dasar yang tidak tergantung pada kelas.

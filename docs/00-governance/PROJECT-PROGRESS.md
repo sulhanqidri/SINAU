@@ -248,3 +248,17 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 
 
 **Verifikasi penutup sesi — 2026-11-18:** Dokumen BP-ADM/BP-HR ter-fetch kembali (39.633 karakter); kedua process ID dan seluruh bagian wajib ditemukan; 21 keputusan terbuka terdaftar. Blueprint Catalog telah diperiksa ulang, baris PPDB/HR dan checklist turunan tercatat, serta line break markdown dibersihkan. PR #1 masih open, draft=true, merged=false. Head branch terakhir setelah pembaruan katalog: `25e3793ecc2c9d479806a530fa3e3b22342b2309`.
+
+
+---
+
+### Session checkpoint — 2026-11-18 (audit konsistensi proses)
+- Fokus: audit konsistensi Business Process Map, PRD, MVP Scope, process specifications, ADR, Blueprint Catalog, README, dan Project Progress.
+- Branch: `feature/phase-0-requirements-blueprint`.
+- Dokumen baru: `docs/02-requirements/PROCESS-SPECIFICATION-CONSISTENCY-AUDIT.md` (AUD-REQ-001, Draft 0.1.0).
+- Temuan: 4 High, 4 Medium, 1 Low. Isu utama adalah ketidaksesuaian semantik ID BP-PLT-02/03/04; BP-PLT-04 identity/access belum terpetakan konsisten; PPDB/HR perlu dipisahkan tegas dari batas MVP; ownership HR employee profile versus academic teaching assignment perlu ditetapkan.
+- Konsistensi yang terkonfirmasi: model foundation/independent_provider, tenant versus education unit, pemisahan StudentProfile/Enrollment, pemisahan EmployeeProfile/UserAccount/ApplicationRole, PostgreSQL 18 accepted, stack aplikasi masih PoC recommendation.
+- Blueprint Catalog diperbarui dengan tautan audit dan checklist audit. Temuan belum diremediasi ke spesifikasi sumber karena perubahan ID, ownership, dan scope memerlukan keputusan product owner.
+- Tidak ada kode aplikasi, migration domain produksi, konfigurasi server, SQLRadius, atau MikroTik yang diubah.
+- PR #1 tetap Draft/open/unmerged; jangan merge tanpa instruksi eksplisit.
+- Next action: putuskan mapping ID BP-PLT, lalu scope PPDB/HR minimum, ownership HR versus academic assignment, dan boundary MVP jadwal/pembelajaran/rapor. Setelah keputusan, lakukan remediation ke dokumen sumber dan sinkronkan traceability.

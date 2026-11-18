@@ -135,3 +135,30 @@ Expected PASS notices cover same-unit visibility/write, cross-unit and cross-ten
 **Critical limitation:** this is a policy behavior test, not a complete authentication boundary test. The scripts use custom session settings `app.tenant_id` and `app.unit_id`. A database client able to issue arbitrary SQL can change those settings. Production must establish tenant/unit context through a trusted mechanism that validates the authenticated principal's memberships, and must test connection-pool reset, background jobs, exports, support access, and IDOR paths. Do not interpret a passing run as proof against context forgery or as production approval.
 
 If the setup script reports that the role already exists, it is designed to reuse it. Do not run it against `sinau`, `sinau_app`, or SQLRadius.
+
+## 8. Signed-context RLS integration (PoC)
+
+The earlier `003-rls-setup.sql` / `004-rls-tests.sql` experiment used client-writable `app.tenant_id` and `app.unit_id` settings. A SQL caller can change those settings, so those policies are useful only for demonstrating policy mechanics; they are not a trusted tenant-context boundary.
+
+`007-rls-signed-context.sql` is the next isolated experiment. It creates `sinau_private.current_verified_context()` as an invoker-rights accessor and replaces the `sinau_rls_isolation` predicates on tenant-scoped PoC tables. The accessor reads the opaque transaction-local `app.context_token` and calls `verify_context_token(text)`. The RLS policy obtains tenant/unit values only from verified claims, not from `app.tenant_id` or `app.unit_id`.
+
+Run only after the signer/verifier/key store from this PoC is already installed, and only as the PostgreSQL administrator against `sinau_design_poc`:
+
+```bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d sinau_design_poc -f 007-rls-signed-context.sql
+```
+
+Expected setup evidence:
+- `current_verified_context()` is owned by `sinau_context_owner`, SECURITY INVOKER, VOLATILE, PARALLEL UNSAFE, with fixed `search_path=pg_catalog, pg_temp`.
+- `sinau_rls_test` has EXECUTE on the accessor and the underlying verifier, but no access to key bytes.
+- Tenant-scoped tables remain ENABLE/FORCE ROW LEVEL SECURITY; their `sinau_rls_isolation` policy expressions call the verified-context accessor.
+- The global `tenants` registry remains outside RLS. `education_units` remains tenant-scoped. `audit_events` retains the special rule allowing tenant-level rows with `unit_id IS NULL`.
+
+After setup, use the two-terminal flow in the handoff: begin a transaction as `sinau_poc`, set local role to `sinau_rls_test`, allocate XID, sign for exactly that XID, import the token into a temporary table, and set only `app.context_token` with `set_config(..., true)`. Do not print the token. Test the valid scope, then change the legacy `app.tenant_id` / `app.unit_id` settings to tenant B/unit B1: rows must remain limited to claims in the signed token. Replacing `app.context_token` with an invalid value must fail closed (zero visible scoped rows). Restore the valid token only from the temporary table, finish the assertions, then ROLLBACK and remove tmpfs token files.
+
+Important limitations:
+- The custom GUC `app.context_token` is intentionally client-writable; its value is safe as a carrier only because every policy evaluation derives scope from a cryptographically verified token. Never use the unsigned tenant/unit GUCs in an RLS predicate.
+- A valid token is a bearer credential within its bound transaction. The trusted issuer/backend must authenticate the principal and verify current actor-to-tenant/unit membership before signing. The current PoC Python signer has hard-coded synthetic IDs and does not perform authentication or membership checks; it is not a production issuer.
+- This script does not install a trusted context setter and does not prove connection-pool, rollback, nested-transaction, concurrency, performance, or real membership behavior. Those require separate tests.
+- Do not treat this as production authorization approval. Do not run it against `sinau`, use `sinau_app`, or alter SQLRadius/MikroTik.
+

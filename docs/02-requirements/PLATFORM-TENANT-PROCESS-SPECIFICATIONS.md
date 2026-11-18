@@ -3,7 +3,7 @@
 **Versi:** Draft 0.1.0  
 **Tanggal:** 2026-11-18  
 **Status:** Draft turunan; belum divalidasi stakeholder dan bukan kontrak implementasi final  
-**Cakupan:** BP-PLT-01 sampai BP-PLT-04  
+**Cakupan:** BP-PLT-01 sampai BP-PLT-05; BP-PLT-06 dicatat pada Business Process Map sebagai lifecycle tenant/unit dan memerlukan spesifikasi rinci sebelum implementasi.  
 **Rujukan:** [Business Process Map](BUSINESS-PROCESS-MAP.md), [Registration and Onboarding Flow](REGISTRATION-AND-ONBOARDING-FLOW.md), [Multi-Tenant Blueprint](../01-blueprint/MULTI-TENANT.md), ADR-001 sampai ADR-004.
 
 > Dokumen ini menguraikan perilaku proses dan kontrol yang diperlukan. Ia tidak menetapkan harga, paket komersial, SLA, sumber verifikasi legal, atau skema fisik database yang belum diputuskan. Jika ada perbedaan, keputusan Accepted pada ADR dan kebijakan produk yang telah disahkan lebih tinggi daripada asumsi dalam dokumen draft ini.
@@ -340,7 +340,70 @@ Access decision harus merupakan hasil policy evaluation terhadap seluruh dimensi
 
 Test: checkout gagal/berhasil, webhook duplicate/out-of-order, pembayaran terlambat, renewal, downgrade dengan pemakaian berlebih, upgrade segera/terjadwal, entitlement expired, concurrency, cancel, suspend, reactivation, dan tenant isolation.
 
-## 7. Authorization matrix awal
+## 7. BP-PLT-05 — Identity, invitation, membership, role, dan access
+
+### 7.1 Tujuan dan batas
+
+Mengelola lifecycle invitation dan grant akses pengguna pada scope tenant/unit. Identitas pengguna bersifat global, sedangkan membership dan role assignment selalu memiliki scope eksplisit. Membership tidak sama dengan subscription/entitlement, status pegawai, atau hubungan akademik.
+
+Pembuatan membership dan role awal pendaftar dalam transaksi registrasi tetap menjadi bagian BP-PLT-01. BP-PLT-05 mencakup undangan anggota tambahan, penerimaan undangan, perubahan role, suspend/revoke membership, dan enforcement akses. Hak paket/fitur/kuota tetap menjadi tanggung jawab BP-PLT-04.
+
+### 7.2 Alur invitation dan acceptance
+
+1. Tenant/unit admin membuka undangan dan memilih email, scope (tenant dan/atau unit), role yang diizinkan, serta masa berlaku.
+2. Server memvalidasi membership aktif pemberi undangan, permission untuk mengundang/memberi role, status tenant/unit, serta kebijakan jumlah anggota.
+3. Sistem membuat invitation dengan token acak sekali pakai, expiry, scope, role yang diminta, inviter, dan audit; token tidak disimpan atau dicatat dalam bentuk terbuka.
+4. Penerima membuka tautan, login atau membuat User global, lalu meninjau scope/role sebelum menerima.
+5. Server memvalidasi token, expiry, status invitation, identitas penerima, status tenant/unit, dan apakah inviter masih berwenang.
+6. Dalam transaksi atomik, invitation ditandai accepted dan membership/role assignment yang diperlukan dibuat atau diaktifkan.
+7. Penerima mendapat konfirmasi scope yang diberikan; akses ke unit lain tidak ikut terbuka.
+
+### 7.3 Perubahan dan pencabutan akses
+
+- Perubahan role memerlukan permission khusus, validasi scope, alasan bila sensitif, dan audit nilai sebelum/sesudah.
+- Suspend membership bersifat reversible sesuai policy; revoke mengakhiri grant dan tidak dipulihkan otomatis oleh renewal subscription.
+- Revoke harus efektif untuk request berikutnya, termasuk API, file, export, queue/job, dan context/session aktif. Cache permission/context harus diinvalidasi.
+- Penghapusan user global bukan cara mencabut akses tenant/unit; revoke membership/role pada scope yang benar.
+- Support/break-glass mengikuti approval, time limit, reason, dan audit terpisah.
+
+### 7.4 State konseptual
+
+| Entitas | State | Catatan |
+|---|---|---|
+| Invitation | pending, accepted, expired, revoked | Terminal state tidak dapat diterima ulang |
+| TenantMembership | invited, active, suspended, revoked, expired | Scope tenant |
+| UnitMembership | invited, active, suspended, revoked, expired | Scope unit; tidak diwariskan otomatis |
+| RoleAssignment | active, revoked, expired | Role dan permission terikat scope/effective period |
+
+Status tenant, unit, verification, subscription, dan entitlement tetap merupakan dimensi terpisah yang diperiksa dalam access policy.
+
+### 7.5 Aturan bisnis dan keamanan
+
+- Invitation hanya dapat dibuat oleh actor yang memiliki permission invite pada scope terkait.
+- Role yang dapat diberikan dibatasi oleh delegation/role ceiling; admin tidak boleh memberi privilege yang tidak dimilikinya.
+- Email penerima harus diverifikasi sesuai kebijakan sebelum membership aktif.
+- Token invitation sekali pakai, memiliki expiry, tidak boleh muncul di log, analytics, atau event payload.
+- Penerimaan invitation idempotent; token expired/revoked/accepted tidak dapat dipakai ulang.
+- Tenant membership tidak otomatis memberikan unit membership.
+- Revoke membership/role harus segera menutup akses; cache/session tidak boleh mempertahankan grant yang telah dicabut.
+- Setiap akses memeriksa scope di server; ID resource dari browser bukan bukti otorisasi.
+
+### 7.6 Acceptance criteria
+
+- AC-PLT-05-01: hanya actor dengan permission yang sesuai dapat mengundang anggota pada scope yang diizinkan.
+- AC-PLT-05-02: invitation token memiliki expiry, sekali pakai, dan tidak dapat ditebak atau dipakai ulang.
+- AC-PLT-05-03: penerimaan invitation membuat membership/role pada scope yang tepat secara atomik dan idempotent.
+- AC-PLT-05-04: tenant membership tidak otomatis memberi akses unit.
+- AC-PLT-05-05: actor tidak dapat memberikan role di atas delegation ceiling miliknya.
+- AC-PLT-05-06: perubahan/revoke membership atau role tercatat dengan actor, alasan, waktu, dan before/after.
+- AC-PLT-05-07: revoke segera menolak request/API/file/export/job berikutnya dan menginvalidasi cache/context aktif.
+- AC-PLT-05-08: undangan tidak dapat diterima jika tenant/unit closed atau statusnya melarang operasi.
+- AC-PLT-05-09: retry, duplicate acceptance, dan concurrent acceptance tidak membuat membership ganda.
+- AC-PLT-05-10: akses lintas tenant/unit ditolak walaupun pemanggil mengetahui ID resource.
+
+Test minimum: invitation valid/expired/revoked, email belum diverifikasi, existing user, duplicate invitation, duplicate/concurrent acceptance, inviter kehilangan permission, role escalation, unit berbeda dalam tenant sama, tenant berbeda, membership suspended/revoked, session/cache invalidation, file/export/background job, dan break-glass audit.
+
+## 8. Authorization matrix awal
 
 | Aksi | Pendaftar | Tenant owner/admin | Unit admin | Verification officer | Billing operator | Support |
 |---|---|---|---|---|---|---|
@@ -356,7 +419,7 @@ Test: checkout gagal/berhasil, webhook duplicate/out-of-order, pembayaran terlam
 
 Matrix ini baseline, bukan daftar permission final. Permission harus granular, scoped, default-deny, dan diuji untuk UI/API/background jobs.
 
-## 8. API/event dan integrasi konseptual
+## 9. API/event dan integrasi konseptual
 
 Nama endpoint final ditetapkan setelah API blueprint. Operasi minimum:
 - registration create/confirm/status;
@@ -381,7 +444,7 @@ Event konseptual:
 
 Semua event harus memiliki event ID, aggregate ID, tenant context, occurred_at, schema version, dan idempotency strategy. Jangan memasukkan dokumen legal, password, token, atau data pribadi berlebihan ke payload event.
 
-## 9. Screen inventory awal
+## 10. Screen inventory awal
 
 1. Registrasi akun dan verifikasi email.
 2. Pemilihan bentuk pelanggan.
@@ -397,21 +460,23 @@ Semua event harus memiliki event ID, aggregate ID, tenant context, occurred_at, 
 12. Penggunaan kuota, notifikasi batas, downgrade impact preview.
 13. Suspended/limited access page dan reactivation flow.
 14. Audit activity untuk tenant admin dan platform privileged roles sesuai scope.
+15. Daftar anggota tenant/unit, undangan, detail penerimaan, pengelolaan role, suspend/revoke membership, dan histori akses.
 
 Setiap layar harus memiliki loading, empty, validation error, permission denied, offline/retry, success, dan responsive states.
 
-## 10. Traceability awal
+## 11. Traceability awal
 
 | Process | Requirement group | Domain/data | Permission scope | UI | Test family |
 |---|---|---|---|---|---|
-| BP-PLT-01 | REG/IDENTITY | User, Registration, Tenant, Unit, Membership | Public registration; tenant/unit | Registration wizard | Registration, idempotency, IDOR |
+| BP-PLT-01 | REG/ONBOARDING | User, Registration, Tenant, Unit, initial Membership | Public registration; tenant/unit | Registration wizard | Registration, idempotency, IDOR |
 | BP-PLT-02 | TENANT/UNIT | Tenant, EducationUnit, Entitlement | Tenant admin; unit scoped | Unit management | Entitlement, concurrency, isolation |
 | BP-PLT-03 | VERIFY | VerificationCase, Document, Audit | Tenant submit; platform review | Verification center | Privacy, workflow, deadline |
 | BP-PLT-04 | BILLING/ENTITLEMENT | Plan, Subscription, Invoice, Entitlement | Tenant billing; platform billing | Billing center | Webhook, ledger, concurrency |
+| BP-PLT-05 | IDENTITY/ACCESS | User, Invitation, TenantMembership, UnitMembership, RoleAssignment | Tenant/unit membership scoped | Member and invitation management | Invitation lifecycle, role ceiling, revoke, cross-scope IDOR |
 
 Requirement IDs final perlu diselaraskan dengan PRODUCT-REQUIREMENTS dan acceptance register sebelum dianggap stable.
 
-## 11. Keputusan terbuka dan blocker implementasi
+## 12. Keputusan terbuka dan blocker implementasi
 
 | ID | Pertanyaan | Mengapa penting | Status |
 |---|---|---|---|
@@ -428,7 +493,7 @@ Requirement IDs final perlu diselaraskan dengan PRODUCT-REQUIREMENTS dan accepta
 
 **Gate:** implementasi subscription/checkout dan policy suspend/downgrade tidak boleh dimulai sebelum OPEN-PLT-03 sampai OPEN-PLT-05 diputuskan. Implementasi verifikasi otomatis tidak boleh mengasumsikan sumber resmi sebelum OPEN-PLT-01/02 diselesaikan.
 
-## 12. Exit criteria spesifikasi
+## 13. Exit criteria spesifikasi
 
 Spesifikasi ini baru dapat dinyatakan siap baseline setelah:
 - proses divalidasi oleh perwakilan pelanggan dan operator platform;

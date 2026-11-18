@@ -3,10 +3,14 @@
 **Status:** Proposed — perlu persetujuan pemilik produk
 
 ## Tujuan MVP
-Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dapat dipakai oleh sekolah umum dan madrasah sebelum memperluas cakupan.
+Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dapat dipakai oleh sekolah umum (SD, SMP, SMA, SMK) dan madrasah (MI, MTs, MA, MAK), baik di bawah yayasan maupun mandiri.
 
 ## MVP — wajib
-### A. Platform dan organisasi
+### A. Registrasi, platform, dan organisasi
+- Registrasi pelanggan menyediakan dua pilihan: **Yayasan/penyelenggara pendidikan** atau **Sekolah/madrasah mandiri**.
+- Pilihan tersebut menetapkan tipe tenant (foundation atau independent_provider), bukan jenis/jenjang pendidikan.
+- Yayasan dapat menambahkan satu atau beberapa unit sekolah umum, madrasah, atau campuran keduanya.
+- Registrasi mandiri membuat tenant tanpa entitas yayasan fiktif dan menghubungkannya dengan unit pendidikan yang didaftarkan.
 - Registrasi/onboarding tenant melalui alur yang dikendalikan.
 - Profil tenant dan satu/lebih unit pendidikan.
 - Konfigurasi jenis lembaga dan jenjang.
@@ -49,10 +53,14 @@ Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dap
 - MVP tidak boleh mengklaim menggantikan semua aplikasi/pelaporan resmi.
 - Struktur mapel, penilaian, dan rapor harus dapat dikonfigurasi per jenis lembaga, jenjang, kurikulum, dan periode.
 - Dukungan madrasah harus diuji dengan pengguna madrasah; tidak cukup hanya mengganti label sekolah.
+- Dukungan SD/SMP/SMA/SMK juga harus diuji; yayasan sekolah umum merupakan skenario pelanggan yang valid.
 - Fitur yang belum masuk MVP tidak boleh dibuat diam-diam tanpa change request.
 
 ## Gerbang kelulusan MVP
-1. Tes isolasi tenant dan unit lulus.
+1. Skenario registrasi yayasan sekolah umum lulus.
+2. Skenario registrasi yayasan madrasah atau campuran lulus.
+3. Skenario registrasi sekolah/madrasah mandiri lulus tanpa yayasan fiktif.
+4. Tes isolasi tenant dan unit lulus.
 2. Tes permission untuk seluruh use case MVP lulus.
 3. Import data dapat dipreview dan ditolak dengan alasan yang jelas.
 4. Koreksi data sensitif terekam.

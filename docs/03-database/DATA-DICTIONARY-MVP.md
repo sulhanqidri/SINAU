@@ -470,7 +470,7 @@ Akses wali terhadap data siswa tidak muncul otomatis dari relasi ini; guardian l
 | academic_year_id | ID | Tidak | INT | Composite FK tahun ajaran |
 | academic_term_id | ID | Ya | INT | Composite FK term dalam tahun ajaran |
 | grade_level_id | ID | Tidak | INT | Composite FK tingkat unit |
-| class_group_id | ID | Ya | INT | Nullable selama belum ditempatkan ke rombel |
+| class_group_id | — | — | — | Deprecated pada model v0.2.0; penempatan kelas authoritative melalui student_class_placements |
 | enrollment_no | varchar(40) | Tidak | CONF | Nomor enrollment unik per unit sesuai policy |
 | status | CODE | Tidak | INT | Status enrollment |
 | effective_from / effective_until | DATE | Tidak / Ya | SENS | Rentang status; akhir tidak sebelum awal |
@@ -867,3 +867,159 @@ Tidak ada jawaban pada tabel ini yang boleh diasumsikan telah disetujui.
 | Tanggal | Versi | Perubahan |
 |---|---|---|
 | 2026-11-18 | 0.1.0 | Draft dictionary MVP: kandidat atribut/tipenya, nullability, klasifikasi, validasi, histori, constraint, dan pertanyaan terbuka. |
+
+
+## 11. Addendum data dictionary — remediation AUD-LD-001 (v0.2.0)
+
+Bagian ini adalah definisi kandidat terbaru dan mengesampingkan field/relasi yang bertentangan pada bagian sebelumnya. Semua tipe dan constraint tetap kandidat untuk review, bukan migration authorization.
+
+### 11.1 student_class_placements
+
+**Owner kandidat:** Student (kontrak dengan Academic; belum disahkan) · **Scope:** unit · **Lifecycle:** effective-dated, append-only untuk perubahan penempatan.
+
+| Kolom | Tipe kandidat | Null | Klasifikasi | Definisi/validasi |
+|---|---|---:|---|---|
+| id | ID | Tidak | SYS | PK |
+| tenant_id / unit_id | ID | Tidak | INT | Scope; composite FK ke unit |
+| student_enrollment_id | ID | Tidak | SENS | Composite FK enrollment |
+| class_group_id | ID | Tidak | SENS | Composite FK rombel |
+| starts_on | DATE | Tidak | SENS | Tanggal mulai berlaku inklusif |
+| ends_on | DATE | Ya | SENS | Tanggal akhir inklusif; >= starts_on |
+| status | CODE | Tidak | INT | active/ended/cancelled candidate |
+| reason | TEXT | Ya | CONF | Alasan penempatan/perpindahan, minimisasi |
+| created_by_user_id | ID | Tidak | PII | Actor pembuat |
+| created_at | TS | Tidak | SYS | Waktu pencatatan |
+
+Candidate unique scope key untuk composite FK; temporal exclusion/serialized transaction mencegah overlap untuk satu enrollment. Enrollment tetap tidak menyimpan current class. Penempatan baru dibuat saat pindah rombel; histori lama tidak ditimpa.
+
+### 11.2 attendance_session_participants
+
+**Owner:** Attendance · **Scope:** unit · **Lifecycle:** snapshot roster per sesi.
+
+| Kolom | Tipe kandidat | Null | Klasifikasi | Definisi/validasi |
+|---|---|---:|---|---|
+| id | ID | Tidak | SYS | PK |
+| tenant_id / unit_id | ID | Tidak | INT | Scope |
+| attendance_session_id | ID | Tidak | SENS | Composite FK sesi |
+| student_enrollment_id | ID | Tidak | SENS | Composite FK enrollment |
+| student_class_placement_id | ID | Tidak | SENS | Composite FK placement yang berlaku pada session_date |
+| eligibility_status | CODE | Tidak | INT | eligible/excluded candidate |
+| included_at | TS | Tidak | SYS | Waktu snapshot |
+| excluded_at | TS | Ya | SYS | Waktu pengecualian khusus |
+| exclusion_reason | TEXT | Ya | CONF | Alasan terbatas dan diaudit |
+
+Unique(session,enrollment). Roster dibentuk dari enrollment dan placement efektif pada tanggal sesi; snapshot tidak mengikuti perubahan roster berikutnya. Perubahan snapshot membutuhkan permission, reason, actor, dan audit.
+
+### 11.3 attendance_records — revisi relasi
+
+Tambahkan attendance_session_participant_id ID NOT NULL sebagai FK authoritative ke participant; unique satu record per participant. student_enrollment_id boleh dipertahankan sebagai denormalized query key hanya bila composite FK membuktikan nilainya sama dengan enrollment pada participant. Status terkini adalah projection dari revision terakhir, bukan satu-satunya histori.
+
+### 11.4 attendance_record_revisions
+
+**Owner:** Attendance · **Scope:** unit · **Append-only**.
+
+| Kolom | Tipe kandidat | Null | Klasifikasi | Definisi/validasi |
+|---|---|---:|---|---|
+| id | ID | Tidak | SYS | PK |
+| tenant_id / unit_id | ID | Tidak | INT | Scope |
+| attendance_record_id | ID | Tidak | SENS | Composite FK record |
+| revision_no | INT | Tidak | SYS | Mulai 1; monotonik per record |
+| attendance_status | CODE | Tidak | SENS | Status yang berlaku pada revision ini |
+| note | TEXT | Ya | SENS | Catatan terbatas; tanpa detail medis |
+| source_correction_id | ID | Ya | SENS | FK correction; unique bila tidak null |
+| changed_by_user_id | ID | Tidak | PII | Actor manusia; system actor mengikuti audit actor contract |
+| changed_at | TS | Tidak | SYS | Waktu perubahan |
+
+Unique(record,revision_no); paling banyak satu revision dihasilkan oleh satu correction. Perubahan current projection dan revision dilakukan atomik.
+
+### 11.5 attendance_corrections — lifecycle yang diperluas
+
+Tambahkan/seragamkan kandidat field:
+- review_status: requested/approved/rejected/applied (atau requested + decision state terpisah; final enum menunggu policy).
+- reviewed_by_user_id, reviewed_at: nullable sampai keputusan.
+- applied_revision_id: nullable FK ke revision yang dihasilkan.
+- applied_by_user_id, applied_at: nullable sampai apply.
+- idempotency_key: unique dalam scope request.
+- Constraint: rejected tidak memiliki applied_revision_id; applied wajib memiliki applied_revision_id dan applied_at. Approved tanpa apply tetap tidak mengubah record.
+- Approval wajib/tidak wajib ditentukan oleh AttendancePolicy; dictionary tidak menganggap seluruh koreksi selalu memerlukan approval.
+
+### 11.6 assessment_participants
+
+**Owner:** Assessment · **Scope:** unit · **Lifecycle:** snapshot peserta per asesmen.
+
+| Kolom | Tipe kandidat | Null | Klasifikasi | Definisi/validasi |
+|---|---|---:|---|---|
+| id | ID | Tidak | SYS | PK |
+| tenant_id / unit_id | ID | Tidak | INT | Scope |
+| assessment_definition_id | ID | Tidak | SENS | Composite FK asesmen |
+| student_enrollment_id | ID | Tidak | SENS | Composite FK enrollment |
+| student_class_placement_id | ID | Tidak | SENS | Placement efektif pada assessment_date |
+| eligibility_status | CODE | Tidak | INT | eligible/excluded candidate |
+| included_at | TS | Tidak | SYS | Waktu snapshot |
+| excluded_at | TS | Ya | SYS | Waktu pengecualian |
+| exclusion_reason | TEXT | Ya | CONF | Alasan terbatas |
+
+Unique(assessment,enrollment). Peserta historis tidak berubah karena perpindahan rombel setelah tanggal asesmen.
+
+### 11.7 assessment_definitions — versioned scoring rules
+
+Tambahkan:
+- scoring_rule_version CODE NOT NULL: versi konfigurasi skala/aturan yang dipakai.
+- scoring_rule_snapshot JSONB NOT NULL: snapshot konfigurasi tervalidasi, bukan kode executable; format/schema versioned.
+- Snapshot dibekukan saat hasil pertama dicatat. Perubahan berikutnya membuat versi definisi/aturan baru; hasil lama tidak dihitung ulang diam-diam.
+- Bobot, skala, presisi, dan kategori tetap konfigurasi unit dan belum memiliki nilai universal.
+
+### 11.8 student_scores — result state dan workflow MVP
+
+Jadikan FK authoritative ke assessment_participant_id ID NOT NULL; unique satu hasil current per participant pada baseline MVP. Candidate fields:
+
+| Kolom | Tipe kandidat | Null | Klasifikasi | Definisi/validasi |
+|---|---|---:|---|---|
+| result_status | CODE | Tidak | SENS | pending/scored/absent/exempt candidate; zero direpresentasikan oleh score_value=0 saat scored |
+| score_value | NUMERIC(8,2) | Ya | SENS | Wajib bila scored; null bila pending/absent/exempt; 0 <= value <= max_score |
+| workflow_status | CODE | Tidak | INT | draft/finalized candidate; bukan rapor formal/publication |
+| finalized_by_user_id | ID | Ya | PII | Actor finalisasi |
+| finalized_at | TS | Ya | SYS | Waktu finalisasi |
+
+Kondisi: result_status=scored iff score_value IS NOT NULL; status selain scored harus score_value NULL. Pending bukan nol dan absent/exempt bukan nol. Tidak adanya row tidak boleh diam-diam diartikan nol. Remedial/retake, multiple attempts, review berjenjang, rapor formal, dan publikasi portal post-MVP. Perubahan nilai finalized memerlukan revision/change request dan audit; history lama tetap.
+
+### 11.9 student_score_change_history — penegasan
+
+History mencatat perubahan result_status, score_value, workflow_status, scoring_rule_version, actor, reason, dan timestamp; bukan hanya old/new numeric value. Event create boleh memiliki old state NULL; perubahan berikutnya wajib memiliki old dan new state yang dapat dibandingkan.
+
+### 11.10 HR/Academic effective dates
+
+Untuk employee_placements, homeroom_assignments, dan teaching_assignments:
+- starts_on NOT NULL; ends_on NULL atau >= starts_on.
+- FK scope dan relasi employee placement/class/subject harus konsisten.
+- Masa assignment tidak boleh keluar dari masa placement yang dirujuk.
+- Overlap ditentukan per business key; bukan larangan global untuk seluruh assignment seorang pegawai.
+- Employment status berubah tidak menghapus assignment historis; transisi yang memengaruhi masa depan harus menghasilkan event dan koordinasi HR→Academic.
+
+### 11.11 audit_events — actor contract
+
+Tambahkan actor_service_code CODE nullable dan support_session_reference ID/CODE nullable:
+- actor_type=user/support → actor_user_id NOT NULL.
+- actor_type=system/service → actor_user_id NULL dan actor_service_code NOT NULL.
+- correlation_id NOT NULL untuk semua event.
+- support actor memerlukan reason dan support session/reference.
+- Actor type dan actor identity harus diperiksa dengan CHECK + allowlist + authorization. Event append-only; tamper-evident sink/retention menunggu security architecture.
+
+### 11.12 File ownership dan authorization
+
+stored_files.owner_domain/owner_entity_type/owner_entity_id adalah metadata polymorphic, bukan FK atau permission. Validasi allowlist dan scope pada attach, read, preview, download, export, retry job, dan delete. File sensitif harus memakai typed association/FK milik domain bila tersedia. Object private, malware scan sebelum tersedia, MIME server-detected, signed URL singkat bila dipakai, permission re-check pada setiap akses, serta audit akses.
+
+### 11.13 Konsistensi sumber kebenaran
+
+- Logical ERD menentukan relasi, owner candidate, scope, dan candidate key.
+- Data Dictionary menentukan atribut, tipe, nullability, klasifikasi, dan validasi.
+- Bila ada konflik, addendum v0.2.0 pada kedua dokumen menjadi proposal terbaru; konflik lama ditandai deprecated, tidak digunakan sebagai dasar migration.
+- Setiap perubahan harus diikuti traceability ke process ID, permission, test ID, dan release.
+- Semua perubahan masih Draft menunggu domain owner, privacy/security, DBA/architect, dan product owner review.
+
+## 12. Riwayat perubahan
+
+| Tanggal | Versi | Perubahan |
+|---|---|---|
+| 2026-11-18 | 0.1.0 | Draft data dictionary MVP. |
+| 2026-11-18 | 0.2.0 | Proposal remediasi audit: placement, participant snapshots, attendance revisions, assessment result lifecycle, effective dating, audit actor, dan file authorization. |

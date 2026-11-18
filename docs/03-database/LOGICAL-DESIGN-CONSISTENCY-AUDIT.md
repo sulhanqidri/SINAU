@@ -250,13 +250,13 @@ Severity:
 | Urutan | Tindakan | Hasil yang diharapkan | Gerbang |
 |---|---|---|---|
 | 1 | Product/domain owner memutuskan batas MVP untuk placement, session, assessment result, dan correction | Keputusan eksplisit; tidak mengubah scope diam-diam | Product approval |
-| 2 | Revisi Logical ERD untuk AUD-LD-01—05 dan AUD-LD-09 | Relasi, key, lifecycle, dan constraint candidate lengkap | Domain review |
-| 3 | Revisi Data Dictionary untuk setiap perubahan ERD | Field, nullability, classification, validation, retention owner konsisten | Data owner + privacy |
-| 4 | Buat traceability matrix proses → entity → owner → test | Semua proses MVP punya representasi data dan test | Product/domain review |
-| 5 | Buat constraint/test matrix positif, negatif, concurrency, temporal | Bukti integritas tenant/unit dan akademik | DBA/architect/security |
-| 6 | Jalankan PoC PostgreSQL untuk constraint baru dan authorization boundary | Hasil teknis tercatat; tidak menyentuh database produksi | Technical gate |
-| 7 | Review privacy/security untuk data anak, wali, dokumen, nilai, presensi, file, audit | Purpose, access, retention, deletion, incident controls | Security/privacy gate |
-| 8 | Minta acceptance logical design dan data dictionary | Persetujuan sebelum physical schema/migration | Product owner |
+| 2 | Revisi Logical ERD untuk AUD-LD-01—05 dan AUD-LD-09 | Proposal v0.2.0 tersedia pada §16; menunggu domain review | In progress / acceptance pending |
+| 3 | Revisi Data Dictionary untuk setiap perubahan ERD | Proposal v0.2.0 tersedia pada §11; final reconciliation dan privacy review pending | In progress / acceptance pending |
+| 4 | Buat traceability matrix proses → entity → owner → test | Traceability awal ditambahkan pada process specification §10.4; perlu dilengkapi ke permission, API/UI, dan UAT | In progress |
+| 5 | Buat constraint/test matrix positif, negatif, concurrency, temporal | Candidate enforcement matrix dan LD-01—LD-16 tersedia; bukti eksekusi belum ada | Test design done; execution pending |
+| 6 | Jalankan PoC PostgreSQL untuk constraint baru dan authorization boundary | Belum dijalankan untuk constraint baru; perlu lingkungan PoC dan hasil tercatat | Pending |
+| 7 | Review privacy/security untuk data anak, wali, dokumen, nilai, presensi, file, audit | Guardian access, file authorization, actor audit, dan retention perlu review | Pending |
+| 8 | Minta acceptance logical design dan data dictionary | Hanya setelah keputusan, PoC, test, dan privacy/security review lulus | Pending |
 
 ## 6. Hal yang tidak boleh dianggap selesai
 

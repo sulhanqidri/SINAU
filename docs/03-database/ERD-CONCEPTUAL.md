@@ -4,23 +4,31 @@ Diagram ini menunjukkan hubungan domain utama, bukan seluruh kolom atau constrai
 
 ```mermaid
 erDiagram
-  TENANTS ||--|{ EDUCATION_UNITS : serves
-  TENANTS ||--o{ TENANT_MEMBERSHIPS : has
+  TENANTS ||--o| FOUNDATION_PROFILES : has
+  TENANTS ||--|{ EDUCATION_UNITS : owns
+  TENANTS ||--o{ TENANT_MEMBERSHIPS : grants
   USERS ||--o{ TENANT_MEMBERSHIPS : joins
+  TENANT_MEMBERSHIPS ||--o{ UNIT_MEMBERSHIPS : scopes
   EDUCATION_UNITS ||--o{ UNIT_MEMBERSHIPS : grants
-  USERS ||--o{ UNIT_MEMBERSHIPS : assigned
+  USERS ||--o{ UNIT_MEMBERSHIPS : receives
+  TENANTS ||--o{ EMPLOYEE_PROFILES : employs
+  EMPLOYEE_PROFILES ||--o{ EMPLOYEE_PLACEMENTS : placed
+  EDUCATION_UNITS ||--o{ EMPLOYEE_PLACEMENTS : assigns
   EDUCATION_UNITS ||--o{ ACADEMIC_YEARS : defines
-  EDUCATION_UNITS ||--o{ STUDENTS : registers
-  STUDENTS ||--o{ STUDENT_ENROLLMENTS : has
-  EDUCATION_UNITS ||--o{ STUDENT_ENROLLMENTS : hosts
+  ACADEMIC_YEARS ||--o{ ACADEMIC_TERMS : contains
+  EDUCATION_UNITS ||--o{ STUDENT_PROFILES : registers
+  STUDENT_PROFILES ||--o{ STUDENT_GUARDIANS : linked
+  GUARDIAN_PROFILES ||--o{ STUDENT_GUARDIANS : related
+  STUDENT_PROFILES ||--o{ STUDENT_ENROLLMENTS : enrolls
   ACADEMIC_YEARS ||--o{ STUDENT_ENROLLMENTS : period
   CLASS_GROUPS ||--o{ STUDENT_ENROLLMENTS : groups
   EDUCATION_UNITS ||--o{ CLASS_GROUPS : organizes
-  USERS ||--o{ EMPLOYEES : account
-  EMPLOYEES ||--o{ TEACHER_ASSIGNMENTS : assigned
-  CLASS_GROUPS ||--o{ TEACHER_ASSIGNMENTS : taught
+  EMPLOYEE_PLACEMENTS ||--o{ TEACHING_ASSIGNMENTS : assigned
+  CLASS_GROUPS ||--o{ TEACHING_ASSIGNMENTS : taught
   STUDENT_ENROLLMENTS ||--o{ ATTENDANCE_RECORDS : attendance
+  ATTENDANCE_SESSIONS ||--o{ ATTENDANCE_RECORDS : records
   STUDENT_ENROLLMENTS ||--o{ STUDENT_SCORES : assessed
+  ASSESSMENT_DEFINITIONS ||--o{ STUDENT_SCORES : scores
   USERS ||--o{ AUDIT_EVENTS : performs
 ```
 
@@ -58,3 +66,8 @@ Entitas atau relasi untuk timetable engine lengkap, LMS, formal report-card work
 ### Batas teknis
 
 Belum ditentukan kolom final, primary key strategy, nullability, unique constraints, composite foreign keys, RLS policy, cascade behavior, soft delete, retention, atau physical partitioning. Semua itu menunggu logical ERD, data dictionary, threat/privacy review, dan hasil PoC PostgreSQL.
+
+
+## Hubungan ke logical ERD MVP
+
+Rincian kandidat tabel, kolom, candidate keys, composite foreign keys, constraints, dan keputusan terbuka tersedia di [LOGICAL-ERD-MVP.md](LOGICAL-ERD-MVP.md). Diagram konseptual ini tetap ringkasan relasi; bila ada perbedaan detail, logical ERD adalah draft turunan yang perlu direview, bukan migration final.

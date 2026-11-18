@@ -18,7 +18,7 @@
 | Master blueprint dan katalog dokumen | 🟡 In progress | Master blueprint, katalog kelengkapan, dan peta proses bisnis memiliki baseline draft; belum tervalidasi/diterima |
 | Arsitektur aplikasi | 🟡 In progress | Modular monolith adalah baseline; stack aplikasi masih rekomendasi PoC |
 | Tenant dan authorization | 🟡 In progress | Model baseline dan ADR ada; implementasi serta pembuktian keamanan belum dilakukan |
-| Database PostgreSQL 18 | 🟡 In progress | Engine diputuskan; CI constraint smoke test lulus, PoC menyeluruh belum lulus |
+| Database PostgreSQL 18 | 🟡 In progress | Engine diputuskan; logical ERD dan data dictionary MVP draft tersedia; review dan PoC menyeluruh belum lulus |
 | Design system dan UX | 🟡 In progress | Prinsip dan inventory awal ada; prototipe dan tokens final belum disahkan |
 | Aplikasi Laravel/Vue | ⚪ Not started | Belum ada kode aplikasi atau migration domain produksi |
 | Modul operasional pendidikan | ⚪ Not started | Belum ada implementasi modul |
@@ -390,4 +390,15 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 " yang sebelumnya tampil di beberapa checklist/katalog sebagai teks, bukan line break.
 - Status: logical ERD masih Draft, belum direview/diterima; acceptance criteria belum dicentang. Belum ada SQL migration, kode aplikasi, atau deployment.
 - Langkah berikut: review logical ERD terhadap process specs; lanjutkan data dictionary per entitas/atribut setelah ownership dan keputusan terbuka divalidasi. Khusus OWN-01—OWN-10 dan LERD-01—LERD-10 tidak dianggap selesai.
+- PR #1 tetap Draft/open/unmerged.
+
+
+### Checkpoint tambahan — 2026-11-18: Data Dictionary MVP v0.1.0
+
+- Dibuat `docs/03-database/DATA-DICTIONARY-MVP.md` sebagai kamus rinci untuk entitas pada Logical ERD MVP.
+- Memuat kandidat tipe PostgreSQL, nullability, definisi, klasifikasi PUB/INT/CONF/PII/SENS/SYS, validasi, scope, lifecycle/historisasi, candidate constraints/index, dan 15 pertanyaan terbuka.
+- Data siswa, wali, presensi, nilai, dokumen verifikasi, dan credential ditandai sensitif sesuai kebutuhan minimisasi; sejumlah field berisiko tinggi sengaja tidak dimasukkan (mis. NIK siswa, data kesehatan, rekening/gaji) tanpa requirement dan approval.
+- `DATA-DICTIONARY-BASELINE.md` dipertahankan sebagai inventaris ringkas dan diarahkan ke kamus rinci; README, Blueprint Catalog, dan DATA-INTEGRITY diperbarui.
+- Status kamus tetap Draft; tipe dan atribut belum disahkan. Tidak ada migration SQL, kode aplikasi, atau deployment yang dibuat.
+- Langkah berikut: lakukan reconciliation antara Logical ERD, kamus, process specs, dan ownership matrix; kemudian review domain/privacy/security dan siapkan test matrix constraint positif/negatif/concurrency. Jangan melanjutkan ke migration sebelum review dan gate PoC/approval.
 - PR #1 tetap Draft/open/unmerged.

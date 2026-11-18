@@ -119,20 +119,29 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 - **Exit gate:** fondasi aman dan test tenant isolation lulus sebelum modul domain dimulai.
 
 ### Phase 4 — MVP domain modules
-Urutan dan isi final harus mengikuti MVP scope yang disetujui. Kandidat domain:
-- [ ] Platform SaaS, tenant, unit, subscription, entitlement, onboarding/verifikasi.
-- [ ] Master data lembaga, kalender, tahun ajaran, semester, kurikulum.
-- [ ] Peserta didik, orang tua/wali, pendaftaran/PPDB, enrollment dan riwayat.
-- [ ] Guru, pegawai, struktur organisasi, penugasan.
-- [ ] Kelas/rombel, mata pelajaran, jadwal, presensi.
-- [ ] Pembelajaran, asesmen, nilai, rapor.
-- [ ] Keuangan: tagihan, pembayaran, kas, jurnal, anggaran, rekonsiliasi.
-- [ ] Kesiswaan, BK, prestasi, pelanggaran, kegiatan.
-- [ ] Surat, disposisi, dokumen, arsip, persetujuan.
-- [ ] Perpustakaan, inventaris, aset dan pemeliharaan.
-- [ ] Portal guru, siswa, orang tua/wali.
-- [ ] Dashboard, laporan, notifikasi, komunikasi, import/export.
-- **Exit gate:** setiap modul memiliki acceptance criteria, tenant/unit/role tests, audit, dokumentasi, dan persetujuan UAT terkait.
+Urutan dan isi final harus mengikuti MVP-SCOPE.md yang masih Proposed dan menunggu persetujuan product owner. Daftar berikut memisahkan **minimum MVP** dari **roadmap/post-MVP** agar kandidat modul tidak terbaca sebagai komitmen fitur.
+
+**Minimum MVP yang diturunkan dari MVP-SCOPE.md:**
+- [ ] Platform SaaS: tenant, unit, onboarding/verifikasi, subscription/entitlement, identity, membership, role, permission.
+- [ ] Master data lembaga, kalender, tahun ajaran, semester, kurikulum/versi, mata pelajaran.
+- [ ] StudentProfile, guardian relationship minimum, StudentEnrollment per unit/periode/rombel; status dasar dan histori.
+- [ ] HR minimum: profil pegawai/guru, status kerja dasar, penempatan yang diperlukan; TeachingAssignment/HomeroomAssignment dikelola academic domain.
+- [ ] Kelas/rombel, mata pelajaran, penugasan guru dasar.
+- [ ] Presensi siswa per kelas/sesi, koreksi beralasan, audit, rekap sederhana.
+- [ ] Penilaian dasar yang dapat dikonfigurasi, rekap hasil belajar sederhana, dan ekspor sesuai permission.
+- [ ] Import CSV awal dengan preview, validasi, hasil per baris, dan audit.
+- **Exit gate:** acceptance criteria, tenant/unit/role tests, audit, dokumentasi, UAT sekolah umum dan madrasah, serta persetujuan product owner.
+
+**Roadmap / post-MVP — jangan masuk sprint MVP tanpa change request:**
+- [ ] PPDB end-to-end dan pembayaran pendaftaran (BP-ADM-01).
+- [ ] HRIS lanjutan: kontrak terperinci, cuti, presensi pegawai, payroll, offboarding lanjutan.
+- [ ] Timetable engine lengkap dan publikasi jadwal periodik (BP-ACA-02).
+- [ ] Learning delivery, tugas, materi, aktivitas, dan LMS (BP-ACA-03).
+- [ ] Workflow pengesahan formal, rapor resmi, transkrip, publikasi dan arsip (BP-ASM-02).
+- [ ] Lifecycle siswa lanjutan: transfer lintas unit, cuti formal, promosi massal, kelulusan formal, alumni (BP-STD-02).
+- [ ] Keuangan: tagihan, pembayaran, kas, jurnal, anggaran, rekonsiliasi (BP-FIN-01/02); belum ada persetujuan scope atau spesifikasi rinci.
+- [ ] Kesiswaan/BK, surat/disposisi, perpustakaan, inventaris/aset, portal lengkap, integrasi eksternal, dan analitik lanjutan.
+- **Gate:** masing-masing domain memerlukan discovery, keputusan scope, privacy/legal review, module blueprint, dan change request sebelum implementasi.
 
 ### Phase 5 — Quality, security, UAT & release readiness
 - [ ] Regression, integration, E2E, accessibility, responsive, performance tests.
@@ -297,3 +306,22 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - PR #1 harus tetap Draft/open/unmerged; tidak ada instruksi merge.
 - Next action: verifikasi hasil dokumentasi dan status PR; kemudian lanjutkan remediasi AUD-03—AUD-09 atau stakeholder validation sesuai prioritas product owner.
 - Hal yang tidak boleh dilakukan: jangan implementasikan transfer lintas tenant, jangan membuat migration domain produksi, jangan merge PR #1, dan jangan mengubah SQLRadius/MikroTik.
+
+
+---
+
+### Session checkpoint — 2026-11-18 (remediasi AUD-03—AUD-09)
+- Fokus: menyelaraskan spesifikasi proses rinci dengan release boundary MVP dan ownership data lintas HR/akademik.
+- Dokumen yang diperbarui:
+  - ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md: BP-ADM-01 diberi label post-MVP; BP-HR-01 dipilah HR minimum MVP versus HR lanjutan; HR sebagai owner EmployeeProfile/employment status/placement; academic domain sebagai owner TeachingAssignment/HomeroomAssignment.
+  - ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md: timetable lengkap, learning delivery/LMS, dan rapor formal ditandai post-MVP; presensi, penilaian dasar, rekap sederhana tetap minimum MVP; assignment akademik ditegaskan sebagai ownership academic domain.
+  - ORGANIZATION-AND-STUDENT-PROCESS-SPECIFICATIONS.md: lifecycle siswa minimum MVP dipisahkan dari transfer lintas unit, cuti formal, promosi massal, kelulusan formal, dan alumni post-MVP.
+  - BUSINESS-PROCESS-MAP.md: register dan deskripsi BP-ADM-01, BP-HR-01, BP-STD-02, BP-ACA-02/03, BP-ASM-02, serta BP-FIN-01/02 diselaraskan dengan release boundary.
+  - Blueprint Catalog dan README requirements diperbarui untuk membedakan process spec draft dari module blueprint yang belum dimulai.
+  - Audit AUD-03—AUD-09 diperbarui pada tingkat dokumentasi; keputusan produk/field sensitif/finance priority tetap menunggu product owner.
+- Ownership baseline: HR owns EmployeeProfile, employment status, organization placement; Academic owns TeachingAssignment/HomeroomAssignment; BP-PLT-05 owns application identity/membership/role. Tidak ada duplikasi profil pegawai atau assignment.
+- Finance: BP-FIN-01/02 tetap Candidate/roadmap dan out of MVP. Tidak dibuat spesifikasi rinci atau domain model keuangan.
+- Tidak ada kode aplikasi, migration, deployment, database schema, server, SQLRadius, atau MikroTik yang diubah.
+- PR #1 harus tetap Draft/open/unmerged.
+- Next action: verifikasi konsistensi tujuh temuan audit, tautan README, process register, MVP Scope, Phase 4 tracker, dan status PR. Setelah verifikasi, minta product owner mengesahkan MVP boundary dan ownership baseline sebelum domain model/ERD logis.
+- Hal yang tidak boleh dilakukan: jangan implementasikan PPDB, HRIS lanjutan, timetable engine, LMS, rapor formal, finance, atau transfer siswa lintas tenant tanpa change request/approval; jangan merge PR #1.

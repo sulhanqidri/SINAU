@@ -469,3 +469,12 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - PoC test suite has NOT passed yet. Do not claim database design acceptance. Known PoC limitations and AUD-LD-06 remain as documented above.
 - Safety boundary unchanged: only `sinau_design_poc` / `sinau_poc`; do not touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
 - Next: re-download corrected `002-tests.sql`, inspect corrected delimiters, rerun with `ON_ERROR_STOP=1`, capture complete output/exit code, then inspect any runtime failures before making further changes.
+
+
+### Correction checkpoint — 2026-11-18 (verified PostgreSQL PoC test delimiter fix)
+- User reran the test file and confirmed the downloaded copy still contained two malformed `DO $` delimiters at lines 31 and 92; test execution therefore stopped at line 35. No test assertions completed.
+- Root cause: the earlier attempted repository update did not change the file content; its blob SHA remained unchanged. The earlier checkpoint claim that the delimiters were fixed was premature and is superseded by this verified correction.
+- Replaced both exact lines with `DO $$` and fetched the file again to verify all six anonymous blocks now open with `DO $$`.
+- Corrected file commit: `3ec1e9c431fa0992026f56785e802a45b605bbf2`; verified blob SHA: `40eccc8b17c7638eaf4d4d6fb5fa220b4531562f`.
+- Next: download `002-tests.sql` from commit `3ec1e9c431fa0992026f56785e802a45b605bbf2`, verify `grep -n '^DO '` shows six `DO $$` lines, then rerun the test suite. No assertion has passed yet.
+- Safety boundary unchanged: only `sinau_design_poc` / `sinau_poc`; no changes to `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.

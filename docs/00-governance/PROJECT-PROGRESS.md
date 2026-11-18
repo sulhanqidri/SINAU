@@ -278,3 +278,22 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Tidak ada kode aplikasi, migration, deployment, SQLRadius, atau MikroTik yang diubah.
 - PR #1 tetap Draft/open dan tidak di-merge.
 - Next action: verifikasi menyeluruh semua referensi BP-PLT, lalu remediasi AUD-03—AUD-09 sesuai prioritas dan keputusan scope.
+
+
+---
+
+### Session checkpoint — 2026-11-18 (spesifikasi rinci BP-PLT-06)
+- Fokus: menurunkan BP-PLT-06 lifecycle tenant/unit ke spesifikasi proses rinci dan menyelaraskan artefak referensi.
+- Branch: feature/phase-0-requirements-blueprint.
+- Dokumen diubah:
+  - PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md: cakupan diperluas menjadi BP-PLT-01—06; ditambahkan §14 untuk suspend operasional, close tenant/unit, transfer unit antar-tenant, restore, state konseptual, 15 business rules, 14 acceptance criteria, 20 test scenario, API/event/screen inventory, serta OPEN-PLT-11—18.
+  - BUSINESS-PROCESS-MAP.md: uraian BP-PLT-06 diselaraskan dengan spesifikasi rinci dan batas BP-PLT-02—05.
+  - PROCESS-SPECIFICATION-CONSISTENCY-AUDIT.md: referensi BP-PLT-06 diperbarui; kekosongan dokumen rinci dinyatakan selesai pada tingkat artefak, bukan policy approval.
+  - BLUEPRINT-CATALOG.md: status spesifikasi platform diperbarui ke BP-PLT-01—06; checklist BP-PLT-06 ditandai tersedia sebagai draft.
+- Batas proses dipertahankan: BP-PLT-04 = billing/subscription; BP-PLT-03 = verification; BP-PLT-05 = membership/role/access; BP-PLT-06 = operational lifecycle; BP-PLT-02 = provisioning/pengelolaan unit.
+- Risiko/keputusan terbuka: OPEN-PLT-11—18. Khusus transfer unit lintas tenant, legal basis, consent/authority, kategori data, identifier/kontrak, retention, dan strategi cutover/rollback belum diputuskan. Tidak ada asumsi bahwa seluruh data ikut transfer.
+- Validasi dokumentasi dan status PR harus dilakukan setelah commit.
+- Tidak ada kode aplikasi, migration domain, deployment, konfigurasi server, SQLRadius, atau MikroTik yang diubah.
+- PR #1 harus tetap Draft/open/unmerged; tidak ada instruksi merge.
+- Next action: verifikasi hasil dokumentasi dan status PR; kemudian lanjutkan remediasi AUD-03—AUD-09 atau stakeholder validation sesuai prioritas product owner.
+- Hal yang tidak boleh dilakukan: jangan implementasikan transfer lintas tenant, jangan membuat migration domain produksi, jangan merge PR #1, dan jangan mengubah SQLRadius/MikroTik.

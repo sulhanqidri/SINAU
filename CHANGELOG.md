@@ -4,6 +4,8 @@ Perubahan penting SINAU dicatat di sini dengan tanggal `YYYY-MM-DD`.
 
 ## [Unreleased]
 ### Added
+- Rekomendasi stack Laravel 13 + Vue 3 + Inertia + Tailwind untuk PoC, beserta ADR dan rencana perbandingan database.
+- Draft SQL PoC isolasi tenant untuk PostgreSQL 18 dan MySQL 8.4 LTS dengan fixture sintetis; belum dieksekusi.
 - Konstitusi proyek, aturan pengembangan, dan pengendalian perubahan.
 - Blueprint produk, arsitektur, multi-tenant, dan roadmap.
 - Kebutuhan produk, ruang lingkup MVP, matriks role, dan acceptance criteria.

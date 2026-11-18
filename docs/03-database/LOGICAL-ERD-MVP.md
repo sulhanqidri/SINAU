@@ -25,7 +25,7 @@
 
 ```mermaid
 erDiagram
-  TENANTS ||--o{ FOUNDATION_PROFILES : has
+  TENANTS ||--o| FOUNDATION_PROFILES : has
   TENANTS ||--|{ EDUCATION_UNITS : owns
   USERS ||--o{ TENANT_MEMBERSHIPS : joins
   TENANTS ||--o{ TENANT_MEMBERSHIPS : grants
@@ -134,14 +134,14 @@ Keys: PK `id`; unique `(tenant_id, unit_id, id)`; unique `(tenant_id, unit_id, t
 
 ### 4.4 Role dan permission
 
-- `roles`: `id`, `owner_scope` (platform/tenant/unit), nullable `tenant_id`, `code`, `name`, `is_system`, timestamps. Role platform tidak dapat dipakai sebagai role unit. Custom role tenant/unit memerlukan unique scope key yang sesuai.
+- `roles`: `id`, `owner_scope` (platform/tenant/unit), nullable `tenant_id`, nullable `unit_id`, `code`, `name`, `is_system`, timestamps. CHECK scope: platform iff tenant_id dan unit_id NULL; tenant iff tenant_id NOT NULL dan unit_id NULL; unit iff tenant_id dan unit_id NOT NULL. FK unit role ke pasangan tenant/unit. Role platform tidak dapat dipakai sebagai role tenant/unit. Custom role memerlukan unique scope key yang sesuai.
 - `permissions`: `id`, `code` unique, `description`, `resource`, `action`, `allowed_scope`; katalog permission terkelola.
 - `role_permissions`: `role_id`, `permission_id`; composite PK.
 - `platform_user_roles`: `user_id`, `role_id`; hanya platform-scoped role.
 - `tenant_membership_roles`: `tenant_id`, `tenant_membership_id`, `role_id`; role harus tenant-scoped dan milik tenant yang sama.
 - `unit_membership_roles`: `tenant_id`, `unit_id`, `unit_membership_id`, `role_id`; role harus unit-scoped pada tenant/unit yang sama.
 
-Scope validation role membutuhkan composite FK atau controlled write path yang diuji; role assignment tidak boleh hanya memeriksa role code di UI.
+Scope validation role membutuhkan CHECK constraint, composite FK, dan controlled write path yang diuji; role assignment tidak boleh hanya memeriksa role code di UI.
 
 ## 5. Subscription, entitlement, verification, dan lifecycle
 

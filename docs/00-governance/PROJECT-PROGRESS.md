@@ -402,3 +402,19 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Status kamus tetap Draft; tipe dan atribut belum disahkan. Tidak ada migration SQL, kode aplikasi, atau deployment yang dibuat.
 - Langkah berikut: lakukan reconciliation antara Logical ERD, kamus, process specs, dan ownership matrix; kemudian review domain/privacy/security dan siapkan test matrix constraint positif/negatif/concurrency. Jangan melanjutkan ke migration sebelum review dan gate PoC/approval.
 - PR #1 tetap Draft/open/unmerged.
+
+
+---
+
+### Session checkpoint — 2026-11-18 (audit konsistensi logical design MVP)
+- Fokus: merekonsiliasi MVP Scope, spesifikasi proses organisasi/siswa, akademik/presensi/asesmen, bagian minimum HR, Domain Ownership Matrix, Logical ERD MVP, Data Dictionary MVP, dan Data Integrity.
+- Branch: `feature/phase-0-requirements-blueprint`.
+- Dokumen baru: `docs/03-database/LOGICAL-DESIGN-CONSISTENCY-AUDIT.md` (AUD-LD-001 v0.1.0).
+- Hasil audit: 11 temuan — 4 High, 6 Medium, 1 Low. Isu High: histori penempatan siswa ke rombel belum dimodelkan; sesi presensi belum memiliki roster/teaching context historis; model assessment belum menutup status/lifecycle hasil; invariant kelas-periode-enrollment-subject belum dirancang sebagai constraint/test yang cukup; approval koreksi presensi belum terhubung eksplisit ke revision yang diterapkan.
+- Isu Medium: guardian identity/access; effective dating HR/Academic; polymorphic file/audit/import references; konsistensi actor audit; pemisahan MVP versus roadmap. Satu temuan Low terkait reconciliation istilah/field/nullability.
+- Konsistensi yang baik: tenant versus unit, foundation versus independent provider, global User versus profil siswa/pegawai, separation Identity/HR/Academic/Student/Attendance/Assessment, entitlement versus authorization, serta minimisasi field sensitif.
+- `docs/03-database/README.md` dan `docs/01-blueprint/BLUEPRINT-CATALOG.md` diperbarui dengan tautan dan status audit.
+- Semua temuan masih Open. Audit tidak mengambil keputusan tentang owner placement, model session, approval, assessment attempt, guardian access, atau retensi; keputusan OWN-01—10 dan DD-01—15 tetap terbuka.
+- Tidak ada kode aplikasi, migration, physical schema, deployment, server, SQLRadius, atau MikroTik yang diubah. PR #1 tetap Draft/open/unmerged.
+- Next action: putuskan batas MVP dan kontrak domain untuk AUD-LD-01—05; setelah disetujui, revisi Logical ERD dan Data Dictionary lalu buat traceability/test matrix. Jangan membuat migration sebelum domain/privacy/security review dan gate PoC lulus.
+- Hal yang tidak boleh dilakukan: jangan merge PR #1; jangan implementasikan PPDB, HRIS lanjutan, timetable engine, LMS, rapor formal, finance, atau transfer lintas tenant; jangan menganggap audit sebagai approval schema.

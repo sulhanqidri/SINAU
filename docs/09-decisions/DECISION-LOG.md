@@ -6,7 +6,9 @@
 | 2026-11-18 | Target sekolah umum dan madrasah | Confirmed | PROJECT-CONSTITUTION.md |
 | 2026-11-18 | Dokumentasi menjadi acuan pengembangan | Confirmed | docs/00-governance/ |
 | 2026-11-18 | Modular monolith sebagai arah awal | Proposed baseline | SYSTEM-ARCHITECTURE.md |
-| 2026-11-18 | Stack final belum dikunci | Open | MASTER-BLUEPRINT.md |
+| 2026-11-18 | Stack dan engine database final | Open | MASTER-BLUEPRINT.md |
 | 2026-11-18 | Tenant mendukung yayasan multi-unit dan sekolah/madrasah mandiri | Accepted product decision | ADR-001-TENANT-CUSTOMER-MODEL.md |
+| 2026-11-18 | Shared database/shared schema sebagai baseline MVP, dengan jalur evolusi ke sharding | Proposed baseline; PoC required | ADR-002-DATABASE-ISOLATION-STRATEGY.md |
+| 2026-11-18 | Identitas global, tenant/unit membership terpisah, default deny | Proposed authorization baseline | ADR-003-AUTHORIZATION-SCOPE.md |
 
-Confirmed/Accepted berarti keputusan produk telah disepakati. Proposed baseline harus divalidasi dan disahkan melalui ADR sebelum menjadi keputusan teknis final.
+Accepted berarti keputusan produk telah disepakati. Proposed baseline menjadi arah desain tetapi harus divalidasi melalui PoC/ADR final sebelum migration dan implementasi sensitif.

@@ -57,7 +57,7 @@ BEGIN
     BEGIN
         DELETE FROM tenants WHERE id = 1;
         RAISE EXCEPTION 'DB-09 FAILED: referenced tenant unexpectedly deleted';
-    EXCEPTION WHEN foreign_key_violation THEN
+    EXCEPTION WHEN restrict_violation THEN
         RAISE NOTICE 'DB-09 PASS: tenant deletion restricted by FK';
     END;
 END

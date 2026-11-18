@@ -19,6 +19,6 @@ Perubahan penting SINAU dicatat di sini dengan tanggal YYYY-MM-DD.
 - PoC resmi difokuskan pada PostgreSQL; draft MySQL 8.4 dipertahankan sebagai artefak historis dan bukan target MVP.
 
 ### Notes
-- PostgreSQL 18 telah dipilih oleh pemilik produk. Harness dan tes otomatis sudah disiapkan, tetapi belum ada hasil eksekusi lokal pemilik proyek yang diverifikasi.
+- PostgreSQL 18 telah dipilih oleh pemilik produk. GitHub Actions run #3 berhasil menjalankan schema/fixture dan tes constraint pada PostgreSQL 18.7; benchmark 1 juta baris, authorization aplikasi, RLS, backup/restore, dan hasil eksekusi lokal masih belum diverifikasi.
 - Belum ada migration database domain produksi. Benchmark 1 juta baris bersifat opsional dan bukan bukti kesiapan produksi.
 - Dokumen kebutuhan produk lainnya tetap memerlukan validasi calon pengguna.

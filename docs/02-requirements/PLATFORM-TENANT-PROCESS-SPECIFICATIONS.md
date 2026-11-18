@@ -3,7 +3,7 @@
 **Versi:** Draft 0.1.0  
 **Tanggal:** 2026-11-18  
 **Status:** Draft turunan; belum divalidasi stakeholder dan bukan kontrak implementasi final  
-**Cakupan:** BP-PLT-01 sampai BP-PLT-05; BP-PLT-06 dicatat pada Business Process Map sebagai lifecycle tenant/unit dan memerlukan spesifikasi rinci sebelum implementasi.  
+**Cakupan:** BP-PLT-01 sampai BP-PLT-06; seluruh proses memiliki uraian rinci draft dalam dokumen ini, tetapi belum divalidasi stakeholder dan bukan persetujuan implementasi.  
 **Rujukan:** [Business Process Map](BUSINESS-PROCESS-MAP.md), [Registration and Onboarding Flow](REGISTRATION-AND-ONBOARDING-FLOW.md), [Multi-Tenant Blueprint](../01-blueprint/MULTI-TENANT.md), ADR-001 sampai ADR-004.
 
 > Dokumen ini menguraikan perilaku proses dan kontrol yang diperlukan. Ia tidak menetapkan harga, paket komersial, SLA, sumber verifikasi legal, atau skema fisik database yang belum diputuskan. Jika ada perbedaan, keputusan Accepted pada ADR dan kebijakan produk yang telah disahkan lebih tinggi daripada asumsi dalam dokumen draft ini.
@@ -504,3 +504,206 @@ Spesifikasi ini baru dapat dinyatakan siap baseline setelah:
 - pemilik produk menyetujui versi baseline.
 
 Sampai itu terpenuhi, dokumen berstatus Draft. Tidak ada migration, endpoint produksi, atau implementasi fitur yang diotorisasi hanya oleh keberadaan dokumen ini.
+
+
+
+## 14. BP-PLT-06 — Lifecycle tenant dan unit: suspend, close, transfer, dan restore
+
+### 14.1 Tujuan dan batas proses
+
+BP-PLT-06 mengelola lifecycle operasional tenant/unit. Proses ini terpisah dari:
+- BP-PLT-02: provisioning dan pengelolaan profil/unit.
+- BP-PLT-03: verifikasi identitas dan dokumen.
+- BP-PLT-04: subscription, entitlement, downgrade, suspend karena billing, dan reaktivasi pembayaran.
+- BP-PLT-05: invitation, membership, role, grant/revoke akses individu.
+
+BP-PLT-06 mencakup suspend operasional non-billing, close tenant/unit, transfer unit antar-tenant, restore, ekspor terbatas, dan retensi. Suspend bukan delete; close bukan penghapusan langsung. Tenant lifecycle dan unit lifecycle adalah state terpisah. Setiap transisi harus memiliki actor, authority, scope, reason code, effective date, approval yang diperlukan, dan audit. Semua proses harus idempotent, tenant-scoped, serta aman terhadap request dan job bersamaan.
+
+### 14.2 Aktor dan otorisasi
+
+| Aktor | Kewenangan konseptual | Batas |
+|---|---|---|
+| Tenant owner | Mengajukan suspend/close tenant | Tidak dapat melewati kontrak, retensi, legal hold, atau persetujuan pihak lain |
+| Tenant admin | Mengajukan lifecycle bila didelegasikan | Tidak otomatis berwenang close/transfer |
+| Unit representative | Mengajukan close/transfer unit bila kewenangannya terbukti | Perlu bukti representasi/pengelolaan |
+| Receiving tenant owner | Meninjau dan menyetujui penerimaan transfer | Tidak mendapat akses sebelum cutover sah |
+| Platform lifecycle officer | Memeriksa dan menjalankan workflow | Tidak menetapkan legal ownership tanpa bukti |
+| Compliance/legal reviewer | Memeriksa consent, kontrak, legal basis, dan privasi | Segregation of duties |
+| Platform support | Bantuan terbatas | Break-glass, time-bound, reason, approval, audit |
+| Workflow/scheduler | Menjalankan transisi yang sudah disetujui | Tidak mengambil keputusan bisnis |
+
+Matriks kewenangan final, bukti representasi, dan pihak yang wajib menyetujui masih open decision.
+
+### 14.3 Suspend operasional
+
+Trigger yang dapat dipertimbangkan setelah policy disahkan: permintaan sukarela pihak berwenang, risiko keamanan/penyalahgunaan, perintah hukum/regulator terverifikasi, sengketa kewenangan/ownership, atau alasan operasional yang disetujui. Suspend karena billing/verifikasi tetap dicatat di BP-PLT-04/BP-PLT-03, bukan diduplikasi di BP-PLT-06.
+
+Alur:
+1. Pemohon memilih tenant/unit, reason code, uraian, tanggal efektif, dan durasi jika sementara.
+2. Server memvalidasi identitas, scope, permission, status, dan bukti kewenangan.
+3. Sistem menghitung dampak pada unit, anggota, transaksi berjalan, job, integrasi, file, token, dan akses.
+4. Impact preview ditampilkan sebelum konfirmasi.
+5. Approval dijalankan sesuai reason code dan separation of duties. Emergency containment dapat memakai jalur cepat hanya dengan review pasca-tindakan wajib.
+6. Setelah disetujui, lifecycle case dibuat dan transisi dijalankan pada effective date.
+7. Policy engine memblokir transaksi operasional baru dan membatasi API, upload, export, file, job, serta integrasi sesuai scope.
+8. Notifikasi dikirim kepada pihak yang berhak tanpa membuka alasan sensitif kepada penerima yang tidak berwenang.
+
+Saat suspended, audit dan arsip tetap tersedia sesuai permission; job mutasi operasional dihentikan/karantina; job retensi, cleanup, dan export yang disetujui dapat berjalan. Membership tidak otomatis direvoke karena revoke individu tetap BP-PLT-05. Suspend satu unit tidak otomatis menghentikan unit lain.
+
+### 14.4 Close tenant atau unit
+
+1. Pemohon berwenang mengajukan close dengan scope, alasan, dan effective date.
+2. Sistem memeriksa subscription/kontrak, invoice/kewajiban, proses akademik/keuangan berjalan, sengketa, legal hold, export, integrasi, unit turunan, dan membership.
+3. Sistem menampilkan checklist dan dampak; tidak ada penghapusan data pada tahap permohonan.
+4. Approval pihak yang diwajibkan diperoleh.
+5. Sistem menjadwalkan close dan menyelesaikan export/arsip yang disetujui.
+6. Pada effective date, transaksi baru diblokir, credential/integration dibatasi, dan histori dikunci kecuali koreksi/retensi sah.
+7. Case ditutup setelah checklist selesai dan bukti tersimpan.
+
+Close tenant harus menutup atau mengarsipkan semua unit di bawahnya secara konsisten; tidak boleh meninggalkan unit active. Close unit tidak otomatis menutup tenant/unit lain. Hard delete bukan bagian close normal. Disposal/anonymization setelah retention period adalah proses data governance terpisah yang memeriksa legal hold, dasar hukum, approval, dan audit.
+
+### 14.5 Transfer unit antar-tenant
+
+Transfer mengubah tenant boundary dan merupakan proses high-impact, bukan edit tenant_id atau perubahan profil biasa. Transfer tidak boleh diimplementasikan sebelum legal, privacy, dan kebijakan kepemilikan disetujui.
+
+Preconditions:
+- Identitas unit dan tenant asal/tujuan diverifikasi.
+- Kewenangan pihak yang meminta dan menerima dibuktikan.
+- Consent tertulis dari pihak yang diwajibkan diperoleh.
+- Dasar kontrak, pengelolaan/kepemilikan, serta peran data controller/processor ditinjau.
+- Tenant tujuan memenuhi eligibility dan entitlement.
+- Konflik identifier dan duplikasi diselesaikan.
+- Subscription, invoice, kewajiban, integrasi, dokumen, dan data yang tidak dapat dialihkan diperiksa.
+- Kategori data yang ikut, tertinggal, diekspor, dianonimkan, atau dikecualikan disetujui.
+- Effective date, downtime, komunikasi, snapshot, dan compensation/rollback plan disepakati.
+
+Alur transfer:
+1. Pihak asal mengajukan request dengan unit, tenant tujuan, alasan, dokumen, dan proposed effective date.
+2. Sistem membuat transfer case dan membekukan perubahan identitas kritis bila perlu.
+3. Platform memvalidasi authority asal/tujuan, consent, kontrak, sengketa, entitlement, dan identifier.
+4. Sistem menyusun transfer manifest berisi aggregate, relasi, dokumen, histori, membership, konfigurasi, integrasi, serta keputusan disposition per kategori.
+5. Kedua pihak meninjau manifest dan dampak.
+6. Compliance/legal dan platform memberikan approval sesuai separation of duties.
+7. Unit dijadwalkan cutover dan masuk transfer_pending/transfer_locked; transaksi baru dihentikan atau dibatasi.
+8. Preflight memeriksa backup/snapshot, checksum/count, referential integrity, dan kesiapan tujuan.
+9. Workflow versioned dan idempotent menjalankan transfer, mapping ID, ownership metadata, dan grant baru secara terkoordinasi; bukan update foreign key ad hoc.
+10. Post-transfer verification memeriksa jumlah record, referential integrity, tenant isolation, file, audit, akses, dan histori.
+11. Unit baru aktif di tenant tujuan setelah seluruh postcondition lulus.
+12. Tenant asal kehilangan akses operasional pada effective cutover. Akses histori yang diwajibkan harus terpisah, terbatas, dan time-bound.
+13. Manifest, approval, checksum, mapping, hasil verifikasi, dan audit disimpan.
+
+Data tidak otomatis ikut atau tertinggal. Riwayat siswa/enrollment/nilai/presensi, data wali dan pegawai, dokumen, transaksi, komunikasi, serta audit memerlukan keputusan kategori dan legal basis. Invoice/pembayaran dan kewajiban kontrak dapat memiliki pemilik berbeda dari data operasional unit. Membership tenant asal tidak diwariskan; membership/role tujuan dibuat melalui BP-PLT-05. API key, webhook secret, storage permission, cache, search index, background job, dan integration binding harus dirotasi/dipetakan.
+
+Jika preflight gagal, transfer tidak dimulai. Jika cutover gagal, case masuk failed/needs_reconciliation. Unit tidak boleh aktif pada dua tenant sekaligus. Jangan retry buta atau menghapus data parsial; gunakan snapshot dan compensation yang disetujui.
+
+### 14.6 Restore
+
+Restore dari suspended/closed hanya boleh jika policy mengizinkan:
+1. Pemohon mengajukan restore dengan case asal, alasan, scope, dan tanggal efektif.
+2. Sistem memeriksa kewenangan, legal hold/sengketa, kewajiban close, subscription/entitlement, verification, dan status tenant/unit.
+3. Dependency yang menghalangi restore ditampilkan.
+4. Approval diperoleh sesuai reason code.
+5. Integritas data, konfigurasi, membership, credential, integrasi, dan job diperiksa.
+6. Lifecycle status dipulihkan pada effective date.
+7. Policy engine tetap mengevaluasi subscription, verification, entitlement, dan membership secara terpisah.
+8. Membership revoked/expired tidak diaktifkan kembali.
+9. Integrasi dan scheduler dinyalakan bertahap dengan health check dan audit.
+
+Restore dari closed tidak selalu tersedia. Disposal/anonymization yang sah dapat membuat restore tidak mungkin.
+
+### 14.7 State machine konseptual
+
+| Aggregate | State | Transisi dan guard |
+|---|---|---|
+| Tenant lifecycle | active, suspended, closing, closed | active ↔ suspended; active/suspended → closing → closed; restore hanya jika policy, approval, dan dependency mengizinkan |
+| Unit lifecycle | draft, pending_verification, active, suspended, transfer_pending, transfer_locked, inactive, closing, closed | Suspend/restore scoped; close melalui closing; transfer melalui lock, cutover, dan verification |
+| Lifecycle case | draft, pending_review, approved, scheduled, executing, completed, rejected, cancelled, failed, needs_reconciliation | Idempotency, approval, audit, compensation |
+| Transfer case | draft, pending_review, approved, scheduled, preflight, locked, executing, verifying, completed, rejected, cancelled, failed, needs_reconciliation | Consent dua pihak, manifest, snapshot/checksum, no dual-active state |
+
+Subscription, verification, entitlement, membership, dan lifecycle adalah dimensi terpisah.
+
+### 14.8 Aturan bisnis
+
+- BR-PLT-06-01: setiap perubahan memiliki case ID, actor, scope, reason, effective date, dan audit.
+- BR-PLT-06-02: suspend billing/verifikasi tetap berasal dari BP-PLT-04/BP-PLT-03.
+- BR-PLT-06-03: suspend satu unit tidak otomatis men-suspend tenant/unit lain.
+- BR-PLT-06-04: tenant closed tidak boleh memiliki unit active.
+- BR-PLT-06-05: close tidak hard delete; disposal tunduk retention/legal hold.
+- BR-PLT-06-06: restore tidak mengaktifkan membership revoked/expired atau subscription tidak valid.
+- BR-PLT-06-07: transfer wajib memiliki consent/authority, manifest, approval, preflight, cutover, post-transfer verification, dan audit.
+- BR-PLT-06-08: unit tidak boleh aktif pada dua tenant sekaligus; kegagalan masuk reconciliation.
+- BR-PLT-06-09: histori dan personal data tidak otomatis ikut transfer; kategori dan legal basis harus disetujui.
+- BR-PLT-06-10: membership tenant asal tidak diwariskan ke tenant tujuan.
+- BR-PLT-06-11: job, cache, search, file, token, API credential, dan integrasi tenant-aware saat lifecycle berubah.
+- BR-PLT-06-12: endpoint dan job memeriksa lifecycle state server-side.
+- BR-PLT-06-13: emergency suspend memerlukan role policy dan review pasca-tindakan.
+- BR-PLT-06-14: transisi terjadwal idempotent dan concurrency-safe.
+- BR-PLT-06-15: read-only/export selama suspend/close harus eksplisit, scoped, time-bound, dan diaudit.
+
+### 14.9 Data, API, event, dan layar konseptual
+
+Aggregate konseptual: TenantLifecycleCase, UnitLifecycleCase, TransferCase, TransferManifest, LifecycleApproval, ConsentRecord, DataDispositionPlan, ExportJob, IntegrityCheck, CompensationAction, AuditEvent, OutboxMessage. Ini bukan keputusan skema fisik.
+
+Operasi konseptual: lifecycle case create/read/submit/approve/reject/cancel; tenant/unit suspend/close/restore; transfer request/consent/manifest/approve/schedule/preflight/cutover/verify/reconcile; export request/status/download; lifecycle history read sesuai permission.
+
+Event konseptual:
+- tenant.lifecycle.suspend_requested, tenant.lifecycle.suspended, tenant.lifecycle.close_scheduled, tenant.lifecycle.closed, tenant.lifecycle.restored;
+- education_unit.lifecycle.suspend_requested, education_unit.lifecycle.suspended, education_unit.lifecycle.closed, education_unit.lifecycle.restored;
+- education_unit.transfer.requested, education_unit.transfer.approved, education_unit.transfer.started, education_unit.transfer.completed, education_unit.transfer.failed, education_unit.transfer.reconciled.
+
+Layar awal: lifecycle overview; suspend request dan impact preview; close checklist; approval queue; restore dependency checklist; transfer request/consent; transfer manifest; cutover/integrity/reconciliation; export center.
+
+### 14.10 Acceptance criteria
+
+- AC-PLT-06-01: suspend operasional hanya oleh aktor berwenang dengan reason dan audit.
+- AC-PLT-06-02: suspend billing/verifikasi tetap tercatat di proses sumber.
+- AC-PLT-06-03: suspend satu unit tidak mengganggu unit lain di luar scope.
+- AC-PLT-06-04: tenant closed tidak memiliki unit active; close menghentikan transaksi baru tanpa menghapus histori.
+- AC-PLT-06-05: close memeriksa kewajiban, proses berjalan, legal hold, export, dan retention.
+- AC-PLT-06-06: restore memeriksa guard dan tidak menghidupkan membership revoked/expired atau subscription tidak valid.
+- AC-PLT-06-07: transfer memerlukan approval asal/tujuan dan bukti kewenangan.
+- AC-PLT-06-08: transfer memiliki manifest, snapshot/checksum, preflight, effective date, post-transfer integrity test, dan audit.
+- AC-PLT-06-09: unit tidak pernah aktif di dua tenant; kegagalan cutover masuk reconciliation.
+- AC-PLT-06-10: data pribadi/akademik/keuangan tidak otomatis ikut transfer; kategori dan legal basis terdokumentasi.
+- AC-PLT-06-11: membership dan credential tenant asal tidak memberi akses tenant tujuan.
+- AC-PLT-06-12: API, file, export, cache, search, queue, scheduler, dan integrasi menegakkan lifecycle.
+- AC-PLT-06-13: transisi terjadwal dan retry idempotent serta concurrency-safe.
+- AC-PLT-06-14: read-only/export selama suspend/close hanya sesuai grant, masa berlaku, dan audit.
+
+### 14.11 Test scenario minimum
+
+1. Suspend tenant dengan approval valid; actor tanpa permission ditolak.
+2. Suspend satu unit dan pastikan unit lain tetap beroperasi.
+3. Suspend operasional dibedakan dari billing dan verification.
+4. Emergency suspend, review pasca-tindakan, dan audit.
+5. Close ditolak saat kewajiban/approval/legal hold belum selesai.
+6. Close unit tidak menutup tenant atau unit lain.
+7. Close tenant tidak meninggalkan unit active.
+8. Close tidak hard delete; retention/legal hold mencegah disposal.
+9. Restore dengan subscription expired, verification rejected, atau legal hold tertahan.
+10. Restore tidak mengaktifkan membership revoked/expired.
+11. Transfer tanpa consent asal/tujuan atau bukti kewenangan ditolak.
+12. Transfer dengan entitlement tujuan habis atau identifier conflict ditolak.
+13. Manifest membedakan data ikut, tertinggal, diekspor, atau tidak dapat dialihkan.
+14. Failure injection sebelum cutover, saat lock, saat transfer, dan post-validation.
+15. Retry/concurrent transfer tidak membuat unit aktif di dua tenant.
+16. Checksum, count, FK, tenant isolation, file permission, cache/search/job, dan integration binding diverifikasi.
+17. Membership asal tidak diwariskan; penerima mendapat grant melalui BP-PLT-05.
+18. Audit historis mempertahankan tenant asal/tujuan tanpa memodifikasi event lama.
+19. Export link expired dan akses lintas tenant ditolak.
+20. Queue/scheduler tertunda tidak memodifikasi unit setelah close/transfer cutover.
+
+### 14.12 Keputusan terbuka khusus BP-PLT-06
+
+| ID | Pertanyaan | Risiko/ketergantungan | Status |
+|---|---|---|---|
+| OPEN-PLT-11 | Reason code, trigger, authority, dan approval suspend operasional/emergency | Akses, keselamatan, sengketa, false suspension | Open |
+| OPEN-PLT-12 | Siapa berwenang meminta/menyetujui close tenant/unit dan bukti representasinya | Legal authority dan sengketa kepemilikan | Open |
+| OPEN-PLT-13 | Legal basis, consent, data controller/processor, dan kategori data yang boleh ikut transfer | Privasi siswa/wali/pegawai | Open — blocker transfer |
+| OPEN-PLT-14 | Identifier unit, kontrak/subscription, invoice, kewajiban, dan entitlement saat transfer | Duplikasi, billing, legal ownership | Open — blocker transfer |
+| OPEN-PLT-15 | Retention schedule, legal hold, export window, anonymization, dan disposal setelah close | Kepatuhan, pemulihan, biaya | Open |
+| OPEN-PLT-16 | Apakah restore dari closed diizinkan, sampai kapan, dan kondisi irreversible | Integritas arsip dan retensi | Open |
+| OPEN-PLT-17 | Mode read-only dan export untuk tenant/unit suspended/closed | Privasi dan hak akses pasca-penutupan | Open |
+| OPEN-PLT-18 | Strategi transfer: downtime, snapshot, mapping ID, rollback/compensation, dan verifikasi | Integritas dan isolasi tenant | Open — blocker transfer |
+
+Gate: spesifikasi BP-PLT-06 tersedia sebagai draft, tetapi implementasi suspend/close/restore menunggu OPEN-PLT-11, 12, 15, 16, dan 17. Transfer lintas tenant diblokir sampai OPEN-PLT-13, 14, dan 18 disetujui serta ditinjau dari sisi hukum, privasi, dan teknis. Dokumen ini bukan persetujuan otomatis untuk memindahkan data.

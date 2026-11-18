@@ -223,7 +223,7 @@ Blueprint dinyatakan siap menjadi baseline implementasi hanya jika:
 
 | Artefak | Lokasi | Status |
 |---|---|---|
-| Audit konsistensi Logical ERD dan Data Dictionary | `docs/03-database/LOGICAL-DESIGN-CONSISTENCY-AUDIT.md` | Draft AUD-LD-001 v0.1.0; 4 High, 6 Medium, 1 Low; seluruh temuan Open, menunggu keputusan dan review. |
+| Audit konsistensi Logical ERD dan Data Dictionary | `docs/03-database/LOGICAL-DESIGN-CONSISTENCY-AUDIT.md` | AUD-LD-001 v0.2.0; proposal remediation untuk 10 temuan terdokumentasi, AUD-LD-06 tetap memerlukan keputusan guardian/privacy; seluruh temuan menunggu acceptance dan PoC. |
 
 - [x] Audit dokumentasi MVP Scope, process specifications, Domain Ownership Matrix, Logical ERD, Data Dictionary, dan Data Integrity dilakukan.
 - [ ] Putuskan dan remediasi AUD-LD-01—05 serta AUD-LD-09 sebelum logical design diterima.
@@ -232,3 +232,18 @@ Blueprint dinyatakan siap menjadi baseline implementasi hanya jika:
 - [ ] Review bersama domain owner, privacy/security, DBA/architect, dan product owner.
 
 Audit ini tidak menutup OWN-01—10 atau DD-01—15 dan bukan persetujuan migration. Process specs tetap draft dan batas MVP tetap mengikuti `MVP-SCOPE.md`.
+
+
+### 12.1 Remediation logical design v0.2.0
+- [x] Logical ERD diperbarui dengan StudentClassPlacement, AttendanceSessionParticipant, AssessmentParticipant, AttendanceRecordRevision, score lifecycle, dan invariant lintas domain.
+- [x] Data Dictionary diperbarui dengan atribut, nullability, klasifikasi, serta kontrak actor/file.
+- [x] Data Integrity diperluas dengan enforcement matrix dan test family.
+- [x] Ownership proposal StudentClassPlacement dan kontrak lintas domain didokumentasikan.
+- [x] Process specification akademik/presensi/asesmen diberi batas MVP/post-MVP dan traceability awal.
+- [ ] Persetujuan ownership StudentClassPlacement dan kebijakan sesi/penilaian/koreksi dari Product Owner/domain owners.
+- [ ] Privacy/security review guardian, file, audit, retention.
+- [ ] PoC PostgreSQL 18 untuk composite FK, temporal overlap, concurrency, dan atomic idempotent revision.
+- [ ] Bukti lulus test LD-01—LD-16.
+- [ ] Final reconciliation dan acceptance Logical ERD + Data Dictionary.
+
+Status checklist [x] menunjukkan dokumen proposal telah diperbarui, bukan bahwa desain telah disetujui atau diuji.

@@ -9,9 +9,9 @@ Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dap
 ### A. Registrasi, platform, dan organisasi
 - Registrasi pelanggan menyediakan dua pilihan: **Yayasan/penyelenggara pendidikan** atau **Sekolah/madrasah mandiri**.
 - Pilihan tersebut menetapkan tipe tenant (foundation atau independent_provider), bukan jenis/jenjang pendidikan.
-- Yayasan dapat menambahkan satu atau beberapa unit sekolah umum, madrasah, atau campuran keduanya.
+- Yayasan dan sekolah/madrasah mandiri dapat menambahkan unit sesuai entitlement paket; tipe tenant tidak menentukan kuota unit.\n- Dokumen legal yayasan dapat dilengkapi pada tahap verifikasi, bukan syarat upload saat registrasi awal.\n- NPSN/NSM dapat kosong saat registrasi awal dan dilengkapi saat verifikasi; identifier yang diisi divalidasi tanpa membocorkan data lembaga lain.\n- Status verifikasi dipisahkan dari status subscription; akses dievaluasi berdasarkan kedua status.\n- Downgrade tidak menghapus unit atau data; jika jumlah unit melampaui entitlement, penambahan unit baru diblokir.
 - Registrasi mandiri membuat tenant tanpa entitas yayasan fiktif dan menghubungkannya dengan unit pendidikan yang didaftarkan.
-- Registrasi/onboarding tenant melalui alur yang dikendalikan.
+- Registrasi/onboarding tenant melalui alur yang dikendalikan, dengan status verifikasi dan subscription terpisah.\n- Entitlement jumlah unit diperiksa server-side pada setiap pembuatan unit.
 - Profil tenant dan satu/lebih unit pendidikan.
 - Konfigurasi jenis lembaga dan jenjang.
 - Pengguna, undangan/aktivasi, role, permission, dan keanggotaan unit.

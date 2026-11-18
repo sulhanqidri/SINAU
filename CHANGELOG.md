@@ -1,17 +1,17 @@
 # Changelog
 
-Semua perubahan penting pada SINAU dicatat di sini.
-
-Format tanggal: `YYYY-MM-DD`. Ikuti prinsip Keep a Changelog dan gunakan Semantic Versioning ketika versi produk mulai diterbitkan.
+Perubahan penting SINAU dicatat di sini dengan tanggal `YYYY-MM-DD`.
 
 ## [Unreleased]
-
 ### Added
-- Identitas awal proyek SINAU.
 - Konstitusi proyek, aturan pengembangan, dan pengendalian perubahan.
-- Blueprint awal untuk SaaS pendidikan sekolah umum dan madrasah.
-- Pedoman awal arsitektur, multi-tenant, design system, keamanan, pengujian, dan roadmap.
+- Blueprint produk, arsitektur, multi-tenant, dan roadmap.
+- Kebutuhan produk, ruang lingkup MVP, matriks role, dan acceptance criteria.
+- Model domain, ERD konseptual, kamus data, dan aturan integritas data.
+- Pedoman design system, UX, aksesibilitas, dan inventaris layar.
+- Evaluasi opsi teknologi dan rencana implementasi fondasi.
 
 ### Notes
-- Dokumen awal adalah baseline perencanaan dan harus diperinci sebelum implementasi.
-- Belum ada stack atau skema database final yang disetujui.
+- Dokumen adalah baseline draft yang memerlukan validasi calon pengguna.
+- Stack, skema database final, dan desain visual final belum disahkan.
+- MVP yang diusulkan belum dianggap disetujui sampai validasi kebutuhan dilakukan.

@@ -28,6 +28,8 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 - [Blueprint Utama](docs/01-blueprint/MASTER-BLUEPRINT.md)
 - [Rencana Implementasi Fondasi](docs/01-blueprint/IMPLEMENTATION-PLAN.md)
 - [Evaluasi Teknologi](docs/01-blueprint/TECHNOLOGY-OPTIONS.md)
+- [Rencana PoC Database dan Isolasi Tenant](docs/01-blueprint/DATABASE-POC-PLAN.md)
+- [ADR Rekomendasi Stack Aplikasi](docs/09-decisions/ADR-005-APPLICATION-STACK-RECOMMENDATION.md)
 - [Kebutuhan Produk](docs/02-requirements/PRODUCT-REQUIREMENTS.md)
 - [Ruang Lingkup MVP](docs/02-requirements/MVP-SCOPE.md)
 - [Model Domain dan Database](docs/03-database/DOMAIN-MODEL.md)

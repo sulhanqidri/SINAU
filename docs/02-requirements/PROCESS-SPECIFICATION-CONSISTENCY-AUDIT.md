@@ -17,8 +17,8 @@ Audit ini tidak mengubah spesifikasi proses sumber dan tidak memutuskan pertanya
 
 | ID | Severity | Temuan | Dampak |
 |---|---|---|---|
-| AUD-01 | **High** | Makna ID BP-PLT-02/03/04 berbeda antara Business Process Map dan spesifikasi Platform/Tenant | Traceability proses, requirement, test, dan ownership menjadi ambigu |
-| AUD-02 | **High** | BP-PLT-04 pada peta adalah identity/invitation/membership, tetapi spesifikasi Platform/Tenant menggunakan ID yang sama untuk subscription/entitlement | Proses identity/access belum memiliki spesifikasi rinci yang konsisten |
+| AUD-01 | **High — Resolved** | Makna ID BP-PLT-02/03/04 berbeda antara Business Process Map dan spesifikasi Platform/Tenant | Process register dan peta diselaraskan dengan spesifikasi rinci; lifecycle diberi ID BP-PLT-06 |
+| AUD-02 | **High — Resolved** | Identity/access sebelumnya berbagi ID BP-PLT-04 dengan subscription | Identity/access sekarang BP-PLT-05 dan memiliki spesifikasi rinci tersendiri |
 | AUD-03 | **High** | BP-ADM-01 PPDB lengkap dan sebagian HR ditulis rinci, padahal PPDB secara eksplisit berada setelah MVP dan cakupan HR MVP jauh lebih sempit | Risiko scope creep dan salah tafsir dokumen rinci sebagai komitmen MVP |
 | AUD-04 | **High** | Batas ownership data/penugasan pegawai dan penugasan akademik belum tegas | Potensi duplikasi data pegawai/guru dan assignment |
 | AUD-05 | **Medium** | BP-ACA-02 jadwal, BP-ACA-03 pelaksanaan pembelajaran, dan BP-ASM-02 rapor formal perlu dipisahkan lebih tegas dari kebutuhan MVP | Implementasi dapat melebar melampaui MVP |
@@ -155,3 +155,22 @@ Audit ini tidak mengubah spesifikasi proses sumber dan tidak memutuskan pertanya
 - `ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md` — blob SHA `b40d80a3db6510c3a68aa400bdc3eb9f381a9bc3`.
 - `PRODUCT-REQUIREMENTS.md` — blob SHA `5be5b1d5c8788eba141c8ebb5355fc73e823b708`.
 - `MVP-SCOPE.md` — blob SHA `2301d743fe19b65e88e12f0091f5df96f79ba4c8`.
+
+
+## 8. Remediasi ID platform — 2026-11-18
+
+**Keputusan yang diterapkan:** spesifikasi rinci Platform/Tenant menjadi sumber ID kanonis untuk BP-PLT-01—04. Business Process Map diselaraskan dan identity/access dipisahkan sebagai BP-PLT-05. Lifecycle tenant/unit dipertahankan sebagai proses tersendiri BP-PLT-06 agar tidak dicampur dengan subscription, verification, pengelolaan unit, atau membership.
+
+| ID kanonis | Proses | Dokumen spesifikasi |
+|---|---|---|
+| BP-PLT-01 | Registrasi dan onboarding tenant | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md |
+| BP-PLT-02 | Penambahan dan pengelolaan unit pendidikan | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md |
+| BP-PLT-03 | Verifikasi tenant dan unit | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md |
+| BP-PLT-04 | Subscription, entitlement, downgrade, suspend, reaktivasi | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md |
+| BP-PLT-05 | Identity, invitation, membership, role, access | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md |
+| BP-PLT-06 | Lifecycle tenant dan unit (suspend, close, transfer, restore) | Business Process Map; spesifikasi rinci masih diperlukan |
+
+**Batas tanggung jawab:** BP-PLT-02 mengatur provisioning/pengelolaan unit; BP-PLT-03 mengatur verifikasi; BP-PLT-04 mengatur hak kontrak dan billing; BP-PLT-05 mengatur grant akses individu; BP-PLT-06 mengatur lifecycle operasional tenant/unit. Suspend akibat billing tetap keputusan BP-PLT-04; suspend/close operasional dicatat di BP-PLT-06. Membership awal pendaftar tetap dibuat oleh BP-PLT-01, sedangkan invitation anggota tambahan dan revoke/change dikelola BP-PLT-05.
+
+**Status AUD-01/AUD-02:** resolved pada tingkat process ID dan dokumentasi baseline. Detail lifecycle BP-PLT-06 masih membutuhkan spesifikasi proses tersendiri sebelum implementasi. Temuan AUD-03 sampai AUD-09 tetap terbuka.
+

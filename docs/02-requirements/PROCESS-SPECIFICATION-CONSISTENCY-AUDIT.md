@@ -29,7 +29,9 @@ Audit ini tidak mengubah spesifikasi proses sumber dan tidak memutuskan pertanya
 
 ## 3. Temuan dan rekomendasi
 
-### AUD-01 — Ketidaksesuaian semantik ID BP-PLT-02/03/04
+> Catatan status: uraian AUD-01 dan AUD-02 di bawah merekam kondisi awal saat audit dilakukan. Keduanya telah diremediasi; lihat bagian 8 untuk process ID kanonis dan batas proses setelah perbaikan.
+
+### AUD-01 — Ketidaksesuaian semantik ID BP-PLT-02/03/04 (kondisi sebelum remediasi)
 
 **Bukti:**
 - Business Process Map:
@@ -45,7 +47,7 @@ Audit ini tidak mengubah spesifikasi proses sumber dan tidak memutuskan pertanya
 
 **Rekomendasi:** tetapkan satu process register kanonis dan lakukan pemetaan ID sebelum perubahan kode. Pilihan yang paling minim risiko adalah mempertahankan ID pada spesifikasi rinci yang sudah digunakan lalu menyesuaikan peta proses; tetapi perubahan ID harus ditinjau terhadap semua referensi. Jangan melakukan renumber otomatis tanpa audit referensi. Pastikan identity/invitation/membership mendapat ID proses sendiri yang tidak bertabrakan.
 
-### AUD-02 — Proses identity dan access belum terpetakan dengan benar
+### AUD-02 — Proses identity dan access belum terpetakan dengan benar (kondisi sebelum remediasi)
 
 **Bukti:** BP-PLT-04 di peta bisnis memuat identity, invitation, membership, dan access, sedangkan BP-PLT-04 di spesifikasi platform memuat subscription dan entitlement.
 

@@ -2,7 +2,8 @@
 
 - DOMAIN-MODEL.md — batas domain dan entitas.
 - DOMAIN-OWNERSHIP-MATRIX.md — pemilik data, scope, consumer, dan kontrak lintas domain.
-- ERD-CONCEPTUAL.md — relasi konseptual.\n- LOGICAL-ERD-MVP.md — kandidat tabel, kolom, key, FK, dan constraint untuk MVP (draft, belum migration).
+- ERD-CONCEPTUAL.md — relasi konseptual.
+- LOGICAL-ERD-MVP.md — kandidat tabel, kolom, key, FK, dan constraint untuk MVP (draft, belum migration).
 - DATA-DICTIONARY-BASELINE.md — kamus data awal.
 - DATA-INTEGRITY.md — aturan integritas.
 

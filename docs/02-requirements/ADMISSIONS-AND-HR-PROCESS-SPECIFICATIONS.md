@@ -81,6 +81,8 @@ Pemisahan tugas (segregation of duties) harus dapat dikonfigurasi. Pengguna yang
 
 ## 4. BP-ADM-01 — PPDB / penerimaan peserta didik
 
+> **Scope release:** BP-ADM-01 adalah roadmap/post-MVP, bukan komitmen MVP. Bagian ini dipertahankan sebagai discovery proses lanjutan. Registrasi siswa langsung yang memang dibutuhkan MVP tetap mengikuti BP-STD-01 dan bukan berarti workflow PPDB telah masuk MVP.
+
 ### 4.1 Tujuan, pemicu, hasil
 **Tujuan:** mengelola penerimaan peserta didik secara terstruktur, adil, transparan, dan dapat diaudit.  
 **Pemicu:** unit membuka penerimaan untuk tahun ajaran/gelombang tertentu.  
@@ -235,6 +237,8 @@ State final, transisi, dan istilah tampilan perlu disepakati bersama stakeholder
 
 ## 5. BP-HR-01 — Data pegawai dan penugasan
 
+> **Scope release:** hanya HR minimum yang dijabarkan pada §13.1 menjadi kandidat MVP. HRIS lanjutan tetap roadmap/post-MVP. Detail proses pada bagian ini tidak otomatis menjadi komitmen implementasi.
+
 ### 5.1 Tujuan dan batas
 Menyediakan sumber data pegawai yang terkontrol untuk kebutuhan organisasi dan operasional pendidikan, serta menautkan pegawai dengan assignment yang efektif tanggal. HR bukan identity provider dan bukan pengganti authorization aplikasi.
 
@@ -265,7 +269,9 @@ Menyediakan sumber data pegawai yang terkontrol untuk kebutuhan organisasi dan o
 7. Sistem dapat menghasilkan reminder masa kontrak/sertifikasi bila fitur ini disetujui.
 8. Akhir masa kerja menutup assignment dan memicu review akses, bukan menghapus employee profile atau histori.
 
-### 5.5 Penugasan guru dan integrasi akademik
+### 5.5 Referensi integrasi penugasan guru ke domain akademik
+
+> Bagian ini mendeskripsikan kontrak integrasi dan alur lintas fungsi, bukan ownership penulisan assignment. **Academic domain (BP-ACA-01) adalah system of record untuk TeachingAssignment/HomeroomAssignment**; HR hanya menyediakan EmployeeProfile, status kerja/eligibility, dan referensi penempatan pegawai. HR tidak membuat salinan atau mengubah assignment akademik.
 1. Admin akademik mengajukan kebutuhan guru berdasarkan struktur kurikulum dan penawaran mapel.
 2. Sistem menampilkan pegawai yang memenuhi syarat berdasarkan kualifikasi/kompetensi yang relevan dan status kerja aktif.
 3. Admin memilih unit, periode, subject offering, rombel/kelompok, peran, beban, dan tanggal efektif.
@@ -499,9 +505,69 @@ Sebelum migration atau fitur produksi dibuat:
 | Process ID | Input/dependency | Output | Downstream |
 |---|---|---|---|
 | BP-ADM-01 | Unit, periode, kebijakan penerimaan, applicant | Application, decision, waiting list, conversion | BP-STD-01, BP-ORG-02, BP-ACA-01 |
-| BP-HR-01 | Unit, posisi, employee identity, employment policy | Employee profile, placement, teaching assignment | BP-ORG-01, BP-ACA-01/02/03, identity/access |
+| BP-HR-01 | Unit, posisi, employee identity, employment policy | Employee profile, employment status, organization placement | BP-ORG-01; BP-ACA-01 membaca referensi pegawai untuk assignment akademik |
 | BP-STD-01 | Accepted confirmed application atau input manual sah | Student profile, enrollment | BP-ACA, BP-ATT, BP-ASM |
 | Identity/access | User account dan approval/grant terpisah | Membership, role, session | Semua modul |
 
 ## 12. Riwayat perubahan
 - 2026-11-18 — Draft 0.1.0 dibuat untuk BP-ADM-01 dan BP-HR-01. Belum divalidasi stakeholder dan belum diverifikasi terhadap peraturan resmi.
+
+
+## 13. Batas release MVP dan ownership domain (remediasi AUD-03/AUD-04)
+
+### 13.1 BP-HR-01 — pemisahan HR minimum dan HR lanjutan
+
+**HR minimum kandidat MVP (dibatasi pada kebutuhan operasional inti):**
+- Profil pegawai/guru minimal: nama tampilan/legal sesuai kebutuhan, employee number internal bila digunakan, kategori pegawai, kontak kerja minimum, dan unit scope.
+- Status kerja dasar (misalnya active/inactive) dengan tanggal efektif, alasan, actor, dan histori.
+- Referensi penempatan pegawai pada unit/organisasi yang diperlukan untuk menentukan konteks kerja.
+- Pencarian dan pemilihan pegawai yang eligible sebagai referensi ketika admin akademik membuat teaching assignment.
+- Akses dan role aplikasi tetap dikelola oleh identity/membership BP-PLT-05; status pegawai tidak otomatis membuat user atau memberikan permission.
+- Import pegawai dasar hanya jika mengikuti import baseline MVP: preview, validasi, deduplication review, hasil per baris, dan audit.
+
+**HR lanjutan / post-MVP kecuali ada change request yang disetujui:**
+- Kontrak/masa kerja terperinci, perpanjangan, remunerasi dan payroll.
+- Dokumen personal sensitif, data keluarga, rekening, kesehatan, dan credential kecuali kebutuhan/dasar hukum disetujui.
+- Workflow cuti, izin, presensi pegawai, lembur, penilaian kinerja, kompetensi/sertifikasi lanjutan.
+- Offboarding HRIS lengkap, reminder kontrak, dan laporan ketenagakerjaan lanjutan.
+- Workflow approval kompleks dan integrasi sistem kepegawaian eksternal.
+
+HR minimum ini adalah batas rancangan yang diusulkan untuk menyelaraskan MVP-SCOPE.md, bukan persetujuan field sensitif atau keputusan final. Field wajib, dasar pemrosesan, retensi, dan approval tetap perlu validasi stakeholder.
+
+### 13.2 Ownership data pegawai versus assignment akademik
+
+| Data/aggregate | System of record | Batas tanggung jawab |
+|---|---|---|
+| EmployeeProfile / identitas pegawai | HR/staff domain | Satu profil sumber; tidak diduplikasi di modul akademik |
+| EmploymentStatus / employment relationship | HR/staff domain | Status kerja dan tanggal efektif; menjadi eligibility input, bukan role aplikasi |
+| OrganizationPlacement / jabatan struktural | Organization/HR domain | Penempatan organisasi dan histori efektif |
+| TeachingAssignment | Academic domain (BP-ACA-01) | Unit, periode, subject offering, rombel/kelompok, peran, beban, effective dates |
+| HomeroomAssignment | Academic domain (BP-ACA-01) | Penugasan wali kelas dengan periode efektif |
+| Application User / membership / role | Identity & access (BP-PLT-05) | Akun dan hak akses terpisah dari status kerja maupun assignment |
+| Schedule / LearningSession | Academic domain (BP-ACA-02/03) | Mengacu pada assignment yang berlaku; bukan pemilik profil pegawai |
+
+Aturan integrasi:
+1. Academic domain memilih employee reference yang valid dan menyimpan relasi ke EmployeeProfile melalui identifier internal yang stabil dan tenant/unit-safe.
+2. Academic domain tidak menyalin nama, kontak, dokumen, atau status kerja menjadi profil pegawai kedua. Snapshot historis minimal hanya boleh menyimpan atribut yang diperlukan untuk menjelaskan transaksi dan sesuai privacy policy.
+3. HR mengirim perubahan eligibility/status sebagai event atau query contract; perubahan status tidak diam-diam menghapus assignment historis.
+4. Jika pegawai tidak lagi eligible, HR memberi sinyal; admin akademik memutuskan penutupan/penggantian TeachingAssignment dengan effective date dan audit sesuai policy.
+5. Perubahan assignment dilakukan di domain akademik. HR tidak menjadi editor kedua untuk TeachingAssignment.
+6. Akses ke kelas, presensi, dan nilai diperoleh dari membership/permission serta assignment relationship yang divalidasi server-side; bukan hanya karena pegawai berstatus active.
+
+### 13.3 Gerbang dan acceptance criteria tambahan
+
+- AC-HR-SCOPE-01: implementasi MVP hanya memuat profil minimal, status dasar, dan penempatan yang dibutuhkan use case inti.
+- AC-HR-SCOPE-02: fitur kontrak, payroll, cuti, presensi pegawai, dan offboarding lanjutan tidak masuk MVP tanpa change request.
+- AC-HR-OWN-01: EmployeeProfile memiliki satu system of record; modul akademik hanya menyimpan referensi.
+- AC-HR-OWN-02: TeachingAssignment dan HomeroomAssignment hanya ditulis/dikelola domain akademik.
+- AC-HR-OWN-03: perubahan status HR tidak menghapus histori assignment dan tidak otomatis memberikan/mencabut role aplikasi.
+- AC-HR-OWN-04: assignment lintas unit memerlukan relasi dan grant yang eksplisit pada masing-masing unit.
+
+Test minimum tambahan:
+1. Buat EmployeeProfile sekali lalu referensikan dari beberapa assignment yang sah tanpa membuat duplikat.
+2. HR mengubah status menjadi inactive; histori assignment tetap terbaca dan assignment aktif masuk review sesuai policy.
+3. HR user mencoba mengubah TeachingAssignment melalui endpoint HR; ditolak.
+4. Admin akademik mencoba membuat assignment untuk employee tanpa eligibility atau unit reference yang valid; ditolak.
+5. Pegawai aktif tanpa membership/role/assignment tidak dapat mengakses kelas.
+6. Perubahan role aplikasi tidak mengubah status kepegawaian.
+7. Import pegawai berulang tidak membuat profil ganda dan menyajikan exception list.

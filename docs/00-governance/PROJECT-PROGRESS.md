@@ -792,3 +792,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 ### Expiry test procedure refinement — 2026-11-18
 - To avoid confusion between Bash and psql prompts during the short-TTL test, use PostgreSQL's SQL function `SELECT pg_catalog.pg_sleep(32);` between the before-expiry and after-expiry verifier calls in the SAME explicit transaction. This keeps the transaction and signed XID open while elapsed time passes.
 - Before retry, ROLLBACK and close any aborted XID 826 session; delete both token files under `/run`. Start a new transaction and sign for its exact new XID.
+
+### RLS PoC checkpoint — 2026-11-18 (token expiration verified)
+- User completed a paired short-TTL test with PostgreSQL transaction XID `830` and signer TTL 30 seconds.
+- The token was imported into the transaction-bound temporary table and verifier returned one row before expiration: `valid_before_expiry=true`.
+- User then executed `SELECT pg_catalog.pg_sleep(32);` at the psql prompt while the same transaction remained open. A subsequent verifier call in that same transaction returned zero rows: `expired_after_ttl=true`.
+- This is valid evidence of expiration enforcement because the token passed first, elapsed time exceeded its 30-second TTL inside the same XID, and the same token was rejected afterward. This supersedes prior inconclusive expiry attempts caused by XID mismatch or shell command entered at the psql prompt.
+- Transaction was ROLLBACKed. User reports token staging files were cleaned; logs were interleaved between terminal sessions, but no key/token contents were exposed.
+- Negative test suite now passed for malformed/empty token, MAC tampering, cross-transaction replay, and expiration. Key revocation remains outstanding.
+- Next: test revocation with a valid token in an open transaction. First verify it succeeds; from a second PostgreSQL admin connection, `SET ROLE sinau_context_owner` and set `revoked_at=clock_timestamp()` for `poc-k1`, COMMIT; then re-run verifier in the still-open original transaction and expect zero rows. Restore `revoked_at=NULL` from the admin connection and verify the token becomes valid again within the same transaction (optional but useful). Always restore active status in a guaranteed cleanup step; do not leave the synthetic key revoked. Never select or display secret bytes. Only after revocation tests pass proceed to audience/malformed-claim tests and RLS integration.
+- No RLS policy changed. Key remains synthetic PoC-only. Safety boundary unchanged: only `sinau_design_poc`; no app DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik touched. PR #1 remains Draft/open/unmerged.

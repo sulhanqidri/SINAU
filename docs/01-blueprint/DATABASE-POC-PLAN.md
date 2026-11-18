@@ -1,6 +1,6 @@
 # Rencana PoC Database dan Isolasi Tenant SINAU
 
-**Status:** Rencana pengujian — belum dijalankan  
+**Status:** Rencana pengujian dengan draft SQL PoC tersedia; belum dieksekusi  
 **Tanggal:** 2026-11-18  
 **Terkait:** ADR-002, ADR-003, ADR-005
 
@@ -8,7 +8,7 @@
 
 Membuktikan bahwa pola shared database/shared schema dapat menjaga integritas tenant dan unit pada engine yang diuji, sebelum migration domain SINAU dibuat. PoC membandingkan PostgreSQL 18 dan MySQL 8.4 LTS menggunakan skenario, data sintetis, dan acceptance criteria yang sama.
 
-PoC bukan aplikasi produksi dan tidak boleh memakai data siswa, guru, wali, atau lembaga nyata.
+PoC bukan aplikasi produksi dan tidak boleh memakai data siswa, guru, wali, atau lembaga nyata. Draft schema dan fixture awal tersedia di [poc/database-isolation](../../poc/database-isolation/README.md) untuk PostgreSQL 18 dan MySQL 8.4 LTS. Script belum dijalankan karena lingkungan eksekusi database belum disediakan; hasil belum boleh dinyatakan lulus.
 
 ## 2. Scope data sintetis
 
@@ -42,7 +42,6 @@ Gunakan identifier sintetis yang jelas bukan data resmi.
 - `id` primary key.
 - `tenant_id` not null.
 - `unit_id` not null.
-- `UNIQUE (tenant_id, unit_id, id)` bila diperlukan sebagai parent key.
 - Composite FK `(tenant_id, unit_id)` → `education_units(tenant_id, id)`.
 
 ### memberships

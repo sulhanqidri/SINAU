@@ -498,3 +498,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - The test script intentionally rolls back fixtures; this is expected. Schema remains committed from `001-schema.sql`. This confirms only the tested constraints/triggers and does not constitute full logical-design acceptance or production migration authorization.
 - Remaining PoC/design gates: inspect actual constraint/index definitions; test RLS and tenant/unit authorization; test temporal concurrency using two sessions; assess snapshot immutability; implement/test max-score enforcement; test correction approval/application atomicity and revision linkage; resolve AUD-LD-06 guardian access; complete LD-01—LD-16 evidence and product/domain/privacy/security reviews.
 - Safety boundary unchanged: only disposable `sinau_design_poc` / `sinau_poc`; do not touch application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+
+
+### PoC execution checkpoint — 2026-11-18 (constraint and index inventory)
+- User successfully reran the index inventory query on `sinau_design_poc`; PostgreSQL returned 33 indexes.
+- Inventory includes primary-key/unique B-tree indexes and one GiST index, `student_placement_no_overlap`, supporting the temporal placement exclusion constraint. Earlier constraint inventory returned 155 catalog rows (including NOT NULL entries); `btree_gist` 1.8 and `plpgsql` 1.0 were confirmed installed.
+- Index inventory confirms indexes created by PK/UNIQUE/exclusion constraints. It does not establish that all referencing foreign-key columns or application query patterns have suitable non-unique indexes; PostgreSQL does not automatically create indexes on referencing FK columns. Review query patterns and FK-side indexes before finalizing indexing design; avoid adding indexes without workload justification.
+- Next: inspect candidate schema and map FK columns/query patterns, then continue RLS tenant/unit isolation tests. Follow with two-session temporal concurrency and correction transaction/revision tests. Existing limitations (max_score enforcement, snapshot immutability, atomic correction workflow, AUD-LD-06) remain open.
+- PoC remains limited to `sinau_design_poc` / `sinau_poc`; no application database `sinau`, `sinau_app`, SQLRadius, or MikroTik changes. PR #1 remains Draft/open/unmerged.

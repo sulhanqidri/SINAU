@@ -9,7 +9,7 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 ## Cakupan lembaga
 - Sekolah umum: SD, SMP, SMA, SMK.
 - Madrasah: MI, MTs, MA, MAK.
-- RA dapat dipertimbangkan dalam tahap pengembangan berikutnya.
+- RA dapat dipertimbangkan dalam tahap pengembangan berikutnya, setelah discovery dan persetujuan scope.
 
 ## Prinsip pengembangan
 1. Dokumentasi proyek adalah acuan utama sebelum implementasi.
@@ -21,29 +21,39 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 7. Keamanan, privasi data peserta didik, audit, dan integritas data adalah persyaratan inti.
 8. Pengembangan dilakukan bertahap melalui pengujian dan preproduction sebelum production.
 9. Perubahan ruang lingkup, arsitektur, skema data, dan desain harus didokumentasikan.
+10. Status pekerjaan dan sesi lanjutan wajib dicatat di Project Progress Tracker.
 
-## Mulai membaca
-- [Konstitusi Proyek](docs/00-governance/PROJECT-CONSTITUTION.md)
-- [Aturan Pengembangan](docs/00-governance/DEVELOPMENT-RULES.md)
-- [Pengendalian Perubahan](docs/00-governance/CHANGE-CONTROL.md)
-- [Blueprint Utama](docs/01-blueprint/MASTER-BLUEPRINT.md)
-- [Rencana Implementasi Fondasi](docs/01-blueprint/IMPLEMENTATION-PLAN.md)
-- [Evaluasi Teknologi](docs/01-blueprint/TECHNOLOGY-OPTIONS.md)
-- [Rencana PoC Database dan Isolasi Tenant](docs/01-blueprint/DATABASE-POC-PLAN.md)
-- [ADR Strategi Isolasi Database Tenant](docs/09-decisions/ADR-002-DATABASE-ISOLATION-STRATEGY.md)
-- [ADR Rekomendasi Stack Aplikasi](docs/09-decisions/ADR-005-APPLICATION-STACK-RECOMMENDATION.md)
-- [ADR Pemilihan PostgreSQL](docs/09-decisions/ADR-006-POSTGRESQL-DATABASE.md)
+## Mulai membaca — urutan wajib
+1. [Project Progress & Handoff Tracker](docs/00-governance/PROJECT-PROGRESS.md) — posisi pekerjaan, status, checkpoint, dan next action.
+2. [Konstitusi Proyek](docs/00-governance/PROJECT-CONSTITUTION.md)
+3. [Aturan Pengembangan](docs/00-governance/DEVELOPMENT-RULES.md)
+4. [Pengendalian Perubahan](docs/00-governance/CHANGE-CONTROL.md)
+5. [Blueprint Utama](docs/01-blueprint/MASTER-BLUEPRINT.md)
+6. [Katalog Kelengkapan Blueprint](docs/01-blueprint/BLUEPRINT-CATALOG.md) — daftar semua blueprint yang wajib disiapkan.
+7. [Rencana Implementasi Fondasi](docs/01-blueprint/IMPLEMENTATION-PLAN.md)
+8. [Rencana PoC Database dan Isolasi Tenant](docs/01-blueprint/DATABASE-POC-PLAN.md)
+
+## Kebutuhan dan domain
 - [Kebutuhan Produk](docs/02-requirements/PRODUCT-REQUIREMENTS.md)
 - [Ruang Lingkup MVP](docs/02-requirements/MVP-SCOPE.md)
 - [Model Domain dan Database](docs/03-database/DOMAIN-MODEL.md)
+- [ERD Konseptual](docs/03-database/ERD-CONCEPTUAL.md)
 - [Design System](docs/03-design-system/README.md)
 - [Dukungan Sekolah Umum](docs/04-education/GENERAL-SCHOOLS.md)
 - [Dukungan Madrasah](docs/04-education/MADRASAH.md)
 - [Strategi Pengujian](docs/07-testing/TEST-STRATEGY.md)
-- [Catatan Keputusan Arsitektur](docs/10-decisions/README.md)
+
+## Keputusan arsitektur
+- [ADR Model Tenant/Pelanggan](docs/09-decisions/ADR-001-TENANT-CUSTOMER-MODEL.md)
+- [ADR Strategi Isolasi Database Tenant](docs/09-decisions/ADR-002-DATABASE-ISOLATION-STRATEGY.md)
+- [ADR Authorization Scope](docs/09-decisions/ADR-003-AUTHORIZATION-SCOPE.md)
+- [ADR Onboarding dan Entitlement Unit](docs/09-decisions/ADR-004-ONBOARDING-VERIFICATION-AND-UNIT-ENTITLEMENTS.md)
+- [ADR Rekomendasi Stack Aplikasi](docs/09-decisions/ADR-005-APPLICATION-STACK-RECOMMENDATION.md)
+- [ADR Pemilihan PostgreSQL](docs/09-decisions/ADR-006-POSTGRESQL-DATABASE.md)
+- [Catatan Keputusan Arsitektur](docs/09-decisions/DECISION-LOG.md)
 
 ## Status proyek
-**Tahap: Fondasi dan perencanaan.** PostgreSQL 18 telah dipilih. Stack aplikasi, skema database produksi, dan modul operasional masih harus divalidasi sebelum implementasi.
+**Tahap: perencanaan dan validasi fondasi.** PostgreSQL 18 telah dipilih. Master blueprint dan katalog blueprint masih dalam proses pendalaman; stack aplikasi, skema database produksi, dan modul operasional belum disahkan untuk implementasi. Lihat [Project Progress Tracker](docs/00-governance/PROJECT-PROGRESS.md) untuk status terperinci.
 
 ## Kontribusi dan perubahan
-Baca [CONTRIBUTING.md](CONTRIBUTING.md) dan aturan di folder docs/00-governance/ sebelum membuat perubahan.
+Baca [CONTRIBUTING.md](CONTRIBUTING.md) dan aturan di folder `docs/00-governance/` sebelum membuat perubahan.

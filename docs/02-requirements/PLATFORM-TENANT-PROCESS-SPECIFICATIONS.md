@@ -460,7 +460,8 @@ Semua event harus memiliki event ID, aggregate ID, tenant context, occurred_at, 
 12. Penggunaan kuota, notifikasi batas, downgrade impact preview.
 13. Suspended/limited access page dan reactivation flow.
 14. Audit activity untuk tenant admin dan platform privileged roles sesuai scope.
-15. Daftar anggota tenant/unit, undangan, detail penerimaan, pengelolaan role, suspend/revoke membership, dan histori akses.
+15. Lifecycle tenant/unit: suspend, close, restore, transfer, manifest, export, reconciliation, dan histori lifecycle.
+16. Daftar anggota tenant/unit, undangan, detail penerimaan, pengelolaan role, suspend/revoke membership, dan histori akses.
 
 Setiap layar harus memiliki loading, empty, validation error, permission denied, offline/retry, success, dan responsive states.
 
@@ -473,6 +474,7 @@ Setiap layar harus memiliki loading, empty, validation error, permission denied,
 | BP-PLT-03 | VERIFY | VerificationCase, Document, Audit | Tenant submit; platform review | Verification center | Privacy, workflow, deadline |
 | BP-PLT-04 | BILLING/ENTITLEMENT | Plan, Subscription, Invoice, Entitlement | Tenant billing; platform billing | Billing center | Webhook, ledger, concurrency |
 | BP-PLT-05 | IDENTITY/ACCESS | User, Invitation, TenantMembership, UnitMembership, RoleAssignment | Tenant/unit membership scoped | Member and invitation management | Invitation lifecycle, role ceiling, revoke, cross-scope IDOR |
+| BP-PLT-06 | TENANT/UNIT LIFECYCLE | TenantLifecycleCase, UnitLifecycleCase, TransferCase, TransferManifest, DataDispositionPlan, AuditEvent | Tenant/unit scoped; platform approval for high-impact transitions | Lifecycle, suspend/close/restore, transfer, export | Lifecycle policy, consent/approval, retention, transfer integrity, reconciliation, tenant isolation |
 
 Requirement IDs final perlu diselaraskan dengan PRODUCT-REQUIREMENTS dan acceptance register sebelum dianggap stable.
 
@@ -490,6 +492,7 @@ Requirement IDs final perlu diselaraskan dengan PRODUCT-REQUIREMENTS dan accepta
 | OPEN-PLT-08 | Pemilik beberapa tenant, transfer unit, dan perubahan tenant type | Menentukan workflow khusus dan audit | Open |
 | OPEN-PLT-09 | Definisi zona waktu akhir tenggat 7 hari dan kalender hari libur | Menjamin scheduler konsisten | Open |
 | OPEN-PLT-10 | Appeal/review kedua untuk verification rejected | Menentukan fairness dan separation of duties | Open |
+| OPEN-PLT-11—18 | Kebijakan suspend/close/restore/transfer dan retensi BP-PLT-06 | Kewenangan, legal basis, privasi, kontrak, integritas transfer, dan akses pasca-penutupan; rincian pada §14.12 | Open |
 
 **Gate:** implementasi subscription/checkout dan policy suspend/downgrade tidak boleh dimulai sebelum OPEN-PLT-03 sampai OPEN-PLT-05 diputuskan. Implementasi verifikasi otomatis tidak boleh mengasumsikan sumber resmi sebelum OPEN-PLT-01/02 diselesaikan.
 

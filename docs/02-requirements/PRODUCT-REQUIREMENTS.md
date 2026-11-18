@@ -4,7 +4,7 @@
 **Tanggal:** 2026-11-18
 
 ## 1. Ringkasan
-SINAU adalah aplikasi SaaS multi-tenant untuk administrasi dan operasional pendidikan di Indonesia. Satu platform melayani sekolah umum dan madrasah, dari beberapa jenjang, dengan konfigurasi yang sesuai kebutuhan lembaga.
+SINAU adalah aplikasi SaaS multi-tenant untuk administrasi dan operasional pendidikan di Indonesia. Satu platform melayani sekolah umum (SD, SMP, SMA, SMK) dan madrasah (MI, MTs, MA, MAK), baik yang berada di bawah yayasan maupun yang mandiri, dengan konfigurasi sesuai kebutuhan lembaga.
 
 ## 2. Masalah yang ingin diselesaikan
 Lembaga pendidikan sering memakai banyak aplikasi/berkas terpisah untuk data siswa, akademik, presensi, keuangan, surat, dan komunikasi. SINAU bertujuan mengurangi duplikasi data, menyatukan alur kerja, memperjelas hak akses, dan menyediakan riwayat yang dapat diaudit.
@@ -23,6 +23,7 @@ Lembaga pendidikan sering memakai banyak aplikasi/berkas terpisah untuk data sis
 - Satu identitas orang tidak harus menjadi satu record siswa per sekolah; identitas dan riwayat enrollment dipisahkan.
 - Akses diberikan berdasarkan tenant, unit, role, permission, dan relasi yang sah.
 - Jenis lembaga dan jenjang memengaruhi konfigurasi, bukan membuat cabang aplikasi yang tidak terpelihara.
+- Bentuk pelanggan (yayasan atau mandiri) terpisah dari jenis/jenjang pendidikan setiap unit.
 - Perubahan kurikulum dan aturan harus memiliki versi/periode efektif.
 - Semua alur penting memiliki status, validasi, dan audit.
 
@@ -40,6 +41,8 @@ FR-010 Sistem menyediakan laporan dan ekspor yang dibatasi hak akses.
 FR-011 Sistem mendukung konfigurasi khusus sekolah umum, SMK, dan madrasah.
 FR-012 Sistem mencatat aktivitas sensitif dan perubahan data penting.
 FR-013 Sistem menyediakan antarmuka responsif desktop/tablet/ponsel.
+FR-014 Registrasi pelanggan menyediakan pilihan yayasan/penyelenggara atau sekolah/madrasah mandiri.
+FR-015 Yayasan dapat menaungi sekolah umum, madrasah, atau kombinasi keduanya dalam satu tenant.
 
 ## 6. Kebutuhan nonfungsional
 - Keamanan tenant/unit wajib diuji pada setiap modul.
@@ -63,4 +66,4 @@ Payment gateway, akuntansi penuh, tanda tangan elektronik tersertifikasi, integr
 - Apakah orang tua/siswa perlu portal pada MVP atau setelahnya?
 
 ## 9. Acceptance produk MVP
-MVP dinyatakan siap pilot bila satu tenant dapat mengelola unit, pengguna, siswa, guru, periode akademik, kelas/rombel, presensi, dan proses akademik dasar; seluruh akses dibatasi sesuai tenant/unit/role; laporan dasar benar; serta alur diuji oleh perwakilan sekolah umum dan madrasah.
+MVP dinyatakan siap pilot bila pelanggan dapat onboarding sebagai yayasan atau sekolah/madrasah mandiri; tenant yayasan dapat mengelola beberapa unit termasuk sekolah umum dan madrasah; tenant mandiri dapat berjalan tanpa entitas yayasan fiktif; proses akademik dasar berjalan; seluruh akses dibatasi sesuai tenant/unit/role; dan alur diuji oleh perwakilan sekolah umum serta madrasah.

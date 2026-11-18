@@ -176,7 +176,7 @@ Untuk menghindari keputusan prematur tentang shared `Person` lintas tenant, mode
 - `student_profiles` (unit): `id`, `tenant_id`, `unit_id`, `local_student_no`, `full_name`, `birth_date` nullable, `gender_code` nullable, `profile_status`, timestamps. Unique `(tenant_id, unit_id, local_student_no)`; PII minimal dan akses terbatas.
 - `guardian_profiles` (unit): `id`, `tenant_id`, `unit_id`, `full_name`, `contact_data` (structured columns, not arbitrary blob), `profile_status`, timestamps. Tidak otomatis merupakan users/login.
 - `student_guardians` (unit): `id`, `tenant_id`, `unit_id`, `student_profile_id`, `guardian_profile_id`, `relationship_code`, `is_primary` candidate, `valid_from`, `valid_until`, `verification_status`. Composite FK kedua profile menjamin scope sama. Primary guardian uniqueness/aturan wali lebih dari satu menunggu policy.
-- `student_enrollments` (unit): `id`, `tenant_id`, `unit_id`, `student_profile_id`, `academic_year_id`, `academic_term_id` nullable, `grade_level_id`, `class_group_id` nullable saat proses awal, `enrollment_no`, `status`, `effective_from`, `effective_until`. FK semua referensi scoped pada unit yang sama. Tidak menetapkan unique satu enrollment aktif per siswa sebelum OWN-02 disepakati; candidate unique enrollment_no per unit.
+- `student_enrollments` (unit): `id`, `tenant_id`, `unit_id`, `student_profile_id`, `academic_year_id`, `academic_term_id` nullable, `grade_level_id`, `class_group_id` dihapus pada v0.2.0; gunakan student_class_placements, `enrollment_no`, `status`, `effective_from`, `effective_until`. FK semua referensi scoped pada unit yang sama. Tidak menetapkan unique satu enrollment aktif per siswa sebelum OWN-02 disepakati; candidate unique enrollment_no per unit.
 - `student_enrollment_status_history`: `id`, `tenant_id`, `unit_id`, `student_enrollment_id`, `from_status`, `to_status`, `effective_at`, `reason`, `changed_by_user_id`; append-only.
 
 ## 8. HR minimum dan academic organization
@@ -190,6 +190,8 @@ Untuk menghindari keputusan prematur tentang shared `Person` lintas tenant, mode
 - `class_subjects` (unit) dapat menjadi view/projection dari teaching assignment + curriculum subject bila tidak menyimpan fakta independen; jangan membuat tabel duplikat sebelum kebutuhan proses dipastikan.
 
 ## 9. Attendance dan assessment dasar
+
+Catatan v0.1.0 untuk attendance/assessment di bawah ini disupersede oleh proposal v0.2.0 pada §16.2—16.5.
 
 - `attendance_sessions` (unit): `id`, `tenant_id`, `unit_id`, `academic_year_id`, `academic_term_id` nullable, `class_group_id`, `session_date`, `session_label`, `starts_at` nullable, `ends_at` nullable, `created_by_user_id`, `status`. Session context minimal/manual; bukan timetable engine. Perlu keputusan apakah sesi wajib terkait teaching assignment.
 - `attendance_records` (unit): `id`, `tenant_id`, `unit_id`, `attendance_session_id`, `student_enrollment_id`, `attendance_status`, `recorded_at`, `recorded_by_user_id`, `note` nullable. Unique `(tenant_id, unit_id, attendance_session_id, student_enrollment_id)`; status terkontrol. FK session dan enrollment memastikan scope sama.

@@ -683,3 +683,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Updated source: `docs/03-database/poc/005-verify-context-token.sql`; latest commit `2082a249dc146bf27622fa26d253f597d2e344c5`; verified blob `ce490de5f6023020ec6d756520cbc0fbdc28a12c`.
 - The database-name audience is only an environment boundary for this PoC; production should use a unique deployment/environment audience identifier, because a clone restored under the same database name is not distinguished by database-name comparison alone.
 - Source inspection verifies the audience comparison is present. Runtime SQL syntax and behavior remain unverified until executed against the user's PostgreSQL 18.7 PoC.
+
+### RLS PoC checkpoint — 2026-11-18 (verifier execution blocked by filesystem permissions)
+- User successfully downloaded `docs/03-database/poc/005-verify-context-token.sql` from commit `2082a249dc146bf27622fa26d253f597d2e344c5` into `~/sinau-poc`; local validation showed 223 lines and expected SECURITY DEFINER, fixed search_path, current_database audience, no-XID-allocation function, and PUBLIC EXECUTE revocation clauses.
+- Attempted `sudo -u postgres psql ... -f 005-verify-context-token.sql` returned `Permission denied` while reading the script. The script is under `/home/sinauadmin`, which is not traversable/readable by the `postgres` OS account. The SSH connection subsequently closed.
+- This is an operating-system file-access failure, not a PostgreSQL SQL/runtime failure. No verifier installation or SQL test result is established; do not claim the function exists.
+- Next: reconnect to the SINAU host as `sinauadmin`; verify `/run` is tmpfs; stage the SQL file under a new dedicated `/run/sinau-poc-sql` directory owned by postgres mode 0700, file mode 0600, execute `psql -f` from that staging path, and use an EXIT trap to delete staging. Do not loosen permissions on `/home/sinauadmin` or the project folder.
+- Only after psql completes successfully, inspect function owner, SECURITY DEFINER flag, fixed function settings, ACL, and malformed-token zero-row tests. If SQL fails, capture the error and stop; do not rerun setup or modify existing key material.
+- Safety remains `sinau_design_poc` only; do not touch application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.

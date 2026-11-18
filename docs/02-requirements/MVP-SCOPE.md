@@ -9,9 +9,14 @@ Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dap
 ### A. Registrasi, platform, dan organisasi
 - Registrasi pelanggan menyediakan dua pilihan: **Yayasan/penyelenggara pendidikan** atau **Sekolah/madrasah mandiri**.
 - Pilihan tersebut menetapkan tipe tenant (foundation atau independent_provider), bukan jenis/jenjang pendidikan.
-- Yayasan dan sekolah/madrasah mandiri dapat menambahkan unit sesuai entitlement paket; tipe tenant tidak menentukan kuota unit.\n- Dokumen legal yayasan dapat dilengkapi pada tahap verifikasi, bukan syarat upload saat registrasi awal.\n- NPSN/NSM dapat kosong saat registrasi awal dan dilengkapi saat verifikasi; identifier yang diisi divalidasi tanpa membocorkan data lembaga lain.\n- Status verifikasi dipisahkan dari status subscription; akses dievaluasi berdasarkan kedua status.\n- Downgrade tidak menghapus unit atau data; jika jumlah unit melampaui entitlement, penambahan unit baru diblokir.
+- Yayasan dan sekolah/madrasah mandiri dapat menambahkan unit sesuai entitlement paket; tipe tenant tidak menentukan kuota unit.
+- Dokumen legal yayasan dapat dilengkapi pada tahap verifikasi, bukan syarat upload saat registrasi awal.
+- NPSN/NSM dapat kosong saat registrasi awal dan dilengkapi saat verifikasi; identifier yang diisi divalidasi tanpa membocorkan data lembaga lain.
+- Status verifikasi dipisahkan dari status subscription; akses dievaluasi berdasarkan kedua status.
+- Downgrade tidak menghapus unit atau data; jika jumlah unit melampaui entitlement, penambahan unit baru diblokir.
 - Registrasi mandiri membuat tenant tanpa entitas yayasan fiktif dan menghubungkannya dengan unit pendidikan yang didaftarkan.
-- Registrasi/onboarding tenant melalui alur yang dikendalikan, dengan status verifikasi dan subscription terpisah.\n- Entitlement jumlah unit diperiksa server-side pada setiap pembuatan unit.
+- Registrasi/onboarding tenant melalui alur yang dikendalikan, dengan status verifikasi dan subscription terpisah.
+- Entitlement jumlah unit diperiksa server-side pada setiap pembuatan unit.
 - Profil tenant dan satu/lebih unit pendidikan.
 - Konfigurasi jenis lembaga dan jenjang.
 - Pengguna, undangan/aktivasi, role, permission, dan keanggotaan unit.
@@ -61,9 +66,9 @@ Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dap
 2. Skenario registrasi yayasan madrasah atau campuran lulus.
 3. Skenario registrasi sekolah/madrasah mandiri lulus tanpa yayasan fiktif.
 4. Tes isolasi tenant dan unit lulus.
-2. Tes permission untuk seluruh use case MVP lulus.
-3. Import data dapat dipreview dan ditolak dengan alasan yang jelas.
-4. Koreksi data sensitif terekam.
-5. Pilot menyelesaikan skenario inti sekolah umum dan madrasah.
-6. Backup/restore dan monitoring dasar terbukti.
-7. Tidak ada bug kritis terbuka terkait kebocoran atau kerusakan data.
+5. Tes permission untuk seluruh use case MVP lulus.
+6. Import data dapat dipreview dan ditolak dengan alasan yang jelas.
+7. Koreksi data sensitif terekam.
+8. Pilot menyelesaikan skenario inti sekolah umum dan madrasah.
+9. Backup/restore dan monitoring dasar terbukti.
+10. Tidak ada bug kritis terbuka terkait kebocoran atau kerusakan data.

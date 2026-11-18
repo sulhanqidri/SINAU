@@ -51,17 +51,24 @@ erDiagram
   GUARDIAN_PROFILES ||--o{ STUDENT_GUARDIANS : related
   STUDENT_PROFILES ||--o{ STUDENT_ENROLLMENTS : enrolls
   ACADEMIC_YEARS ||--o{ STUDENT_ENROLLMENTS : period
-  CLASS_GROUPS ||--o{ STUDENT_ENROLLMENTS : groups
+  STUDENT_ENROLLMENTS ||--o{ STUDENT_CLASS_PLACEMENTS : placed
+  CLASS_GROUPS ||--o{ STUDENT_CLASS_PLACEMENTS : receives
   TENANTS ||--o{ EMPLOYEE_PROFILES : employs
   EMPLOYEE_PROFILES ||--o{ EMPLOYEE_PLACEMENTS : placed
   EDUCATION_UNITS ||--o{ EMPLOYEE_PLACEMENTS : assigns
   EDUCATION_UNITS ||--o{ CLASS_GROUPS : organizes
   EMPLOYEE_PLACEMENTS ||--o{ TEACHING_ASSIGNMENTS : assigned
   CLASS_GROUPS ||--o{ TEACHING_ASSIGNMENTS : taught
-  STUDENT_ENROLLMENTS ||--o{ ATTENDANCE_RECORDS : attendance
-  ATTENDANCE_SESSIONS ||--o{ ATTENDANCE_RECORDS : records
-  STUDENT_ENROLLMENTS ||--o{ STUDENT_SCORES : assessed
-  ASSESSMENT_DEFINITIONS ||--o{ STUDENT_SCORES : scores
+  ATTENDANCE_SESSIONS ||--o{ ATTENDANCE_SESSION_PARTICIPANTS : snapshots
+  STUDENT_ENROLLMENTS ||--o{ ATTENDANCE_SESSION_PARTICIPANTS : eligible
+  STUDENT_CLASS_PLACEMENTS ||--o{ ATTENDANCE_SESSION_PARTICIPANTS : class_context
+  ATTENDANCE_SESSION_PARTICIPANTS ||--o| ATTENDANCE_RECORDS : has_record
+  ATTENDANCE_RECORDS ||--o{ ATTENDANCE_RECORD_REVISIONS : revised
+  ATTENDANCE_CORRECTIONS ||--o| ATTENDANCE_RECORD_REVISIONS : applies
+  ASSESSMENT_DEFINITIONS ||--o{ ASSESSMENT_PARTICIPANTS : includes
+  STUDENT_ENROLLMENTS ||--o{ ASSESSMENT_PARTICIPANTS : eligible
+  STUDENT_CLASS_PLACEMENTS ||--o{ ASSESSMENT_PARTICIPANTS : class_context
+  ASSESSMENT_PARTICIPANTS ||--o| STUDENT_SCORES : result
 ```
 
 Diagram ini sengaja menampilkan relasi inti; tabel audit, import/export, file, dan detail status-history dijelaskan pada katalog di bawah.
@@ -261,3 +268,130 @@ Index final harus didasarkan pada query workload, EXPLAIN ANALYZE, dan benchmark
 | Tanggal | Versi | Perubahan |
 |---|---|---|
 | 2026-11-18 | 0.1.0 | Draft logical ERD pertama: entitas MVP, scope, candidate keys/FKs, relasi, constraints, dan keputusan terbuka. |
+
+
+## 16. Remediasi logical model hasil audit AUD-LD-001 (proposal v0.2.0)
+
+Bagian ini menjadi **candidate design terbaru** dan mengesampingkan deskripsi yang bertentangan pada bagian sebelumnya. Perubahan tetap Draft; belum merupakan persetujuan domain atau migration.
+
+### 16.1 Enrollment dan histori penempatan rombel — AUD-LD-01
+
+- Hapus `student_enrollments.class_group_id` sebagai sumber kebenaran. Enrollment merepresentasikan keikutsertaan siswa pada unit dan periode; enrollment boleh belum ditempatkan ke rombel.
+- Tambahkan `student_class_placements` sebagai relasi penempatan efektif tanggal. Candidate owner: Student (karena lifecycle relasi enrollment); Academic tetap owner `class_groups`. Kontrak lintas domain dan owner final masih perlu persetujuan product/domain owner.
+- Candidate attributes: `id, tenant_id, unit_id, student_enrollment_id, class_group_id, starts_on, ends_on, status, reason, created_by_user_id, created_at`.
+- Satu enrollment dapat memiliki nol atau beberapa placement historis; rentang aktif untuk enrollment yang sama tidak boleh overlap. Gap diperbolehkan bila siswa belum ditempatkan atau ada jeda administratif.
+- Placement harus berada pada unit yang sama, tahun ajaran/grade yang sesuai dengan enrollment dan class group, serta tanggalnya berada dalam masa enrollment. Candidate constraint: composite FK scope; composite key yang membawa `academic_year_id` dan `grade_level_id` untuk membuktikan kesesuaian enrollment/class group; temporal overlap ditangani exclusion constraint PostgreSQL atau transaksi terkunci setelah PoC.
+- Tidak boleh mengubah placement lama untuk memindahkan siswa. Tutup `ends_on` secara terkontrol dan buat placement baru; koreksi histori memakai event koreksi/audit terpisah.
+
+### 16.2 Attendance session participant snapshot — AUD-LD-02
+
+Tambahkan `attendance_session_participants` sebagai snapshot roster yang dibekukan saat sesi dibuka/dipublikasikan:
+- Attributes: `id, tenant_id, unit_id, attendance_session_id, student_enrollment_id, student_class_placement_id, eligibility_status, included_at, excluded_at, exclusion_reason`.
+- Unique `(tenant_id, unit_id, attendance_session_id, student_enrollment_id)`; composite FK menjamin semua referensi dalam tenant/unit sama.
+- Daftar awal berasal dari enrollment + placement yang berlaku pada `session_date`; siswa di luar enrollment/placement yang berlaku tidak boleh dimasukkan otomatis.
+- Snapshot tidak berubah saat roster aktif berubah kemudian. Perubahan snapshot setelah sesi dibuat memerlukan tindakan khusus, alasan, actor, dan audit.
+- `attendance_records` harus merujuk participant, bukan hanya enrollment. Candidate unique satu record per participant. Status awal konseptual `not_recorded` tidak dihitung sebagai absent.
+- Sesi tetap manual/minimal dan tidak mengharuskan timetable engine. `teaching_assignment_id` pada sesi bersifat nullable untuk sesi kelas umum; bila diisi, wajib cocok dengan class group, subject, unit, dan tanggal efektif. Sesi tanpa assignment hanya dapat dibuat oleh role/petugas dengan permission eksplisit. Apakah sesi MVP per kelas atau per pelajaran tetap keputusan terbuka OWN-05/DD-07.
+
+### 16.3 Assessment participant dan basic result lifecycle — AUD-LD-03
+
+Tambahkan `assessment_participants` untuk membekukan peserta berdasarkan enrollment + placement pada tanggal asesmen:
+- Attributes: `id, tenant_id, unit_id, assessment_definition_id, student_enrollment_id, student_class_placement_id, eligibility_status, included_at, excluded_at, exclusion_reason`.
+- Unique `(tenant_id, unit_id, assessment_definition_id, student_enrollment_id)`; scope FK dan kesesuaian class/period/division harus dibuktikan.
+- `student_scores` menjadi hasil untuk participant, bukan pasangan bebas assessment/enrollment. Candidate result fields: `assessment_participant_id, result_status, score_value nullable, feedback, workflow_status, finalized_by_user_id nullable, finalized_at nullable`.
+- `result_status` membedakan `pending`, `scored`, `absent`, dan `exempt`. `score_value` wajib hanya ketika status `scored`; nilai 0 tetap nilai numerik yang sah. Tidak adanya row tidak boleh diam-diam diartikan nol.
+- `workflow_status` MVP dibatasi pada `draft` dan `finalized` sebagai kandidat; status final hanya setelah otorisasi yang sesuai. Publikasi portal/rapor formal, multi-stage moderation, remedial/retake, multiple attempts, dan formula rapor tetap post-MVP kecuali change request disetujui.
+- `assessment_definitions` menyimpan `scoring_rule_version` dan `scoring_rule_snapshot` terstruktur/tervalidasi (bukan kode yang dieksekusi). Snapshot dibekukan ketika hasil pertama dicatat; perubahan aturan membuat versi baru dan tidak mengubah hasil historis.
+- Bobot, skala, presisi, kategori, dan siapa yang boleh finalisasi tetap mengikuti DD-09 serta keputusan kebijakan unit; dokumen ini tidak menetapkan angka atau formula universal.
+
+### 16.4 Academic cross-entity integrity — AUD-LD-04
+
+Setiap transaksi harus membuktikan seluruh rantai berikut:
+1. Session → unit, academic year/term, class group, optional teaching assignment.
+2. Session participant → session, enrollment, placement yang berlaku pada tanggal sesi; enrollment dan placement berada pada class group/periode yang sama.
+3. Assessment definition → unit, academic year/term, class group, curriculum subject yang valid untuk grade/kurikulum/periode.
+4. Assessment participant → assessment, enrollment, placement yang berlaku pada assessment date; class/grade/period cocok.
+5. Teaching/homeroom assignment → employee placement, class group, curriculum subject (bila ada), dan tanggal efektif yang seluruhnya cocok.
+
+Strategi enforcement dibagi:
+- **Database FK/UNIQUE/CHECK:** scope tenant/unit, referensi wajib, composite parent keys, valid date order, status allowlist, uniqueness/idempotency.
+- **Database temporal constraint atau serialized write:** larangan overlap placement/assignment pada kombinasi yang relevan; kandidat PostgreSQL exclusion constraint dengan range tanggal. Wajib diuji dengan concurrent transaction.
+- **Domain service dalam transaksi:** aturan yang bergantung pada policy dan effective-date joins yang tidak dapat dinyatakan aman dengan FK sederhana. Service harus lock aggregate/rows terkait, revalidate sebelum commit, dan idempotent.
+- **Read/report query:** wajib memakai placement/participant snapshot yang berlaku pada tanggal transaksi, bukan current class.
+- Tidak boleh hanya mengandalkan validasi UI atau client.
+
+### 16.5 Attendance correction dan immutable revision — AUD-LD-05
+
+- `attendance_records` adalah identity/current projection; nilai status historis yang authoritative disimpan pada `attendance_record_revisions`.
+- Tambahkan `attendance_record_revisions`: `id, tenant_id, unit_id, attendance_record_id, revision_no, attendance_status, note, source_correction_id nullable, changed_by_user_id, changed_at`. Unique `(tenant_id, unit_id, attendance_record_id, revision_no)`; unique `source_correction_id` bila tidak null agar satu correction menghasilkan paling banyak satu revision.
+- `attendance_corrections` menjadi request lifecycle: `requested_status`, `reason`, `requested_by_user_id`, `review_status`, `reviewed_by_user_id`, `reviewed_at`, `applied_revision_id`, `applied_by_user_id`, `applied_at`, `idempotency_key`.
+- State candidate: `requested → approved/rejected → applied`. Approval bukan berarti applied. Rejected tidak boleh menghasilkan revision.
+- Approval, pengecekan revision saat ini, pembuatan revision, update projection, dan penandaan applied harus satu transaksi; retry menggunakan idempotency key dan tidak boleh membuat revision kedua.
+- Apakah semua koreksi wajib approval atau hanya setelah submit/lock tetap kebijakan terbuka DD-08. Model mendukung policy gate tanpa menganggap semua koreksi selalu perlu approval.
+
+### 16.6 Effective dating HR/Academic — AUD-LD-07
+
+- `employee_placements`, `homeroom_assignments`, dan `teaching_assignments` wajib memiliki `starts_on`, nullable `ends_on`, check `ends_on >= starts_on`, status terkendali, dan scope composite FK.
+- Assignment tidak boleh melampaui rentang placement pegawai; subject harus berasal dari curriculum version yang berlaku dan cocok dengan grade/class group.
+- Overlap yang dilarang didefinisikan per business key (misalnya satu homeroom assignment aktif per class group, atau assignment guru-mapel yang bentrok) dan tidak boleh diasumsikan satu aturan untuk semua tipe assignment.
+- Perubahan employment status tidak menghapus assignment historis. Perubahan yang memengaruhi masa depan harus menutup/menangguhkan assignment dengan effective date dan audit melalui transaksi HR→Academic yang terkoordinasi.
+- Constraint temporal/locking dan concurrency test wajib dibuktikan pada PoC PostgreSQL sebelum physical design.
+
+### 16.7 Audit actor contract — AUD-LD-09
+
+Candidate contract `audit_events`:
+- `actor_type` wajib dan allowlisted: `user`, `system`, `service`, `support`.
+- `actor_user_id` wajib untuk `user` dan `support`; null hanya untuk `system`/`service`.
+- `actor_service_code` wajib untuk `system`/`service`; support action wajib memiliki support session/reference dan reason.
+- `correlation_id` wajib untuk semua event; request/job ID dapat disimpan terpisah bila perlu.
+- CHECK constraint mengikat actor_type dengan kolom actor terkait. User actor harus diverifikasi terhadap scope; system/service identity berasal dari allowlist terkelola.
+- Audit append-only bagi aplikasi; update/delete dibatasi pada proses retensi khusus. Tamper-evidence, key management, dan immutable sink tetap keputusan security architecture.
+
+### 16.8 File reference dan akses — AUD-LD-08
+
+- Generic `stored_files.owner_entity_type/owner_entity_id` hanya metadata routing, bukan FK atau grant akses.
+- Owner type/domain harus allowlist; file scope wajib sama dengan owner scope dan diverifikasi pada attach/read/download/delete serta job async.
+- Dokumen sensitif (student, guardian, HR, verification) harus menggunakan typed association table/record FK milik domain terkait bila dibuat; jangan mengandalkan generic polymorphic reference sebagai satu-satunya bukti ownership.
+- Storage object private; MIME dideteksi server, malware scan wajib sebelum tersedia, signed URL singkat bila digunakan, revoke melalui authorization pada setiap permintaan, audit akses dan retention sesuai policy.
+- Export file hanya dapat diunduh oleh requester atau role yang masih memiliki permission aktif; re-check scope/membership saat download, bukan hanya saat job dibuat.
+
+### 16.9 MVP boundary dan traceability — AUD-LD-10
+
+| Capability | MVP candidate | Post-MVP / excluded unless approved |
+|---|---|---|
+| Student enrollment + class placement history | Ya, minimum placement efektif tanggal | Transfer lintas tenant dan shared person |
+| Attendance | Session manual/minimal, participant snapshot, status dan correction audit | Timetable engine, biometrik/GPS/QR default, offline sync |
+| Assessment | Basic assessment, participant snapshot, score/status, simple finalization and recap | Rapor formal, multi-stage moderation, remedial/retake, multiple attempts, portal publication |
+| HR | Employee profile/status/placement minimum | Payroll, cuti, kontrak rinci, employee attendance |
+| Guardian | Relationship/contact minimum sesuai kebutuhan dan privacy approval | Guardian login/portal, claim/invitation and delegated access |
+| Files/audit | Metadata private, scope check, actor and access audit | Advanced document workflow/e-signature and immutable external archive |
+
+Setiap requirement MVP wajib ditrace ke process ID, entity/table, owner, permission, test case, dan release. Process spec yang menjelaskan alur post-MVP bukan izin memasukkannya ke MVP.
+
+### 16.10 Acceptance dan test matrix minimum
+
+| Test ID | Skenario | Expected result |
+|---|---|---|
+| LD-01 | Enrollment tanpa placement | Valid; tidak ada current class fiktif |
+| LD-02 | Dua placement overlap untuk enrollment yang sama | Ditolak oleh DB temporal constraint atau serialized transaction |
+| LD-03 | Placement pada unit/tahun/grade berbeda dari enrollment/class | Ditolak |
+| LD-04 | Sesi dibuat; roster berubah setelah sesi ditutup | Snapshot peserta sesi tetap |
+| LD-05 | Record presensi untuk enrollment di luar snapshot | Ditolak |
+| LD-06 | Retry submit presensi/koreksi dengan idempotency key sama | Satu record/revision saja |
+| LD-07 | Nilai status absent/exempt/pending tanpa angka | Valid dan tidak dihitung sebagai zero |
+| LD-08 | Nilai scored dengan angka 0 | Valid sebagai zero |
+| LD-09 | Nilai di luar max_score atau peserta dari kelas/periode lain | Ditolak |
+| LD-10 | Ubah scoring rule setelah nilai final | Hasil lama tidak berubah |
+| LD-11 | Approval koreksi tanpa apply | Tidak mengubah current attendance projection |
+| LD-12 | Dua koreksi bersamaan pada revision sama | Konflik terdeteksi; tidak ada lost update |
+| LD-13 | Teaching assignment di luar masa employee placement | Ditolak |
+| LD-14 | Actor system tanpa service identity/correlation | Ditolak |
+| LD-15 | File ID lintas tenant/unit atau membership revoked | Akses ditolak, termasuk signed/download/job |
+| LD-16 | Session/assessment transaction dengan tenant benar tetapi academic context salah | Ditolak |
+
+## 17. Riwayat perubahan
+
+| Tanggal | Versi | Perubahan |
+|---|---|---|
+| 2026-11-18 | 0.1.0 | Draft logical ERD pertama. |
+| 2026-11-18 | 0.2.0 | Proposal remediasi audit: placement, participant snapshots, result lifecycle, cross-entity invariants, revisions, effective dating, actor contract, file authorization, MVP boundary, dan test matrix. Menunggu domain/privacy/security/product approval. |

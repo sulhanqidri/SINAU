@@ -28,3 +28,10 @@
 - Migration diuji pada database kosong dan snapshot data sintetis representatif.
 - Perubahan besar memakai pola expand/migrate/contract bila diperlukan.
 - Hindari migration destruktif tanpa backup, rencana pemulihan, dan persetujuan.
+
+
+## Referensi kamus data
+- `DATA-DICTIONARY-MVP.md` memuat kandidat atribut, tipe PostgreSQL, nullability, klasifikasi, dan validasi per entitas. Dokumen berstatus Draft; belum menjadi izin membuat migration.
+- Field SENS/PII, khususnya data anak, wali, dokumen verifikasi, presensi, dan nilai, memerlukan privacy/security review dan purpose/retention yang disetujui.
+- Composite FK pada tabel unit-scoped harus membuktikan pasangan tenant_id + unit_id. Validasi aplikasi saja tidak menggantikan constraint database untuk integritas referensial.
+- Polymorphic references (audit target, file owner, import result) membutuhkan allowlist entity, scope check, authorization saat akses, dan audit; jangan menganggap UUID target sebagai FK yang aman.

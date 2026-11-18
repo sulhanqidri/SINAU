@@ -169,7 +169,7 @@ Setiap sesi kerja wajib melakukan langkah berikut:
 ## 5. Session handoff — checkpoint terbaru
 
 **Tanggal:** 2026-11-18  
-**Fokus terakhir:** membangun baseline Master Blueprint, katalog kelengkapan blueprint, tracker, dan peta proses bisnis end-to-end.
+**Fokus terakhir:** membangun baseline Master Blueprint, katalog kelengkapan blueprint, peta proses bisnis, dan menurunkan BP-PLT-01—04 menjadi spesifikasi proses platform/tenant draft.
 
 **Yang sudah dikonfirmasi pada sesi ini:**
 - README, Master Blueprint, Project Constitution, Development Rules, Change Control, Implementation Plan, Decision Log, dan dokumen sekolah umum/madrasah telah ditinjau.
@@ -195,6 +195,10 @@ Setiap sesi kerja wajib melakukan langkah berikut:
 - Jangan memulai implementasi fitur akademik/keuangan.
 - Jangan menganggap stack Laravel final sebelum PoC dan ADR final.
 - Jangan mengubah konfigurasi SQLRadius/MikroTik; SINAU adalah proyek terpisah.
+
+
+
+**Checkpoint tambahan — 2026-11-18:** Spesifikasi proses platform SaaS dan tenant BP-PLT-01—04 telah dibuat sebagai Draft 0.1.0. Dokumen mencakup registrasi/pembentukan tenant, penambahan unit, verifikasi, subscription/entitlement, downgrade/suspend/reaktivasi, aktor, aturan bisnis, state, authorization baseline, API/event konseptual, screen inventory, acceptance criteria, test scenario, dan open decisions. Ini bukan persetujuan implementasi. Pekerjaan berikutnya: validasi stakeholder, putuskan OPEN-PLT-01—10 (terutama verifikasi legal dan kebijakan komersial/kuota), lalu lanjutkan spesifikasi BP-ORG dan BP-STD.
 
 ## 6. Format catatan sesi berikutnya
 

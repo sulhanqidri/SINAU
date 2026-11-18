@@ -133,3 +133,56 @@ Identitas siswa dapat tetap dikenali saat pindah unit/tenant, tetapi akses dan p
 - Masa tenggang dan mode akses unit saat downgrade membuat jumlah unit melebihi entitlement.
 - Persyaratan fitur yang menunggu verifikasi.
 Keputusan ini perlu ADR dan uji skenario nyata sebelum migration.
+
+
+## Pemetaan domain terhadap baseline MVP yang disetujui
+
+Bagian ini mengikat model konseptual ke release boundary pada `docs/02-requirements/MVP-SCOPE.md`. Status MVP tidak otomatis berarti detail entitas/atribut telah final. Nama entitas di bawah bersifat konseptual sampai logical ERD, data dictionary, privacy review, dan PoC diselesaikan.
+
+### Bounded context dan ownership data
+
+| Domain / bounded context | Data yang menjadi ownership utama | Batas tanggung jawab |
+|---|---|---|
+| SaaS Platform & Tenant | Tenant, FoundationProfile, EducationUnit, tenant lifecycle | Pelanggan SaaS, organisasi/unit, status operasional |
+| Identity & Access | User, TenantMembership, UnitMembership, Role, Permission, RoleAssignment, Invitation | Identitas login, grant akses, role dan permission; tidak memiliki profil akademik/pegawai |
+| Subscription & Entitlement | Subscription, Plan, Entitlement, Usage | Hak layanan, billing status, kuota dan fitur; tidak menentukan role |
+| Verification | VerificationCase, VerificationEvidence, VerificationDecision | Pemeriksaan tenant/unit; terpisah dari subscription dan lifecycle operasional |
+| Institution Configuration | InstitutionProfile, EducationType, EducationLevel, AcademicCalendar, AcademicYear, AcademicTerm | Konfigurasi lembaga dan periode akademik |
+| Curriculum & Learning Structure | CurriculumVersion, Subject, CurriculumSubject, GradeLevel | Struktur kurikulum dan mapel berversi |
+| Student | StudentProfile, GuardianProfile/Person, StudentGuardian, StudentEnrollment | Identitas siswa/wali dan status enrollment per unit/periode/rombel |
+| HR | EmployeeProfile, EmploymentStatusHistory, EmployeePlacement | Profil dan status pegawai minimum; tidak memiliki akun login atau role |
+| Academic Organization | ClassGroup, HomeroomAssignment, TeachingAssignment | Rombel dan penugasan akademik efektif; merujuk EmployeeProfile dari HR |
+| Attendance | AttendanceSession/SessionContext, AttendanceRecord, AttendanceCorrection | Presensi siswa, koreksi, audit dan rekap |
+| Assessment | AssessmentDefinition, AssessmentCategory, StudentScore, AssessmentSummary | Penilaian dasar dan rekap sederhana; tidak mengesahkan rapor formal |
+| Import & Export | ImportBatch, ImportRow, ExportJob | Validasi, hasil per baris, status, dan audit proses data |
+| Audit & File | AuditEvent, StoredFile | Jejak aktivitas dan metadata file sesuai klasifikasi/ownership |
+
+### Batas MVP dan roadmap dalam model domain
+
+- MVP: SaaS tenant/unit, identity/access, subscription/entitlement, verification, konfigurasi institusi/periode, kurikulum/mapel dasar, student/guardian/enrollment dasar, HR minimum, rombel/penugasan guru, attendance, assessment dasar, import CSV, export dan audit.
+- Post-MVP: PPDB end-to-end, HRIS lanjutan, timetable engine lengkap, LMS/learning delivery, workflow rapor formal, lifecycle siswa lanjutan, finance, BK, library, assets, correspondence, portal lengkap, dan integrasi eksternal.
+- Entitas post-MVP yang sudah disebut pada bagian konseptual sebelumnya adalah placeholder arah domain, bukan komitmen implementasi MVP. Contohnya ClassSchedule, ReportCard, Payroll, atau Finance entities tidak boleh diturunkan menjadi migration MVP tanpa change request.
+- Finance tetap di luar model rinci sampai ada discovery, keputusan scope, dan spesifikasi proses tersendiri.
+
+### Aturan ownership lintas domain
+
+1. HR adalah sumber kebenaran EmployeeProfile, employment status, dan placement dasar. Academic merujuk pegawai tersebut dan memiliki TeachingAssignment/HomeroomAssignment beserta periode efektif.
+2. Identity & Access memiliki User, credential, membership, role, permission, dan invitation. EmployeeProfile/StudentProfile bukan akun login secara otomatis.
+3. Student domain memiliki StudentProfile, relasi wali, dan enrollment. ClassGroup berada pada Academic Organization; enrollment mengacu pada class group dan periode yang valid.
+4. Attendance dan Assessment merujuk StudentEnrollment (dan session context jika diperlukan), bukan hanya StudentProfile, agar unit/periode akademik tetap eksplisit.
+5. Subscription/Entitlement tidak memberi akses pengguna. Authorization tidak boleh disimpulkan dari paket; sebaliknya, role tidak boleh melewati entitlement.
+6. Verification, subscription suspension, dan operational tenant/unit suspension merupakan status/dimensi terpisah sesuai process specifications.
+7. Setiap relasi unit-scoped harus menjaga tenant_id dan unit_id tetap konsisten melalui composite key/FK atau mekanisme integritas yang dibuktikan PoC.
+
+### Keputusan model yang masih terbuka
+
+- Pemilihan `Person` sebagai shared identity master untuk siswa, wali, dan pegawai; jangan menggabungkan profil sebelum kebutuhan deduplikasi, privasi, dan lifecycle divalidasi.
+- Apakah satu StudentProfile dapat memiliki lebih dari satu StudentEnrollment aktif pada saat yang sama, termasuk lintas unit.
+- Identitas siswa lintas tenant, portabilitas histori, dasar hukum, consent, dan pembatasan disclosure.
+- Apakah employee profile selalu unit-scoped atau dapat memiliki penempatan lintas unit dalam satu tenant.
+- Model sesi minimal untuk attendance tanpa timetable engine lengkap.
+- Granularitas kurikulum, mata pelajaran, grade level, dan variasi sekolah umum/madrasah.
+- Aturan wali jamak, primary guardian, verifikasi hubungan, dan hak akses.
+- Retensi, penghapusan, pseudonimisasi, serta legal hold data anak dan pegawai.
+
+Tidak ada keputusan terbuka di atas yang boleh dianggap selesai hanya karena nama entitas muncul dalam diagram. Catat keputusan berdampak tinggi melalui ADR/change control sebelum logical ERD final atau migration.

@@ -36,6 +36,7 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 ## Kebutuhan dan domain
 - [Kebutuhan Produk](docs/02-requirements/PRODUCT-REQUIREMENTS.md)
 - [Ruang Lingkup MVP](docs/02-requirements/MVP-SCOPE.md)
+- [Peta Proses Bisnis End-to-End](docs/02-requirements/BUSINESS-PROCESS-MAP.md)
 - [Model Domain dan Database](docs/03-database/DOMAIN-MODEL.md)
 - [ERD Konseptual](docs/03-database/ERD-CONCEPTUAL.md)
 - [Design System](docs/03-design-system/README.md)
@@ -53,7 +54,7 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 - [Catatan Keputusan Arsitektur](docs/09-decisions/DECISION-LOG.md)
 
 ## Status proyek
-**Tahap: perencanaan dan validasi fondasi.** PostgreSQL 18 telah dipilih. Master blueprint dan katalog blueprint masih dalam proses pendalaman; stack aplikasi, skema database produksi, dan modul operasional belum disahkan untuk implementasi. Lihat [Project Progress Tracker](docs/00-governance/PROJECT-PROGRESS.md) untuk status terperinci.
+**Tahap: perencanaan dan validasi fondasi.** PostgreSQL 18 telah dipilih. Master blueprint, katalog blueprint, dan peta proses bisnis telah memiliki baseline draft; validasi proses, spesifikasi modul, stack aplikasi, serta skema database produksi belum disahkan untuk implementasi. Lihat [Project Progress Tracker](docs/00-governance/PROJECT-PROGRESS.md) untuk status terperinci.
 
 ## Kontribusi dan perubahan
 Baca [CONTRIBUTING.md](CONTRIBUTING.md) dan aturan di folder `docs/00-governance/` sebelum membuat perubahan.

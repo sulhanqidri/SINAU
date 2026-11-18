@@ -772,3 +772,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Both reported token staging paths were removed. Transaction 822 was rolled back; no persistent row/policy was modified.
 - Next attempt must be strictly ordered: (1) open a NEW psql transaction, get a fresh XID; (2) while it remains open, sign token using exactly that XID with `--ttl-seconds 30`; (3) copy token to postgres-readable tmpfs; (4) import and call verifier once, requiring `valid_before_expiry=true`; (5) leave psql transaction open and, in Terminal B, execute `sleep 32`; (6) only after sleep completes, call verifier again in same still-open transaction and require `expired_after_ttl=true`; (7) then ROLLBACK/close and clean both tmpfs files. Do not run signer or sleep after closing the transaction. If first check is false, stop and inspect before waiting.
 - Safety boundary unchanged: only `sinau_design_poc`; no application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (signer output collision; token not generated)
+- Current expiration-test PostgreSQL transaction is reported as XID `826` and remains open in Terminal A.
+- Signer invocation with XID 826 and TTL 30 returned `Token output already exists` because the fixed tmpfs output path `/run/sinau-poc-token-signer/context-hmac-v1.token` already exists. The signer uses exclusive create and refused to overwrite it.
+- This invocation did not create or replace a token. No PostgreSQL import or verifier call occurred in this attempt. Treat the pre-existing file as a leftover candidate: inspect only metadata (regular file, not symlink, owner sinauadmin, mode 0600) and remove it before regenerating; never display its contents.
+- Keep Terminal A/XID 826 open. After safe removal, generate a fresh token using exactly XID 826 and a 60-second TTL, copy it into a new postgres-owned mode-0600 tmpfs path, then perform valid-before-expiry check, wait 62 seconds while the same transaction remains open, and perform expired-after-TTL check.
+- No DB object/key/policy changed. PR #1 remains Draft/open/unmerged; target remains `sinau_design_poc` only.

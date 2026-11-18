@@ -18,7 +18,8 @@ import sys
 import time
 
 SECRET_PATH = Path.home() / ".local/share/sinau-poc-secrets/context-hmac-v1.hex"
-TOKEN_PATH = Path("/run/sinau-poc-token-sinauadmin")
+TOKEN_DIR = Path("/run/sinau-poc-token-signer")
+TOKEN_PATH = TOKEN_DIR / "context-hmac-v1.token"
 MAX_XID = (1 << 64) - 1
 
 # Synthetic fixtures only; verifier does not prove membership.
@@ -81,6 +82,18 @@ def main() -> None:
     ]
     if not run_mounts or run_mounts[-1][2] != "tmpfs":
         fail("/run is not a tmpfs mount.")
+
+    # Keep the signer output inside a private tmpfs directory owned by this user.
+    try:
+        dir_info = TOKEN_DIR.lstat()
+    except FileNotFoundError:
+        fail("Signer token directory does not exist; create it with owner=current user and mode 0700.")
+    if not stat.S_ISDIR(dir_info.st_mode):
+        fail("Signer token path is not a directory.")
+    if dir_info.st_uid != os.getuid():
+        fail("Signer token directory is not owned by the current OS user.")
+    if stat.S_IMODE(dir_info.st_mode) != 0o700:
+        fail("Signer token directory must have mode 0700.")
 
     key = load_key()
     now = int(time.time())

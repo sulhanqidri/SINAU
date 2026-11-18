@@ -58,7 +58,16 @@ def load_key() -> bytes:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("xid", help="decimal top-level XID from the open PostgreSQL transaction")
+    parser.add_argument(
+        "--ttl-seconds",
+        type=int,
+        default=240,
+        help="token lifetime in seconds (1..300; default: 240)",
+    )
     args = parser.parse_args()
+
+    if not 1 <= args.ttl_seconds <= 300:
+        fail("TTL must be between 1 and 300 seconds.")
 
     if not re.fullmatch(r"(0|[1-9][0-9]{0,19})", args.xid):
         fail("XID must be canonical unsigned decimal.")
@@ -97,7 +106,7 @@ def main() -> None:
 
     key = load_key()
     now = int(time.time())
-    expires = now + 240
+    expires = now + args.ttl_seconds
     nonce = secrets.token_hex(16)
 
     payload = "|".join(
@@ -142,7 +151,7 @@ def main() -> None:
     print("PoC signed token created.")
     print(f"XID: {xid_value}")
     print(f"Key ID: {KEY_ID}")
-    print(f"Expires in: 240 seconds")
+    print(f"Expires in: {args.ttl_seconds} seconds")
     print(f"Token file: {TOKEN_PATH}")
     print("Token contents are intentionally not displayed.")
 

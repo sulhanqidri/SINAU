@@ -7,12 +7,17 @@
 - Tandai requirement Approved/Deferred/Rejected.
 
 ## Tahap B — Keputusan teknis
-- PoC Laravel + Vue/Inertia.
-- Bandingkan PostgreSQL dengan MySQL/MariaDB untuk composite constraints, transaction behavior, dan query laporan.
-- PoC shared database/shared schema dengan tenant_id + unit_id dan composite FK.
+- Gunakan ADR-005 sebagai rekomendasi stack PoC: Laravel 13 + Vue 3 + Inertia + Tailwind; runtime PHP 8.4/8.5 diuji sebelum dipatok.
+- Jalankan [DATABASE-POC-PLAN.md](DATABASE-POC-PLAN.md) pada PostgreSQL 18 dan MySQL 8.4 LTS dengan fixture serta acceptance criteria identik.
+- Uji shared database/shared schema dengan tenant_id + unit_id, composite FK, transaksi concurrency, raw SQL, dan opsi RLS PostgreSQL.
 - Uji authentication, membership resolver, authorization policy, tenant/unit context, queue, private file, cache, dan export.
 - Evaluasi RLS bila engine mendukung; jangan jadikan satu-satunya kontrol.
-- Terbitkan ADR untuk engine, session/token, RBAC, dan storage.
+- Terbitkan ADR final untuk engine database setelah PoC; susul ADR terpisah untuk session/token, RBAC, queue/cache, storage, deployment, dan observability.
+
+## Gerbang Tahap B
+- Tidak ada engine database yang dipilih hanya berdasarkan preferensi atau benchmark tunggal.
+- Semua tes integritas dan authorization tenant/unit harus lulus; satu bypass lintas tenant adalah blocker.
+- Pemilik produk meninjau hasil PoC dan menyetujui ADR database sebelum migration domain.
 
 ## Tahap C — UX baseline
 - Pilih arah brand visual.

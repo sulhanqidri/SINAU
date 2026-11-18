@@ -99,16 +99,16 @@ flowchart TD
 | BP-PLT-06 | Lifecycle tenant dan unit (suspend, close, transfer, restore) | Tenant admin/platform | Status lifecycle dan histori tenant/unit | Foundation |
 | BP-ORG-01 | Setup profil dan struktur lembaga | Operator/kepala | Master organisasi | Core |
 | BP-ORG-02 | Setup kalender, tahun ajaran, kurikulum | Admin akademik | Periode dan struktur akademik | Core |
-| BP-ADM-01 | PPDB/penerimaan peserta didik | Panitia/operator | Calon peserta didik diterima/ditolak | Candidate |
+| BP-ADM-01 | PPDB/penerimaan peserta didik | Panitia/operator | Calon peserta didik diterima/ditolak | Candidate — post-MVP |
 | BP-STD-01 | Registrasi siswa dan enrollment | Operator | Enrollment per unit/periode | Core |
-| BP-STD-02 | Mutasi, cuti, nonaktif, kelulusan, alumni | Operator/kepala | Riwayat status siswa | Core/phase |
-| BP-HR-01 | Data pegawai dan penugasan | HR/operator/kepala | Profil dan assignment pegawai | Candidate |
+| BP-STD-02 | Lifecycle lanjutan siswa; minimum MVP hanya status dasar dan penutupan enrollment | Operator/kepala | Riwayat status siswa | Core (minimum MVP) + Phase (workflow lanjutan) |
+| BP-HR-01 | Profil pegawai minimum dan penempatan; assignment mengajar dimiliki BP-ACA-01 | HR/operator/kepala | Profil pegawai dan referensi penempatan | Core (minimum MVP) + Phase (HR lanjutan) |
 | BP-ACA-01 | Setup kelas, rombel, mapel, penugasan | Admin akademik | Struktur pembelajaran | Core |
-| BP-ACA-02 | Penyusunan jadwal | Admin akademik | Jadwal tervalidasi | Phase |
-| BP-ACA-03 | Pelaksanaan pembelajaran | Guru | Aktivitas pembelajaran | Phase |
+| BP-ACA-02 | Penyusunan dan publikasi jadwal lengkap | Admin akademik | Jadwal tervalidasi | Phase — post-MVP; sesi manual/minimal untuk MVP |
+| BP-ACA-03 | Learning delivery dan LMS | Guru | Aktivitas pembelajaran | Phase — post-MVP; sesi minimal untuk MVP |
 | BP-ATT-01 | Presensi siswa dan koreksi | Guru/operator | Catatan presensi tervalidasi | Core |
 | BP-ASM-01 | Asesmen dan pengolahan nilai | Guru/admin akademik | Nilai tervalidasi | Core |
-| BP-ASM-02 | Review, pengesahan, rapor | Wali kelas/kepala | Hasil belajar resmi | Phase |
+| BP-ASM-02 | Review formal, pengesahan, dan rapor | Wali kelas/kepala | Hasil belajar resmi | Phase — post-MVP; rekap sederhana MVP dari BP-ASM-01 |
 | BP-STU-01 | Kesiswaan, BK, prestasi, pelanggaran | Kesiswaan/BK | Catatan dan tindak lanjut | Candidate |
 | BP-FIN-01 | Tagihan, penerimaan, pembayaran | Bendahara | Status tagihan dan receipt | Candidate |
 | BP-FIN-02 | Kas, bank, pengeluaran, jurnal, rekonsiliasi | Bendahara/kepala | Buku dan laporan keuangan | Candidate |
@@ -241,6 +241,8 @@ Label Core/Phase/Candidate adalah klasifikasi perencanaan awal, bukan komitmen M
 
 ### BP-ADM-01 — PPDB/penerimaan peserta didik
 
+> **Release boundary:** post-MVP. Registrasi langsung siswa untuk pilot berada di BP-STD-01; ini tidak mengaktifkan workflow PPDB.
+
 **Alur kandidat:**
 1. Unit membuka gelombang pendaftaran, daya tampung, persyaratan, jalur, dan jadwal.
 2. Calon peserta didik/orang tua mengisi formulir dan menyerahkan dokumen.
@@ -267,11 +269,15 @@ Label Core/Phase/Candidate adalah klasifikasi perencanaan awal, bukan komitmen M
 
 ### BP-STD-02 — Mutasi, cuti, nonaktif, kelulusan, dan alumni
 
+> **Release boundary:** MVP hanya status enrollment dasar dengan alasan/tanggal efektif, histori, dan penutupan enrollment bila diperlukan. Transfer lintas unit, cuti formal, promosi massal, kelulusan formal, dan alumni adalah post-MVP.
+
 **Alur utama:** permohonan/peristiwa dicatat → operator memeriksa kelengkapan dan kewajiban → pejabat berwenang menyetujui → enrollment ditutup/diperbarui dengan tanggal efektif dan alasan → histori akademik/keuangan diarsipkan sesuai permission → akses portal disesuaikan → dokumen keluaran diterbitkan bila sah.
 
 **Larangan:** jangan memindahkan histori siswa ke unit tujuan secara otomatis. Transfer data memerlukan dasar, persetujuan, minimisasi, dan audit.
 
 ### BP-HR-01 — Data pegawai dan penugasan
+
+> **Release boundary:** MVP dibatasi pada profil pegawai/guru minimal, status kerja dasar, dan penempatan yang dibutuhkan. Kontrak/HRIS lanjutan, cuti, presensi pegawai, payroll, dan offboarding workflow adalah post-MVP. TeachingAssignment/HomeroomAssignment dimiliki BP-ACA-01; HR hanya menyediakan referensi pegawai.
 
 **Alur utama:** HR/operator membuat profil pegawai → dokumen/identitas diverifikasi → status kerja dan unit penempatan ditetapkan → kepala menyetujui → role aplikasi diberikan terpisah dari status kepegawaian → penugasan guru/mapel/rombel dibuat per periode → perubahan atau berakhirnya hubungan kerja menutup assignment dan akses sesuai tanggal efektif.
 
@@ -285,11 +291,15 @@ Label Core/Phase/Candidate adalah klasifikasi perencanaan awal, bukan komitmen M
 
 ### BP-ACA-02 — Penyusunan jadwal
 
+> **Release boundary:** timetable engine lengkap post-MVP. MVP tidak mensyaratkan penjadwalan periodik; sesi manual/minimal dapat dipakai sebagai konteks presensi/asesmen.
+
 **Alur utama:** admin menentukan slot waktu, ruang, rombel, guru, dan mapel → sistem memeriksa benturan ruang/guru/rombel dan batasan kalender → admin memperbaiki konflik → pejabat menyetujui → jadwal dipublikasikan → perubahan jadwal mengirim notifikasi dan menyimpan versi.
 
 **Terbuka:** algoritma penjadwalan otomatis, aturan jam pelajaran dan kalender berbeda antarjenjang.
 
 ### BP-ACA-03 — Pelaksanaan pembelajaran
+
+> **Release boundary:** learning delivery lengkap dan LMS post-MVP. MVP hanya memerlukan konteks sesi minimal bila diperlukan untuk presensi/asesmen.
 
 **Alur utama:** guru membuka sesi sesuai jadwal → memeriksa daftar enrollment aktif → mencatat materi/aktivitas/tugas/praktik → peserta mengakses tugas/materi sesuai role → guru memeriksa penyelesaian dan memberi umpan balik → aktivitas tersimpan pada periode dan kelas yang tepat.
 
@@ -317,6 +327,8 @@ Label Core/Phase/Candidate adalah klasifikasi perencanaan awal, bukan komitmen M
 
 ### BP-ASM-02 — Review, pengesahan, rapor, dan arsip
 
+> **Release boundary:** workflow pengesahan dan rapor formal post-MVP. MVP menyediakan penilaian dasar dan rekap sederhana melalui BP-ASM-01.
+
 **Alur utama:** guru menyelesaikan nilai → wali kelas memeriksa kelengkapan dan catatan → admin akademik memeriksa konsistensi → pejabat berwenang mengesahkan → sistem menghasilkan rapor/transkrip dari snapshot data yang disetujui → dokumen diterbitkan kepada penerima berhak → koreksi setelah pengesahan melalui workflow amendment dengan versi lama tetap terlacak.
 
 **Pengecualian:** nilai belum lengkap, siswa mutasi di tengah periode, remedial, pembatalan pengesahan, rapor dicetak ulang, dan perubahan kurikulum.
@@ -328,6 +340,8 @@ Label Core/Phase/Candidate adalah klasifikasi perencanaan awal, bukan komitmen M
 **Privasi:** catatan BK dan dukungan khusus merupakan data sangat terbatas; tidak otomatis tampil kepada guru, wali, atau orang tua secara penuh. Definisi akses, persetujuan, keselamatan, dan kewajiban hukum harus ditinjau sebelum implementasi.
 
 ### BP-FIN-01 — Tagihan, penerimaan, dan pembayaran
+
+> **Release boundary:** domain keuangan adalah Candidate/roadmap dan di luar MVP saat ini. Belum ada spesifikasi rinci atau persetujuan implementasi; lakukan discovery dan change request terpisah sebelum desain domain/data.
 
 **Alur kandidat:** bendahara membuat jenis tagihan dan aturan → tagihan diterbitkan ke pihak yang tepat → wali/siswa melihat tagihan → pembayaran dicatat melalui kanal yang disetujui → provider mengirim callback/webhook yang diverifikasi dan idempotent atau bendahara mencatat penerimaan manual → sistem merekonsiliasi nominal/referensi → status tagihan diperbarui → receipt diterbitkan → pembatalan/refund/selisih melalui workflow terotorisasi.
 

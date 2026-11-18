@@ -121,3 +121,25 @@ Tidak ada jawaban pada tabel ini yang boleh diasumsikan final. Keputusan yang me
 | Tanggal | Versi | Perubahan |
 |---|---|---|
 | 2026-11-18 | 0.1.0 | Draft ownership matrix pertama diturunkan dari MVP baseline dan process specifications. |
+
+
+## 9. Klarifikasi ownership untuk remediation logical design v0.2.0
+
+Bagian ini memperjelas batas domain untuk proposal AUD-LD-001; tidak menggantikan persetujuan owner final.
+
+- **Student domain** tetap authoritative owner untuk StudentEnrollment dan lifecycle keikutsertaan siswa.
+- **Academic domain** tetap authoritative owner untuk ClassGroup, CurriculumSubject, HomeroomAssignment, dan TeachingAssignment.
+- **StudentClassPlacement** adalah relasi yang menghubungkan StudentEnrollment dengan ClassGroup. Candidate ownership ditempatkan pada Student karena placement merupakan bagian dari lifecycle enrollment; Academic menyediakan referensi ClassGroup dan memvalidasi struktur/periode/grade. Keputusan ini harus dikonfirmasi Product Owner dan domain owner sebelum logical design diterima.
+- **Attendance domain** memiliki AttendanceSessionParticipant snapshot, AttendanceRecord, AttendanceRecordRevision, dan AttendanceCorrection. Snapshot dibentuk dari enrollment/placement yang disediakan Student/Academic; sumber master tidak disalin.
+- **Assessment domain** memiliki AssessmentParticipant snapshot, AssessmentDefinition, StudentScore, dan ScoreRevision/History. Snapshot memakai enrollment/placement serta struktur kurikulum dari owner masing-masing.
+- Snapshot peserta pada Attendance/Assessment adalah fakta transaksi domain tersebut, bukan master enrollment atau class placement baru.
+- HR tetap memiliki EmployeeProfile, EmploymentStatusHistory, dan EmployeePlacement; Academic memiliki assignment mengajar/wali kelas. Validasi tanggal efektif adalah kontrak lintas domain.
+
+### Kontrak lintas domain yang diperjelas
+
+1. Student menerbitkan enrollment dan placement efektif tanggal.
+2. Academic menerbitkan class group, grade, curriculum subject, dan teaching assignment.
+3. Attendance/Assessment membaca snapshot enrollment + placement yang berlaku pada tanggal transaksi dan menyimpan referensi sumber.
+4. Perubahan data master sesudah transaksi tidak mengubah snapshot historis.
+5. Tidak ada domain consumer yang menulis master domain lain; perubahan dilakukan melalui owner domain dan dicatat audit.
+

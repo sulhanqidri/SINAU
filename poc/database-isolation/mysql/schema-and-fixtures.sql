@@ -61,6 +61,9 @@ CREATE TABLE unit_memberships (
         REFERENCES tenant_memberships (tenant_id, user_id) ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
+CREATE INDEX unit_memberships_tenant_user_idx
+    ON unit_memberships (tenant_id, user_id);
+
 CREATE TABLE unit_scoped_records (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     tenant_id BIGINT UNSIGNED NOT NULL,

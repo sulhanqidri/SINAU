@@ -206,17 +206,17 @@ Label Core/Phase/Candidate adalah klasifikasi perencanaan awal, bukan komitmen M
 
 **Batas proses:** membership awal pendaftar dibuat sebagai bagian BP-PLT-01; BP-PLT-05 mengatur undangan anggota tambahan dan perubahan/pencabutan akses setelah onboarding. Hak fitur/kuota berasal dari BP-PLT-04, bukan dari role.
 
-### BP-PLT-06 — Lifecycle tenant dan unit
+### BP-PLT-06 — Lifecycle tenant dan unit (suspend, close, transfer, restore)
 
-**Tujuan:** mengelola perubahan status operasional tenant/unit yang bukan sekadar perubahan subscription atau hasil verifikasi.
+**Tujuan:** mengelola lifecycle operasional tenant/unit secara terpisah dari billing, verification, dan membership. Spesifikasi rinci draft tersedia pada PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md §14.
 
-**Alur utama:** pemilik/petugas mengajukan suspend, penutupan, transfer, atau pemulihan → sistem memvalidasi kewenangan, alasan, kewajiban, dampak unit/membership/data, dan approval → perubahan dijalankan dengan effective date, audit, dan notifikasi → akses dibatasi/dipulihkan sesuai policy → histori/data dipertahankan sesuai retensi.
+**Alur utama:** pemohon berwenang mengajukan suspend/close/transfer/restore → server memvalidasi scope, kewenangan, alasan, status, dependency, kewajiban, dan bukti → sistem menampilkan impact preview dan meminta approval → workflow menjalankan transisi dengan effective date → policy engine membatasi/memulihkan request, job, file, export, cache, search, dan integrasi → audit, notifikasi, arsip, dan postcondition diverifikasi.
 
-**Batas proses:** perubahan subscription dan suspend karena billing berada di BP-PLT-04; hasil verifikasi berada di BP-PLT-03; grant/revoke akses individu berada di BP-PLT-05. BP-PLT-06 mengatur lifecycle operasional tenant/unit.
+**Batas proses:** suspend karena billing, downgrade, dan reaktivasi pembayaran tetap BP-PLT-04; hasil verifikasi tetap BP-PLT-03; grant/revoke membership individu tetap BP-PLT-05; provisioning/perubahan profil unit biasa tetap BP-PLT-02.
 
-**Kontrol dan variasi:** penutupan sukarela, penangguhan operasional, perubahan pengelola, transfer unit antar-tenant, pemulihan, ekspor, dan retensi memerlukan reason code, approval, audit, serta larangan penghapusan data implisit. Transfer lintas tenant tidak boleh dilakukan dengan mengganti foreign key biasa.
+**Kontrol:** suspend satu unit tidak otomatis menghentikan unit lain; close tenant tidak boleh meninggalkan unit aktif; close bukan hard delete; restore tidak mengaktifkan membership revoked atau subscription tidak valid. Transfer lintas tenant memerlukan consent/authority pihak asal dan tujuan, legal/privacy review, manifest, keputusan data disposition, snapshot/checksum, preflight, cutover, post-transfer isolation/integrity test, dan reconciliation. Unit tidak boleh aktif di dua tenant sekaligus.
 
-**Terbuka:** prosedur transfer, retensi setelah penutupan, akses read-only/ekspor, dan kondisi pemulihan harus disahkan sebelum implementasi.
+**Terbuka:** reason/approval suspend dan close, legal basis serta kategori data transfer, identifier dan kewajiban kontrak, retention/legal hold, restore dari closed, read-only/export, dan strategi cutover/rollback. Transfer tetap diblokir sampai OPEN-PLT-13, OPEN-PLT-14, dan OPEN-PLT-18 diputuskan.
 
 ### BP-ORG-01 — Setup profil dan struktur lembaga
 

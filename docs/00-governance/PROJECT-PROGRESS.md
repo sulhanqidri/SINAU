@@ -478,3 +478,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Corrected file commit: `3ec1e9c431fa0992026f56785e802a45b605bbf2`; verified blob SHA: `40eccc8b17c7638eaf4d4d6fb5fa220b4531562f`.
 - Next: download `002-tests.sql` from commit `3ec1e9c431fa0992026f56785e802a45b605bbf2`, verify `grep -n '^DO '` shows six `DO $$` lines, then rerun the test suite. No assertion has passed yet.
 - Safety boundary unchanged: only `sinau_design_poc` / `sinau_poc`; no changes to `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+
+
+### Correction checkpoint — 2026-11-18 (remaining PoC test block terminators)
+- User downloaded the previously corrected test script and verified all six `DO $$` openings. Execution then stopped at line 47 with a syntax error near `BEGIN`.
+- Reinspection found two remaining malformed anonymous-block terminators, `END $;`, at lines 40 and 101. These left the dollar-quoted blocks unterminated.
+- Replaced both with `END $$;` in `docs/03-database/poc/002-tests.sql`.
+- Corrected commit: `8bedabb8dd9e46228a21313aff7b017212e12ab5`; verified blob SHA: `c36da2b8298a38eaaaa1bd6a784879701c9fcfe4`.
+- Re-fetched repository file and verified all six `DO $$` openings have matching `END $$;` terminators (lines 40, 52, 71, 101, 113, 125). This verifies textual delimiter pairing only; PostgreSQL execution and all assertions remain unverified.
+- Next: download `002-tests.sql` from commit `8bedabb8dd9e46228a21313aff7b017212e12ab5`, confirm six openings and six terminators, then rerun on `sinau_design_poc` with `ON_ERROR_STOP=1`. Review any runtime/constraint errors before claiming PoC success.
+- Failed test transactions have not committed; the previously committed schema remains. Use only `sinau_design_poc` / `sinau_poc`; do not touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.

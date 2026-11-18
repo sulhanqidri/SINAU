@@ -745,3 +745,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Subsequent `install` could not find `/run/sinau-poc-token-signer/context-hmac-v1.token`; this is expected because signing never occurred. No token was created or staged, and no replay verifier query was run.
 - Next: open a fresh Terminal A psql session and explicit transaction, allocate a new XID with `pg_current_xact_id()::text`, leave that transaction open, and use the exact numeric XID (not a word placeholder) in the signer command in Terminal B. If Terminal A closes or transaction ends, discard that XID and start fresh.
 - Safety boundary unchanged: only `sinau_design_poc`; no application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik changes. PR #1 remains Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (cross-transaction replay rejection passed)
+- User completed replay test with original transaction XID `813` and replay attempt transaction XID `814`.
+- The signed token returned one verified row inside its original transaction: `valid_in_original_transaction=true`.
+- After COMMIT of the original transaction and BEGIN of a new transaction with XID 814, reusing the exact same token returned zero rows: `cross_transaction_replay_rejected=true`.
+- Replay-test transaction ended ROLLBACK; the temporary table survived the first COMMIT as expected and disappeared when the psql session ended. Both temporary token files under `/run` were removed.
+- This confirms the verifier enforces the top-level XID binding across the tested transaction boundary. The same token is reusable within its original transaction, but rejected in the later transaction.
+- Remaining negative tests: short-TTL expiration and key revocation. After these pass, test audience mismatch and malformed field/canonical encodings. Do not change RLS policies before the negative test suite is complete.
+- No persistent data or key material was modified by the replay test. No RLS policy changed.
+- Safety boundary unchanged: only `sinau_design_poc`; never touch app DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.

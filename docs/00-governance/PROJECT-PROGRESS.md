@@ -435,3 +435,22 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Tidak ada kode aplikasi, migration, physical schema, database/server, deployment, SQLRadius, atau MikroTik yang diubah.
 - PR #1 tetap Draft/open/unmerged; jangan merge tanpa instruksi eksplisit.
 - Next: review proposal bersama Product Owner/domain owners, terutama ownership StudentClassPlacement, session granularity/teaching assignment, score scale/status, correction approval policy; kemudian privacy/security review dan PoC PostgreSQL 18. Jangan membuat migration sebelum gate lulus.
+
+
+---
+
+### Session checkpoint — 2026-11-18 (persiapan PoC PostgreSQL 18)
+
+- Fokus: menyiapkan PoC desain database yang dapat dijalankan pada database disposable terpisah; belum mengeksekusi DDL pada server.
+- Branch: \`feature/phase-0-requirements-blueprint\`.
+- Artefak baru:
+  - \`docs/03-database/poc/README.md\`: batas keselamatan, pembuatan database/role khusus, instruksi eksekusi, evidence, exit criteria, dan keterbatasan.
+  - \`docs/03-database/poc/001-schema.sql\`: subset skema uji untuk tenant/unit composite FK, academic year/class/enrollment, effective-dated placement dengan exclusion constraint \`btree_gist\`, attendance/assessment participant snapshots, score-state CHECK, correction/revision linkage, dan audit actor CHECK.
+  - \`docs/03-database/poc/002-tests.sql\`: fixture sintetis dan smoke/negative tests untuk cross-scope FK, overlap placement, class/date mismatch pada snapshot, nilai nol, invalid score state, correction idempotency key, dan audit actor.
+- \`docs/03-database/README.md\` ditautkan ke artefak PoC.
+- Safety boundary: hanya database disposable \`sinau_design_poc\` dengan role terpisah \`sinau_poc\`; dilarang menggunakan database \`sinau\`, role \`sinau_app\`, database SQLRadius, atau migration aplikasi.
+- Status eksekusi: BELUM DIJALANKAN. Lingkungan percakapan tidak memiliki PostgreSQL client/server untuk menjalankan atau memverifikasi SQL; file telah disimpan ke branch, tetapi syntax/runtime dan hasil constraint belum dibuktikan. Pengguna perlu menjalankan instruksi README pada server uji dan mengirim output yang sudah disensor.
+- Keterbatasan yang diketahui dan dicatat dalam panduan: PoC belum membuktikan RLS/authorization boundary, concurrency temporal secara otomatis, max_score enforcement, immutable snapshot terhadap perubahan placement berikutnya, maupun atomic correction approve/apply. AUD-LD-06 guardian access tetap terbuka. Temuan audit belum ditutup.
+- Tidak ada koneksi atau perubahan pada server SINAU, database \`sinau\`, aplikasi, migration produksi, SQLRadius, atau MikroTik.
+- PR #1 tetap Draft/open/unmerged; jangan merge tanpa instruksi eksplisit.
+- Next: jalankan hanya pada database disposable sesuai README; kumpulkan versi PostgreSQL, extension version, exit code, output tests, dan hasil dua-session concurrency. Setelah hasil ada, perbaiki SQL/strategi yang gagal, lanjutkan PoC RLS dan transaksi correction, kemudian review privacy/security dan minta acceptance logical design.

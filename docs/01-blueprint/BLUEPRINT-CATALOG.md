@@ -47,7 +47,7 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 - [ ] Validasi process register, aktor, urutan, pengecualian, dan scope MVP dengan stakeholder.
 - [x] Audit konsistensi lintas process map, PRD, MVP Scope, spesifikasi proses, ADR, katalog, dan tracker; temuan dicatat di `docs/02-requirements/PROCESS-SPECIFICATION-CONSISTENCY-AUDIT.md`.
 - [x] Selaraskan ID proses platform: BP-PLT-01—06. AUD-01/AUD-02 resolved pada level dokumentasi; BP-PLT-06 kini memiliki spesifikasi rinci draft.
-- [ ] Remediasi temuan audit setelah keputusan pemilik produk; jangan renumber ID atau mengubah scope tanpa persetujuan.
+- [x] Remediasi konsistensi dokumentasi AUD-03—AUD-09 selesai; keputusan produk, validasi stakeholder, dan approval perubahan scope tetap terbuka. Jangan mengubah scope tanpa persetujuan.
 - [x] Turunkan BP-PLT-01 sampai BP-PLT-05 ke spesifikasi proses platform/tenant draft di `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md`.
 - [x] Turunkan BP-PLT-06 (lifecycle tenant/unit) menjadi spesifikasi rinci draft pada §14 Platform/Tenant Process Specifications.
 - [ ] Validasi spesifikasi BP-PLT-01—05 dengan stakeholder dan tutup OPEN-PLT-01 sampai OPEN-PLT-10.

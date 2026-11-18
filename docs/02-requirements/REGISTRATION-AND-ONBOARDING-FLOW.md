@@ -79,7 +79,8 @@ Field:
 - Alamat kantor.
 - Email dan nomor kontak organisasi.
 - Nama pengurus/penanggung jawab pendaftar.
-- Dokumen legal pendukung tidak wajib diunggah saat registrasi awal; dapat dilengkapi pada tahap verifikasi.\n- Tenant dapat berstatus pending verification; fitur berisiko dapat dibatasi sampai pemeriksaan selesai.
+- Dokumen legal pendukung tidak wajib diunggah saat registrasi awal; dapat dilengkapi pada tahap verifikasi.
+- Tenant dapat berstatus pending verification; fitur berisiko dapat dibatasi sampai pemeriksaan selesai.
 
 Setelah profil yayasan, pendaftar harus mendaftarkan minimal satu unit pendidikan pertama agar tenant dapat menyelesaikan onboarding operasional.
 
@@ -119,7 +120,8 @@ Sebelum membuat tenant:
 - Tampilkan ringkasan akun, tipe pelanggan, profil organisasi, dan unit pertama.
 - Pengguna mengonfirmasi bahwa ia berwenang mengajukan pendaftaran.
 - Validasi field wajib, format identifier, duplikasi yang terdeteksi, dan konsistensi tipe/jenjang.
-- Jika identifier resmi belum tersedia, biarkan nullable dan tandai verifikasi unit pending. Jangan mengarang nilai.\n- Jika identifier diisi, validasi format dan keunikan; konflik ditangani tanpa mengungkap data lembaga lain.
+- Jika identifier resmi belum tersedia, biarkan nullable dan tandai verifikasi unit pending. Jangan mengarang nilai.
+- Jika identifier diisi, validasi format dan keunikan; konflik ditangani tanpa mengungkap data lembaga lain.
 - Jangan mengungkap data pelanggan lain saat mendeteksi duplikasi; tampilkan instruksi menghubungi dukungan.
 
 ### Langkah 6 — Buat tenant, unit, dan akses administrator
@@ -174,9 +176,13 @@ Status tenant operasional:
 - `draft`: registrasi belum lengkap.
 - `active`: akses mengikuti subscription, entitlement, dan verification policy.
 - `suspended`: akses operasional dibatasi berdasarkan kebijakan.
-- `closed`: tenant ditutup sesuai proses retensi/ekspor data.\n- `suspended`: akses operasional dibatasi; alasan/sumber penangguhan wajib dicatat (misalnya verification deadline). Akses terbatas untuk penyelesaian verifikasi dan pengelolaan data tetap tersedia.
+- `closed`: tenant ditutup sesuai proses retensi/ekspor data.
 
-Status verifikasi tenant/unit: `not_started`, `pending`, `verified`, `requires_changes`, `rejected`.\n\nMasa tenggang verifikasi adalah 7 hari kalender sejak onboarding berhasil diselesaikan (`registration_completed_at`). Sistem menampilkan tenggat dan mengirim pengingat. Jika persyaratan wajib belum dilengkapi sampai akhir hari ke-7, tenant otomatis `suspended`. Jika dokumen sudah diserahkan tepat waktu dan hanya menunggu pemeriksaan internal, tenant tetap `pending_verification` dan tidak disuspend karena antrean internal. Tenant suspended karena verifikasi hanya mendapat akses terbatas untuk login, melengkapi dokumen/identifier, melihat alasan, menghubungi dukungan, serta mengakses/mengekspor data sesuai hak. Data tidak dihapus. Setelah lolos verifikasi, tenant dapat diaktifkan kembali tanpa otomatis mengubah status subscription.
+Status `suspended` wajib memiliki alasan dan sumber penangguhan (misalnya verification deadline, billing, atau kebijakan). Akses terbatas untuk penyelesaian verifikasi dan pengelolaan data tetap tersedia.
+
+Status verifikasi tenant/unit: `not_started`, `pending`, `verified`, `requires_changes`, `rejected`.
+
+Masa tenggang verifikasi adalah 7 hari kalender sejak onboarding berhasil diselesaikan (`registration_completed_at`). Sistem menampilkan tenggat dan mengirim pengingat. Jika persyaratan wajib belum dilengkapi sampai akhir hari ke-7, tenant otomatis `suspended`. Jika dokumen sudah diserahkan tepat waktu dan hanya menunggu pemeriksaan internal, tenant tetap `pending_verification` dan tidak disuspend karena antrean internal. Tenant suspended karena verifikasi hanya mendapat akses terbatas untuk login, melengkapi dokumen/identifier, melihat alasan, menghubungi dukungan, serta mengakses/mengekspor data sesuai hak. Data tidak dihapus. Setelah lolos verifikasi, tenant dapat diaktifkan kembali tanpa otomatis mengubah status subscription.
 
 Status subscription mengikuti lifecycle billing tersendiri, misalnya `trial`, `active`, `past_due`, `suspended`, dan `cancelled/expired`. Tenant dapat terverifikasi tetapi subscription tidak aktif, atau sebaliknya. Policy akses harus mengevaluasi keduanya secara eksplisit.
 
@@ -298,7 +304,10 @@ Skema di atas adalah model konseptual, bukan perintah membuat migration final. N
 8. Tenant foundation maupun independent provider dapat menambah unit berdasarkan entitlement paket.
 9. Dokumen legal foundation boleh dilengkapi setelah registrasi dan status verifikasinya terlihat.
 10. NPSN/NSM boleh kosong saat registrasi; identifier yang diberikan divalidasi tanpa membocorkan data pihak lain.
-11. Verification status dan subscription status dapat berubah secara independen.\n12. Tenant yang belum melengkapi persyaratan wajib sampai 7 hari kalender setelah pendaftaran selesai otomatis suspended.\n13. Tenant yang sudah menyerahkan persyaratan tepat waktu tidak disuspend karena keterlambatan pemeriksaan internal.\n14. Tenant suspended tetap dapat login secara terbatas untuk menyelesaikan verifikasi; data tidak dihapus.
+11. Verification status dan subscription status dapat berubah secara independen.
+12. Tenant yang belum melengkapi persyaratan wajib sampai 7 hari kalender setelah pendaftaran selesai otomatis suspended.
+13. Tenant yang sudah menyerahkan persyaratan tepat waktu tidak disuspend karena keterlambatan pemeriksaan internal.
+14. Tenant suspended tetap dapat login secara terbatas untuk menyelesaikan verifikasi; data tidak dihapus.
 12. Downgrade tidak menghapus unit atau data; penambahan unit baru dibatasi jika melewati entitlement.
 13. Kegagalan saat pembuatan tenant/unit/membership tidak meninggalkan data parsial.
 14. Tenant/unit yang pending verification dibatasi sesuai kebijakan.

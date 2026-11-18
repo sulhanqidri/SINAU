@@ -506,3 +506,12 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Index inventory confirms indexes created by PK/UNIQUE/exclusion constraints. It does not establish that all referencing foreign-key columns or application query patterns have suitable non-unique indexes; PostgreSQL does not automatically create indexes on referencing FK columns. Review query patterns and FK-side indexes before finalizing indexing design; avoid adding indexes without workload justification.
 - Next: inspect candidate schema and map FK columns/query patterns, then continue RLS tenant/unit isolation tests. Follow with two-session temporal concurrency and correction transaction/revision tests. Existing limitations (max_score enforcement, snapshot immutability, atomic correction workflow, AUD-LD-06) remain open.
 - PoC remains limited to `sinau_design_poc` / `sinau_poc`; no application database `sinau`, `sinau_app`, SQLRadius, or MikroTik changes. PR #1 remains Draft/open/unmerged.
+
+
+### RLS PoC scripts prepared — 2026-11-18
+- Added `docs/03-database/poc/003-rls-setup.sql` (commit `82cc81c5a33c9fad7edc653bb50d762dc495f880`) and `004-rls-tests.sql` (commit `903e41de255189b6d94ee895ad260ce016a87602`).
+- Setup is intended to run as PostgreSQL administrator only against `sinau_design_poc`; it creates/reuses non-login role `sinau_rls_test`, inserts deterministic fixtures, enables and forces RLS on tenant-scoped tables, and grants table privileges to the test role.
+- Test is intended to run as `sinau_poc`, switches to `sinau_rls_test`, and checks same-unit SELECT/INSERT, cross-unit and cross-tenant SELECT, cross-unit UPDATE, cross-tenant DELETE, and cross-tenant INSERT rejection. Test transaction ends with ROLLBACK.
+- Important limitation: `app.tenant_id` and `app.unit_id` are caller-settable custom GUCs in this experiment. Passing tests demonstrate policy filtering only; they do not prove a trusted authentication/context boundary. A membership-validated context setter, pool reset, background-job/export/support paths, and IDOR tests remain required.
+- Status: scripts prepared and documented; NOT YET EXECUTED by user. Do not claim RLS tests passed until output is reviewed.
+- Safety: run only against `sinau_design_poc`; never touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.

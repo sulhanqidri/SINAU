@@ -13,6 +13,8 @@ Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dap
 - Dokumen legal yayasan dapat dilengkapi pada tahap verifikasi, bukan syarat upload saat registrasi awal.
 - NPSN/NSM dapat kosong saat registrasi awal dan dilengkapi saat verifikasi; identifier yang diisi divalidasi tanpa membocorkan data lembaga lain.
 - Status verifikasi dipisahkan dari status subscription; akses dievaluasi berdasarkan kedua status.
+- Tenant memperoleh 7 hari kalender sejak onboarding selesai untuk menyerahkan persyaratan verifikasi wajib; jika belum diserahkan sampai akhir tenggat, tenant otomatis suspended dengan akses terbatas.
+- Tenant yang menyerahkan persyaratan tepat waktu tidak boleh disuspend hanya karena pemeriksaan internal belum selesai.
 - Downgrade tidak menghapus unit atau data; jika jumlah unit melampaui entitlement, penambahan unit baru diblokir.
 - Registrasi mandiri membuat tenant tanpa entitas yayasan fiktif dan menghubungkannya dengan unit pendidikan yang didaftarkan.
 - Registrasi/onboarding tenant melalui alur yang dikendalikan, dengan status verifikasi dan subscription terpisah.

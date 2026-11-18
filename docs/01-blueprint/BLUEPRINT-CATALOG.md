@@ -31,7 +31,9 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 | Persona, jobs-to-be-done, user journey | `docs/02-requirements/PERSONAS-AND-JOURNEYS.md` | Not started/audit path |
 | Acceptance criteria dan traceability | `docs/02-requirements/ACCEPTANCE-CRITERIA.md` | Existing baseline; perlu kelengkapan |
 | Peta proses bisnis end-to-end | `docs/02-requirements/BUSINESS-PROCESS-MAP.md` | Draft baseline v0.1.0; perlu validasi dan spesifikasi turunan |
-| Spesifikasi proses organisasi dan peserta didik BP-ORG-01/02, BP-STD-01/02 | `docs/02-requirements/ORGANIZATION-AND-STUDENT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, aturan pendidikan, dan keputusan terbuka |\n| Spesifikasi proses akademik, presensi, dan asesmen BP-ACA-01—03, BP-ATT-01, BP-ASM-01—02 | `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, kebijakan nilai/presensi, dan verifikasi regulasi |\n| Spesifikasi proses PPDB dan HR BP-ADM-01, BP-HR-01 | `docs/02-requirements/ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, regulasi penerimaan, kebijakan kepegawaian, dan privasi |
+| Spesifikasi proses organisasi dan peserta didik BP-ORG-01/02, BP-STD-01/02 | `docs/02-requirements/ORGANIZATION-AND-STUDENT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, aturan pendidikan, dan keputusan terbuka |
+| Spesifikasi proses akademik, presensi, dan asesmen BP-ACA-01—03, BP-ATT-01, BP-ASM-01—02 | `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, kebijakan nilai/presensi, dan verifikasi regulasi |
+| Spesifikasi proses PPDB dan HR BP-ADM-01, BP-HR-01 | `docs/02-requirements/ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, regulasi penerimaan, kebijakan kepegawaian, dan privasi |
 | Spesifikasi proses platform/tenant BP-PLT-01—04 | `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder dan penutupan keputusan terbuka |
 | Business glossary dan terminology | `docs/02-requirements/BUSINESS-GLOSSARY.md` | Not started/audit path |
 | Assumptions, constraints, risks, dependencies | `docs/02-requirements/ASSUMPTIONS-RISKS-DEPENDENCIES.md` | Not started |
@@ -43,7 +45,9 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 - [ ] Validasi process register, aktor, urutan, pengecualian, dan scope MVP dengan stakeholder.
 - [x] Turunkan BP-PLT-01 sampai BP-PLT-04 ke spesifikasi proses platform/tenant draft di `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md`.
 - [ ] Validasi spesifikasi BP-PLT-01—04 dengan stakeholder dan tutup OPEN-PLT-01 sampai OPEN-PLT-10.
-- [x] Turunkan BP-ACA-01—03, BP-ATT-01, dan BP-ASM-01—02 ke spesifikasi proses akademik/presensi/asesmen draft di `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md`.\n- [ ] Turunkan proses prioritas lain (PPDB, HR, keuangan, dan layanan pendukung) menjadi business process specification/swimlane per proses.
+- [x] Turunkan BP-ACA-01—03, BP-ATT-01, dan BP-ASM-01—02 ke spesifikasi proses akademik/presensi/asesmen draft di `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md`.
+- [x] Turunkan BP-ADM-01 dan BP-HR-01 ke spesifikasi proses PPDB/HR draft di `docs/02-requirements/ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md`.
+- [ ] Turunkan proses prioritas lain (keuangan dan layanan pendukung) menjadi business process specification/swimlane per proses.
 - [ ] Lengkapi business rules, state machine, approval matrix, SLA, exception/recovery, dan acceptance criteria.
 - [ ] Buat traceability requirement → process → module → data/API → permission → screen → test.
 

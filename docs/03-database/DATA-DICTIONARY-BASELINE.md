@@ -1,4 +1,6 @@
-# Kamus Data — Baseline
+# Kamus Data — Baseline (Inventaris Ringkas)
+
+> Dokumen ini dipertahankan sebagai inventaris ringkas historis. Kamus rinci MVP dengan kandidat atribut, tipe PostgreSQL, nullability, klasifikasi, validasi, dan historisasi berada di [DATA-DICTIONARY-MVP.md](DATA-DICTIONARY-MVP.md). Bila terdapat perbedaan, jangan menganggap salah satu sebagai schema final; lakukan reconciliation pada review logical design.
 
 | Entitas | Scope | Fungsi | Catatan integritas |
 |---|---|---|---|

@@ -85,7 +85,7 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 ### Phase 1 — Complete blueprint & technical architecture
 - [ ] Master blueprint lengkap dan konsisten dengan seluruh spesifikasi.
 - [ ] Business process map end-to-end untuk setiap domain utama. (Baseline draft tersedia di `docs/02-requirements/BUSINESS-PROCESS-MAP.md`; menunggu validasi dan spesifikasi turunan.)
-- [ ] Module catalog, batas modul, dependensi, dan ownership data.
+- [x] Draft Domain Ownership Matrix MVP tersedia di `docs/03-database/DOMAIN-OWNERSHIP-MATRIX.md`; review/approval ownership masih terbuka.\n- [ ] Module catalog, batas modul, dependensi, dan ownership data final.
 - [ ] Spesifikasi rinci setiap modul dan submodul.
 - [x] Domain model dan ERD konseptual diperbarui agar konsisten dengan baseline MVP yang disetujui; logical ERD, data dictionary, lifecycle dan retention masih terbuka.
 - [ ] Tenant/unit context, membership, authorization matrix, dan support access.
@@ -362,3 +362,14 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 3. Lengkapi data dictionary dengan definisi, scope, klasifikasi, source of truth, nullability kandidat, dan aturan historisasi.
 4. Validasi keputusan privasi/identitas anak, akses wali, serta enrollment sebelum logical schema dianggap siap.
 5. Jangan membuat migration domain sebelum logical model direview dan gerbang PoC/keamanan dipenuhi.
+
+
+### Checkpoint tambahan — 2026-11-18: Domain Ownership Matrix v0.1.0
+
+- Dibuat `docs/03-database/DOMAIN-OWNERSHIP-MATRIX.md` berisi 20 bounded context/domain, authoritative owner, scope, entitas konseptual, consumer, batas tanggung jawab, kontrak lintas domain, keputusan terbuka, dan acceptance criteria.
+- Penegasan utama: HR memiliki EmployeeProfile/status/placement; Academic memiliki ClassGroup/TeachingAssignment/HomeroomAssignment; Identity memiliki User/credential/membership/role; Student memiliki StudentProfile/GuardianRelationship/Enrollment; Attendance dan Assessment masing-masing memiliki transaksi domainnya.
+- Import/Export adalah orchestration domain; record master tetap dimiliki domain target/sumber.
+- Domain ownership matrix berstatus Draft, bukan persetujuan final. OWN-01—OWN-10 tetap terbuka untuk validasi.
+- `docs/03-database/README.md` dan Blueprint Catalog ditautkan ke artefak baru.
+- Langkah berikut: review matrix dan lanjutkan logical ERD MVP dengan hanya entitas yang scope/ownership-nya cukup jelas; unresolved decisions tetap ditandai, tidak ditebak.
+- Tidak ada kode aplikasi, migration, deployment, atau perubahan server. PR #1 tetap Draft/open/unmerged.

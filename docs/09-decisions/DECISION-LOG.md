@@ -6,7 +6,8 @@
 | 2026-11-18 | Target sekolah umum dan madrasah | Confirmed | PROJECT-CONSTITUTION.md |
 | 2026-11-18 | Dokumentasi menjadi acuan pengembangan | Confirmed | docs/00-governance/ |
 | 2026-11-18 | Modular monolith sebagai arah awal | Proposed baseline | SYSTEM-ARCHITECTURE.md |
-| 2026-11-18 | Stack dan engine database final | Open | MASTER-BLUEPRINT.md |
+| 2026-11-18 | Stack aplikasi untuk PoC: Laravel 13, Vue 3, Inertia, Tailwind; PostgreSQL 18 kandidat utama dan MySQL 8.4 LTS pembanding | Proposed recommendation; PoC required | ADR-005-APPLICATION-STACK-RECOMMENDATION.md |
+| 2026-11-18 | Engine database final | Open pending PoC | ADR-002-DATABASE-ISOLATION-STRATEGY.md; DATABASE-POC-PLAN.md |
 | 2026-11-18 | Tenant mendukung yayasan multi-unit dan sekolah/madrasah mandiri | Accepted product decision | ADR-001-TENANT-CUSTOMER-MODEL.md |
 | 2026-11-18 | Shared database/shared schema sebagai baseline MVP, dengan jalur evolusi ke sharding | Proposed baseline; PoC required | ADR-002-DATABASE-ISOLATION-STRATEGY.md |
 | 2026-11-18 | Identitas global, tenant/unit membership terpisah, default deny | Proposed authorization baseline | ADR-003-AUTHORIZATION-SCOPE.md |

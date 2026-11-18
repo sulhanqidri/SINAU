@@ -34,7 +34,7 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 | Spesifikasi proses organisasi dan peserta didik BP-ORG-01/02, BP-STD-01/02 | `docs/02-requirements/ORGANIZATION-AND-STUDENT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, aturan pendidikan, dan keputusan terbuka |
 | Spesifikasi proses akademik, presensi, dan asesmen BP-ACA-01—03, BP-ATT-01, BP-ASM-01—02 | `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, kebijakan nilai/presensi, dan verifikasi regulasi |
 | Spesifikasi proses PPDB dan HR BP-ADM-01, BP-HR-01 | `docs/02-requirements/ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; perlu validasi stakeholder, regulasi penerimaan, kebijakan kepegawaian, dan privasi |
-| Spesifikasi proses platform/tenant BP-PLT-01—05; lifecycle BP-PLT-06 di process map | `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; BP-PLT-01—05 terinci; BP-PLT-06 masih perlu spesifikasi; validasi stakeholder dan keputusan terbuka |
+| Spesifikasi proses platform/tenant BP-PLT-01—06 | `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md` | Draft 0.1.0; BP-PLT-01—06 terinci sebagai draft; validasi stakeholder dan keputusan terbuka |
 | Audit konsistensi spesifikasi proses | `docs/02-requirements/PROCESS-SPECIFICATION-CONSISTENCY-AUDIT.md` | Draft 0.1.0; temuan dan remediasi menunggu keputusan pemilik produk |
 
 | Business glossary dan terminology | `docs/02-requirements/BUSINESS-GLOSSARY.md` | Not started/audit path |
@@ -49,9 +49,10 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 - [x] Selaraskan ID proses platform: BP-PLT-01—05; BP-PLT-06 dicatat terpisah untuk lifecycle tenant/unit. AUD-01/AUD-02 resolved pada level dokumentasi.
 - [ ] Remediasi temuan audit setelah keputusan pemilik produk; jangan renumber ID atau mengubah scope tanpa persetujuan.
 - [x] Turunkan BP-PLT-01 sampai BP-PLT-05 ke spesifikasi proses platform/tenant draft di `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md`.
-- [ ] Turunkan BP-PLT-06 (lifecycle tenant/unit) menjadi spesifikasi rinci sebelum implementasi.
+- [x] Turunkan BP-PLT-06 (lifecycle tenant/unit) menjadi spesifikasi rinci draft pada §14 Platform/Tenant Process Specifications.
 - [ ] Validasi spesifikasi BP-PLT-01—05 dengan stakeholder dan tutup OPEN-PLT-01 sampai OPEN-PLT-10.
-- [ ] Spesifikasikan BP-PLT-06 (lifecycle tenant/unit) dan validasi batasnya terhadap BP-PLT-03—05.
+- [x] Spesifikasikan BP-PLT-06 (lifecycle tenant/unit) dan selaraskan batasnya terhadap BP-PLT-02—05.
+- [ ] Putuskan OPEN-PLT-11—18; transfer lintas tenant tetap diblokir sampai legal/privacy/data/teknis disahkan.
 - [x] Turunkan BP-ACA-01—03, BP-ATT-01, dan BP-ASM-01—02 ke spesifikasi proses akademik/presensi/asesmen draft di `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md`.
 - [x] Turunkan BP-ADM-01 dan BP-HR-01 ke spesifikasi proses PPDB/HR draft di `docs/02-requirements/ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md`.
 - [ ] Turunkan proses prioritas lain (keuangan dan layanan pendukung) menjadi business process specification/swimlane per proses.

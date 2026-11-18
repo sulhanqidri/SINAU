@@ -1,6 +1,6 @@
 # Ruang Lingkup MVP SINAU
 
-**Status:** Proposed — perlu persetujuan pemilik produk
+**Status:** Accepted sebagai baseline perencanaan — disetujui pemilik produk pada 2026-11-18; dapat direvisi melalui change control.
 
 ## Tujuan MVP
 Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dapat dipakai oleh sekolah umum (SD, SMP, SMA, SMK) dan madrasah (MI, MTs, MA, MAK), baik di bawah yayasan maupun mandiri.
@@ -74,3 +74,18 @@ Membuktikan bahwa fondasi multi-tenant dan proses administrasi-akademik inti dap
 8. Pilot menyelesaikan skenario inti sekolah umum dan madrasah.
 9. Backup/restore dan monitoring dasar terbukti.
 10. Tidak ada bug kritis terbuka terkait kebocoran atau kerusakan data.
+
+
+## Persetujuan dan pengendalian revisi
+
+**Persetujuan baseline:** Pemilik produk menyetujui ruang lingkup MVP yang tercantum dalam dokumen ini pada 2026-11-18 sebagai baseline perencanaan SINAU.
+
+Persetujuan ini:
+- menjadi dasar penyusunan domain model, ERD konseptual/logis, module blueprint, dan rencana validasi;
+- tidak berarti seluruh detail proses, field data, regulasi, stack aplikasi, atau desain teknis telah disetujui;
+- tidak mengizinkan implementasi produksi atau migration domain sebelum gerbang PoC, review keamanan, dan persetujuan implementasi terkait terpenuhi;
+- tidak mengunci scope secara permanen.
+
+**Revisi di tengah proyek diperbolehkan** melalui mekanisme change control. Setiap usulan revisi harus mencatat alasan, kebutuhan/masalah yang dijawab, dampak terhadap proses bisnis, modul, data, tenant/unit isolation, keamanan/privasi, jadwal, dan acceptance criteria. Perubahan scope MVP harus disetujui pemilik produk dan disinkronkan ke dokumen terkait (process map/specification, domain model, ERD, katalog blueprint, test plan, dan project progress). Riwayat keputusan lama tidak dihapus; keputusan baru mencatat apakah mengganti atau melengkapi keputusan sebelumnya.
+
+Perubahan editorial atau klarifikasi yang tidak mengubah perilaku/scope dapat dicatat sebagai revisi dokumentasi. Perubahan yang menambah, mengurangi, atau mengubah perilaku produk memerlukan change request dan persetujuan eksplisit.

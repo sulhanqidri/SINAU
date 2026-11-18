@@ -14,3 +14,6 @@
 | 2026-11-18 | Dokumen legal/NPSN/NSM dapat dilengkapi saat verifikasi; tenggat verifikasi 7 hari kalender lalu suspend bila persyaratan belum diserahkan; multi-unit mengikuti entitlement; verifikasi terpisah dari subscription | Accepted product decision | ADR-004-ONBOARDING-VERIFICATION-AND-UNIT-ENTITLEMENTS.md |
 
 Accepted berarti keputusan telah disepakati. Implementasi database produksi tetap menunggu PoC teknis, pengujian isolasi, dan persetujuan gerbang migration. Proposed baseline menjadi arah desain yang harus divalidasi sebelum implementasi sensitif.
+
+
+| 2026-11-18 | Ruang lingkup MVP pada `docs/02-requirements/MVP-SCOPE.md` disetujui sebagai baseline perencanaan; revisi berikutnya diperbolehkan melalui change control dengan pencatatan dampak dan persetujuan pemilik produk untuk perubahan scope | Accepted — baseline perencanaan, bukan scope permanen | MVP-SCOPE.md; CHANGE-CONTROL.md |

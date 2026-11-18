@@ -739,3 +739,9 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Updated `docs/03-database/poc/006-sign-context-token.py` to accept optional `--ttl-seconds`, constrained to 1–300 seconds; default remains 240 seconds. Payload signing and non-disclosing tmpfs output behavior are unchanged.
 - Updated signer commit: `7c08d0b5e8fc242434329b65db7d4bdd79241da2`; verified file blob `6c15db9f36c2d072afdfed6475cc3283d421926b`. Static inspection confirmed option, default, bounds check and expiry calculation. This revision has not yet been run on the server.
 - Next security tests remain: short-TTL expiry rejection; key revocation rejection and safe reactivation; same token rejected in a different top-level XID. Keep all tokens in /run only and avoid displaying token/key material.
+
+### RLS PoC checkpoint — 2026-11-18 (cross-transaction replay attempt not started)
+- User invoked signer with literal placeholder `XID_SUMBER` rather than the numeric XID from an open PostgreSQL transaction. Signer correctly rejected it with `XID must be canonical unsigned decimal` before creating any token.
+- Subsequent `install` could not find `/run/sinau-poc-token-signer/context-hmac-v1.token`; this is expected because signing never occurred. No token was created or staged, and no replay verifier query was run.
+- Next: open a fresh Terminal A psql session and explicit transaction, allocate a new XID with `pg_current_xact_id()::text`, leave that transaction open, and use the exact numeric XID (not a word placeholder) in the signer command in Terminal B. If Terminal A closes or transaction ends, discard that XID and start fresh.
+- Safety boundary unchanged: only `sinau_design_poc`; no application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik changes. PR #1 remains Draft/open/unmerged.

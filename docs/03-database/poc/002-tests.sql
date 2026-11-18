@@ -27,6 +27,18 @@ INSERT INTO student_enrollments VALUES
 INSERT INTO student_class_placements VALUES
 ('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','2026-07-01','2026-12-31');
 
+-- Cross-tenant/unit reference mismatch must be rejected by composite FK.
+DO $
+BEGIN
+  BEGIN
+    INSERT INTO student_enrollments VALUES
+    ('00000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000099','30000000-0000-0000-0000-000000000001','S-X');
+    RAISE EXCEPTION 'FAIL: cross-tenant/unit enrollment was accepted';
+  EXCEPTION WHEN foreign_key_violation THEN
+    RAISE NOTICE 'PASS: cross-tenant/unit reference rejected';
+  END;
+END $;
+
 -- Placement overlap must be rejected (exclusion constraint).
 DO $$
 BEGIN
@@ -73,6 +85,20 @@ INSERT INTO student_scores VALUES
 
 -- Non-scored statuses are required to have NULL score_value; the negative
 -- absent-with-number test below checks the complementary invalid case.
+
+-- A correction request is uniquely identified by its idempotency key.
+INSERT INTO attendance_corrections VALUES
+('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','73000000-0000-0000-0000-000000000001','72000000-0000-0000-0000-000000000001','idem-001','late','requested',NULL);
+DO $
+BEGIN
+  BEGIN
+    INSERT INTO attendance_corrections VALUES
+    ('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','73000000-0000-0000-0000-000000000002','72000000-0000-0000-0000-000000000001','idem-001','absent','requested',NULL);
+    RAISE EXCEPTION 'FAIL: duplicate correction idempotency key was accepted';
+  EXCEPTION WHEN unique_violation THEN
+    RAISE NOTICE 'PASS: duplicate correction idempotency key rejected';
+  END;
+END $;
 
 -- Invalid result-status/score combination must fail.
 DO $$

@@ -15,7 +15,7 @@ Pada registrasi pelanggan, SINAU menyediakan dua pilihan:
 1. **Yayasan/penyelenggara pendidikan**: akun pelanggan mewakili yayasan/badan penyelenggara yang menaungi satu atau beberapa sekolah/madrasah. Berlaku untuk yayasan yang menaungi SD, SMP, SMA, SMK, MI, MTs, MA, MAK, atau kombinasi di antaranya.
 2. **Sekolah/madrasah mandiri**: satuan pendidikan menjadi pelanggan langsung tanpa perlu membuat entitas yayasan.
 
-Pilihan ini menentukan tipe tenant (foundation atau independent_provider), bukan jenis atau jenjang pendidikan. Jenis dan jenjang dipilih saat membuat setiap education unit. Yayasan dapat menambahkan beberapa unit dengan jenis/jenjang berbeda; pelanggan mandiri memulai dengan unitnya sendiri.
+Pilihan ini menentukan tipe tenant (foundation atau independent_provider), bukan jenis atau jenjang pendidikan. Jenis dan jenjang dipilih saat membuat setiap education unit. Yayasan maupun pelanggan mandiri dapat menambahkan unit berdasarkan entitlement paket; tipe tenant tidak menentukan kuota unit.
 
 ## 4. Persona utama
 - Operator/platform admin: mengelola tenant, paket, dan dukungan platform.
@@ -50,7 +50,7 @@ FR-011 Sistem mendukung konfigurasi khusus sekolah umum, SMK, dan madrasah.
 FR-012 Sistem mencatat aktivitas sensitif dan perubahan data penting.
 FR-013 Sistem menyediakan antarmuka responsif desktop/tablet/ponsel.
 FR-014 Registrasi pelanggan menyediakan pilihan yayasan/penyelenggara atau sekolah/madrasah mandiri.
-FR-015 Yayasan dapat menaungi sekolah umum, madrasah, atau kombinasi keduanya dalam satu tenant.
+FR-015 Yayasan dapat menaungi sekolah umum, madrasah, atau kombinasi keduanya dalam satu tenant.\nFR-016 Proses onboarding mendukung dokumen legal yayasan yang dilengkapi pada tahap verifikasi.\nFR-017 NPSN/NSM dapat dilengkapi setelah registrasi awal dan diverifikasi tanpa membocorkan data lembaga lain.\nFR-018 Penambahan unit untuk semua tipe tenant mengikuti entitlement paket dan diperiksa server-side.\nFR-019 Status verifikasi lembaga terpisah dari status subscription/billing.\nFR-020 Downgrade paket tidak menghapus unit atau data; unit di atas kuota membatasi penambahan unit baru.
 
 ## 7. Kebutuhan nonfungsional
 - Keamanan tenant/unit wajib diuji pada setiap modul.
@@ -64,7 +64,7 @@ FR-015 Yayasan dapat menaungi sekolah umum, madrasah, atau kombinasi keduanya da
 ## 8. Di luar MVP awal
 Payment gateway, akuntansi penuh, tanda tangan elektronik tersertifikasi, integrasi pemerintah, PPDB end-to-end, perpustakaan, inventaris, payroll, aplikasi mobile native, dan analitik lanjutan. Modul ini tetap masuk roadmap, tetapi bukan syarat pilot pertama.
 
-## 9. Pertanyaan validasi
+## 9. Kebijakan onboarding dan paket yang telah disepakati\n- Dokumen legal yayasan boleh menyusul pada tahap verifikasi; tidak wajib diunggah saat registrasi awal.\n- NPSN/NSM boleh kosong saat pendaftaran dan dapat dilengkapi ketika verifikasi unit. Identifier yang diisi harus divalidasi format dan keunikannya.\n- Yayasan dan pelanggan mandiri dapat memiliki multi-unit jika paket memberikan entitlement yang cukup.\n- Verification status dan subscription status adalah dimensi terpisah.\n- Downgrade tidak menghapus unit/data; jika jumlah unit melebihi entitlement baru, penambahan unit diblokir sampai kuota sesuai atau paket ditingkatkan. Mode akses dan masa tenggang masih terbuka.\n\n## 10. Pertanyaan validasi
 - Alur akademik minimum apa yang wajib ada saat pilot?
 - Metode presensi mana yang harus tersedia sejak awal?
 - Laporan apa yang paling sering digunakan setiap jenis lembaga?

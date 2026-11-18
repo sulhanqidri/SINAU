@@ -755,3 +755,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Remaining negative tests: short-TTL expiration and key revocation. After these pass, test audience mismatch and malformed field/canonical encodings. Do not change RLS policies before the negative test suite is complete.
 - No persistent data or key material was modified by the replay test. No RLS policy changed.
 - Safety boundary unchanged: only `sinau_design_poc`; never touch app DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (expiration test inconclusive due to XID mismatch)
+- User attempted short-TTL expiration test. PostgreSQL Terminal A reported transaction XID `818`, but the signer command used XID `815` with `--ttl-seconds 5`.
+- The verifier returned `expired_token_rejected=true` twice, but this is not valid evidence of expiration because verifier also rejects any token whose signed XID differs from `pg_current_xact_id_if_assigned()`. The observed token was already bound to XID 815 while current transaction was 818; rejection can be fully explained by XID mismatch, independently of expiry.
+- Therefore expiration behavior remains UNVERIFIED. Do not count these results as a pass.
+- User rolled back the transaction and removed both temporary token files from `/run`. No persistent data/key or RLS policy changed.
+- Next: rerun with one fresh Terminal A transaction and capture its XID; use exactly that numeric XID as signer argument. Use TTL 15 seconds to allow time for transfer. Import token into the temp table in the same still-open transaction; immediately verify once and require one row (`valid_before_expiry=true`); wait at least 17 seconds; verify same token again and require zero rows (`expired_after_ttl=true`). This paired test isolates expiry from XID mismatch. If the first verification is zero rows, stop and inspect rather than claiming expiration.
+- Safety: only `sinau_design_poc`; no app DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik changes. PR #1 remains Draft/open/unmerged.

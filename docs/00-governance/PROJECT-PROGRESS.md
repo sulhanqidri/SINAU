@@ -454,3 +454,18 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Tidak ada koneksi atau perubahan pada server SINAU, database \`sinau\`, aplikasi, migration produksi, SQLRadius, atau MikroTik.
 - PR #1 tetap Draft/open/unmerged; jangan merge tanpa instruksi eksplisit.
 - Next: jalankan hanya pada database disposable sesuai README; kumpulkan versi PostgreSQL, extension version, exit code, output tests, dan hasil dua-session concurrency. Setelah hasil ada, perbaiki SQL/strategi yang gagal, lanjutkan PoC RLS dan transaksi correction, kemudian review privacy/security dan minta acceptance logical design.
+
+
+---
+
+### Session checkpoint — 2026-11-18 (PoC schema created; test script syntax fix)
+- Server PoC environment: Debian 13.7, PostgreSQL 18.7. Dedicated role `sinau_poc` and database `sinau_design_poc` were created and verified; TCP password authentication succeeded.
+- User downloaded `001-schema.sql` and `002-tests.sql` into `~/sinau-poc`.
+- `001-schema.sql` executed successfully with `ON_ERROR_STOP=1` and reached COMMIT. User verified 15 public tables exist.
+- User verified temporal triggers: BEFORE INSERT/UPDATE on `attendance_session_participants` and `assessment_participants`.
+- First execution of `002-tests.sql` stopped at line 35 with syntax error `DO $`; inspection of repository source found two malformed anonymous-block opening delimiters (`DO $` rather than `DO $$`).
+- Fixed both delimiters in `docs/03-database/poc/002-tests.sql` on branch `feature/phase-0-requirements-blueprint`; commit: `fbc5eec801e325638f5cb11e509421ea95add455`.
+- The server's local `~/sinau-poc/002-tests.sql` is still the previously downloaded broken copy; it must be re-downloaded from the branch before rerunning tests. The failed test transaction did not commit; schema created by `001-schema.sql` remains committed.
+- PoC test suite has NOT passed yet. Do not claim database design acceptance. Known PoC limitations and AUD-LD-06 remain as documented above.
+- Safety boundary unchanged: only `sinau_design_poc` / `sinau_poc`; do not touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+- Next: re-download corrected `002-tests.sql`, inspect corrected delimiters, rerun with `ON_ERROR_STOP=1`, capture complete output/exit code, then inspect any runtime failures before making further changes.

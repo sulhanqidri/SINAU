@@ -169,18 +169,21 @@ Setiap sesi kerja wajib melakukan langkah berikut:
 ## 5. Session handoff — checkpoint terbaru
 
 **Tanggal:** 2026-11-18  
-**Fokus terakhir:** meninjau kesiapan blueprint dan kebutuhan dokumentasi pelacakan.
+**Fokus terakhir:** membangun baseline Master Blueprint, katalog kelengkapan blueprint, dan project progress/session handoff.
 
 **Yang sudah dikonfirmasi pada sesi ini:**
 - README, Master Blueprint, Project Constitution, Development Rules, Change Control, Implementation Plan, Decision Log, dan dokumen sekolah umum/madrasah telah ditinjau.
-- Master Blueprint yang ada masih baseline ringkas dan berstatus draft; belum dapat disebut blueprint lengkap/final.
-- PR #1 tetap Draft dan belum merged.
+- `docs/01-blueprint/MASTER-BLUEPRINT.md` telah diperluas menjadi baseline v0.2.0; tetap Draft dan belum final.
+- `docs/01-blueprint/BLUEPRINT-CATALOG.md` telah dibuat sebagai matriks kelengkapan blueprint lintas produk, pendidikan, data, arsitektur, keamanan, UX, testing, dan operasi.
+- `docs/00-governance/PROJECT-PROGRESS.md` telah dibuat sebagai sumber status dan handoff sesi.
+- README telah diperbarui agar memulai dari tracker dan katalog blueprint.
+- Perubahan berada pada branch `feature/phase-0-requirements-blueprint`; PR #1 tetap Draft dan belum merged.
 
 **Pekerjaan berikutnya (urutan wajib):**
-1. Audit seluruh struktur dokumen repository dan cocokkan tautan/daftar artefak.
-2. Lengkapi Blueprint Catalog dan Master Blueprint berdasarkan domain pendidikan, aktor, alur, modul, data, keamanan, UX, integrasi, operasi, dan deployment.
-3. Buat business process dan module specifications secara bertahap.
-4. Lengkapi ERD/data dictionary dan authorization matrix setelah domain disepakati.
+1. Audit seluruh struktur dokumen repository dan cocokkan semua tautan/path dalam README serta Blueprint Catalog.
+2. Audit kedalaman dokumen requirement, security, design system, testing, dan domain model yang sudah ada; tandai status berdasarkan isi, bukan nama file.
+3. Susun business process end-to-end dan spesifikasi modul secara bertahap, mulai dari platform/tenant onboarding lalu siklus akademik inti.
+4. Lengkapi persona/journey, acceptance criteria, authorization matrix, ERD logis, dan data dictionary setelah proses bisnis disepakati.
 5. Perbarui tracker setiap selesai satu artefak atau gerbang.
 
 **Jangan dilakukan sebelum persetujuan/gerbang:**

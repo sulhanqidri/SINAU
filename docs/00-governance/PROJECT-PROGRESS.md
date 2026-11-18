@@ -488,3 +488,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Re-fetched repository file and verified all six `DO $$` openings have matching `END $$;` terminators (lines 40, 52, 71, 101, 113, 125). This verifies textual delimiter pairing only; PostgreSQL execution and all assertions remain unverified.
 - Next: download `002-tests.sql` from commit `8bedabb8dd9e46228a21313aff7b017212e12ab5`, confirm six openings and six terminators, then rerun on `sinau_design_poc` with `ON_ERROR_STOP=1`. Review any runtime/constraint errors before claiming PoC success.
 - Failed test transactions have not committed; the previously committed schema remains. Use only `sinau_design_poc` / `sinau_poc`; do not touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+
+
+### PoC execution checkpoint — 2026-11-18 (schema and smoke/negative tests passed)
+- User confirmed `001-schema.sql` completed successfully on PostgreSQL 18.7 in the dedicated disposable database `sinau_design_poc`; 15 public tables and temporal participant triggers were previously verified.
+- User downloaded the corrected `002-tests.sql` from commit `8bedabb8dd9e46228a21313aff7b017212e12ab5`. Six `DO $$` openings and six `END $$;` terminators were verified on the server.
+- User executed `psql -h 127.0.0.1 -U sinau_poc -d sinau_design_poc -X -v ON_ERROR_STOP=1 -f 002-tests.sql`; script reached final `ROLLBACK` with no errors.
+- Confirmed PASS notices: cross-tenant/unit composite-FK rejection; overlapping student class placement rejection; mismatched attendance participant class snapshot rejection; duplicate attendance-correction idempotency key rejection; absent score with numeric value rejection; system audit actor without service identity rejection.
+- The test script intentionally rolls back fixtures; this is expected. Schema remains committed from `001-schema.sql`. This confirms only the tested constraints/triggers and does not constitute full logical-design acceptance or production migration authorization.
+- Remaining PoC/design gates: inspect actual constraint/index definitions; test RLS and tenant/unit authorization; test temporal concurrency using two sessions; assess snapshot immutability; implement/test max-score enforcement; test correction approval/application atomicity and revision linkage; resolve AUD-LD-06 guardian access; complete LD-01—LD-16 evidence and product/domain/privacy/security reviews.
+- Safety boundary unchanged: only disposable `sinau_design_poc` / `sinau_poc`; do not touch application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.

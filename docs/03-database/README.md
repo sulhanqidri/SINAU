@@ -1,6 +1,6 @@
 # Database SINAU
 
-- DOMAIN-MODEL.md — batas domain dan entitas.
+- DOMAIN-MODEL.md — batas domain dan entitas.\n- DOMAIN-OWNERSHIP-MATRIX.md — pemilik data, scope, consumer, dan kontrak lintas domain.
 - ERD-CONCEPTUAL.md — relasi konseptual.
 - DATA-DICTIONARY-BASELINE.md — kamus data awal.
 - DATA-INTEGRITY.md — aturan integritas.

@@ -26,14 +26,17 @@ Pelanggan SaaS dan batas billing, kontrak, konfigurasi pelanggan, serta isolasi 
 Profil legal/organisasi khusus tenant foundation, misalnya bentuk badan hukum, nomor pengesahan, alamat kantor, dan kontak.
 - Memiliki relasi one-to-one dengan tenant foundation.
 - Tidak dibuat untuk independent_provider.
-- Dokumen legal tidak wajib diunggah pada registrasi awal dan dapat dilengkapi saat verifikasi.\n- Verification status terpisah dari subscription status; fitur tertentu dapat dibatasi sampai verifikasi selesai.
+- Dokumen legal tidak wajib diunggah pada registrasi awal dan dapat dilengkapi saat verifikasi.
+- Verification status terpisah dari subscription status; fitur tertentu dapat dibatasi sampai verifikasi selesai.
 
 ### education_units
 Unit sekolah/madrasah di bawah tepat satu tenant aktif.
-- Menyimpan identitas unit, nama resmi, identifier resmi relevan (NPSN/NSM boleh nullable saat registrasi), education form, education level, alamat, status, verification status, dan konfigurasi.\n- Identifier yang diisi harus divalidasi format dan keunikannya; konflik tidak boleh membocorkan data pemilik identifier.
+- Menyimpan identitas unit, nama resmi, identifier resmi relevan (NPSN/NSM boleh nullable saat registrasi), education form, education level, alamat, status, verification status, dan konfigurasi.
+- Identifier yang diisi harus divalidasi format dan keunikannya; konflik tidak boleh membocorkan data pemilik identifier.
 - Satu tenant foundation dapat memiliki banyak unit dengan jenis/jenjang berbeda.
 - Unit mandiri dan unit di bawah yayasan memakai struktur data yang sama.
-- Tenant mandiri memulai dengan unit pendidikan pertamanya.\n- Kedua tipe tenant dapat memiliki multi-unit jika entitlement paket mencukupi; tenant_type bukan penentu kuota.
+- Tenant mandiri memulai dengan unit pendidikan pertamanya.
+- Kedua tipe tenant dapat memiliki multi-unit jika entitlement paket mencukupi; tenant_type bukan penentu kuota.
 - Transfer antar tenant melalui workflow khusus dan audit.
 
 ### Membership dan akses
@@ -41,14 +44,27 @@ Unit sekolah/madrasah di bawah tepat satu tenant aktif.
 - tenant_memberships: keanggotaan user pada tenant; unique user+tenant, status dan periode berlaku.
 - unit_memberships: akses user ke unit; unique user+unit, status dan periode berlaku.
 - roles, permissions, role_permissions, user_role_assignments: role assignment mencatat scope platform/tenant/unit.
-- tenant_subscriptions: status dan periode langganan; dipisahkan dari verifikasi lembaga.\n- tenant_entitlements / tenant_module_entitlements: fitur dan kuota termasuk batas jumlah unit; entitlement berlaku sama untuk kedua tipe tenant.\n- verification_cases atau struktur setara: proses pemeriksaan dokumen legal dan identifier resmi.
+- tenant_subscriptions: status dan periode langganan; dipisahkan dari verifikasi lembaga.
+- tenant_entitlements / tenant_module_entitlements: fitur dan kuota termasuk batas jumlah unit; entitlement berlaku sama untuk kedua tipe tenant.
+- verification_cases atau struktur setara: proses pemeriksaan dokumen legal dan identifier resmi.
 - Tenant membership tidak otomatis memberi akses semua unit; akses unit mengikuti permission/grant eksplisit.
 - Pendaftar pertama memperoleh tenant-scoped owner/admin role dan unit-scoped admin role hanya pada unit pertama yang didaftarkan.
 - Foundation tenant admin mengelola organisasi/daftar unit sesuai permission, tetapi akses data akademik tiap unit tetap memerlukan grant unit.
 - Independent provider admin memperoleh akses operasional pada unit mandirinya.
 - Role tenant dan role unit merupakan assignment terpisah.
 
-## Subscription, verification, dan entitlement\n- Subscription menyimpan status billing dan periode paket.\n- Entitlement menyimpan fitur serta batas kuantitatif, termasuk jumlah unit yang dapat dimiliki tenant.\n- Verification menyimpan status pemeriksaan tenant/unit, referensi dokumen/identifier, dan tenggat verifikasi.\n- Masa tenggang verifikasi adalah 7 hari kalender sejak `registration_completed_at`. Jika persyaratan wajib belum dilengkapi sampai akhir hari ke-7, tenant menjadi `suspended`.\n- Jika persyaratan sudah diserahkan tepat waktu dan hanya menunggu pemeriksaan internal, status tetap pending dan tenant tidak disuspend karena antrean internal.\n- Simpan `registration_completed_at`, `verification_deadline_at`, `verification_submitted_at`, `suspended_at`, `suspension_reason`, dan `suspension_source` atau struktur audit/status-history yang setara.\n- Tenant suspended karena verifikasi tetap dapat login pada area terbatas untuk melengkapi persyaratan, melihat alasan, menghubungi dukungan, serta mengakses/mengekspor data sesuai hak. Data tidak dihapus.\n- Subscription dan verification adalah dua dimensi independen; penangguhan karena verifikasi tidak otomatis membatalkan atau mengubah subscription.\n- Downgrade tidak menghapus tenant, unit, atau data historis. Jika unit melebihi entitlement baru, penambahan unit baru ditolak sampai kuota sesuai atau paket ditingkatkan. Masa tenggang dan mode akses unit di atas kuota masih memerlukan keputusan tersendiri.\n\n## Referensi pendidikan
+## Subscription, verification, dan entitlement
+- Subscription menyimpan status billing dan periode paket.
+- Entitlement menyimpan fitur serta batas kuantitatif, termasuk jumlah unit yang dapat dimiliki tenant.
+- Verification menyimpan status pemeriksaan tenant/unit, referensi dokumen/identifier, dan tenggat verifikasi.
+- Masa tenggang verifikasi adalah 7 hari kalender sejak `registration_completed_at`. Jika persyaratan wajib belum dilengkapi sampai akhir hari ke-7, tenant menjadi `suspended`.
+- Jika persyaratan sudah diserahkan tepat waktu dan hanya menunggu pemeriksaan internal, status tetap pending dan tenant tidak disuspend karena antrean internal.
+- Simpan `registration_completed_at`, `verification_deadline_at`, `verification_submitted_at`, `suspended_at`, `suspension_reason`, dan `suspension_source` atau struktur audit/status-history yang setara.
+- Tenant suspended karena verifikasi tetap dapat login pada area terbatas untuk melengkapi persyaratan, melihat alasan, menghubungi dukungan, serta mengakses/mengekspor data sesuai hak. Data tidak dihapus.
+- Subscription dan verification adalah dua dimensi independen; penangguhan karena verifikasi tidak otomatis membatalkan atau mengubah subscription.
+- Downgrade tidak menghapus tenant, unit, atau data historis. Jika unit melebihi entitlement baru, penambahan unit baru ditolak sampai kuota sesuai atau paket ditingkatkan. Masa tenggang dan mode akses unit di atas kuota masih memerlukan keputusan tersendiri.
+
+## Referensi pendidikan
 - education_types: sekolah umum, madrasah, dan jenis lain yang disahkan.
 - education_levels: SD, SMP, SMA, SMK, MI, MTs, MA, MAK, dan perluasan yang disetujui.
 - Validasi kombinasi education form dan education level dilakukan server-side.
@@ -98,7 +114,12 @@ Identitas siswa dapat tetap dikenali saat pindah unit/tenant, tetapi akses dan p
 5. Tenant membership dan unit membership merupakan dua grant berbeda.
 6. Pendaftar pertama bukan platform admin; role awal dibatasi pada tenant dan unit yang sah.
 7. Histori enrollment, nilai, presensi, dan penugasan tidak dipindah/dihapus diam-diam saat unit/tenant berubah.
-8. Tidak ada akses lintas tenant hanya karena unit berada dalam yayasan atau user mengetahui identifier siswa.\n9. Kuota unit berasal dari entitlement paket, bukan tenant_type.\n10. Verification status tidak disimpulkan dari subscription status atau sebaliknya.\n11. Downgrade tidak melakukan penghapusan unit/data; batas entitlement diterapkan pada penambahan unit baru.\n12. Tenggat verifikasi 7 hari dihitung dari timestamp server `registration_completed_at`.\n13. Penyerahan persyaratan tepat waktu menghentikan pemicu auto-suspension karena deadline, meskipun review internal belum selesai.
+8. Tidak ada akses lintas tenant hanya karena unit berada dalam yayasan atau user mengetahui identifier siswa.
+9. Kuota unit berasal dari entitlement paket, bukan tenant_type.
+10. Verification status tidak disimpulkan dari subscription status atau sebaliknya.
+11. Downgrade tidak melakukan penghapusan unit/data; batas entitlement diterapkan pada penambahan unit baru.
+12. Tenggat verifikasi 7 hari dihitung dari timestamp server `registration_completed_at`.
+13. Penyerahan persyaratan tepat waktu menghentikan pemicu auto-suspension karena deadline, meskipun review internal belum selesai.
 
 ## Keputusan teknis terbuka
 - Apakah people menjadi master identitas bersama siswa, wali, dan pegawai.
@@ -107,5 +128,8 @@ Identitas siswa dapat tetap dikenali saat pindah unit/tenant, tetapi akses dan p
 - Strategi database fisik per tenant atau shared database/schema.
 - Aturan transfer unit dan portabilitas histori.
 - Apakah reference catalog bersifat platform-global atau dapat dioverride tenant.
-- Daftar dokumen legal, sumber verifikasi, dan sumber otoritatif identifier.\n- Daftar paket, harga, masa trial, dan kuota unit komersial.\n- Masa tenggang dan mode akses unit saat downgrade membuat jumlah unit melebihi entitlement.\n- Persyaratan fitur yang menunggu verifikasi.
+- Daftar dokumen legal, sumber verifikasi, dan sumber otoritatif identifier.
+- Daftar paket, harga, masa trial, dan kuota unit komersial.
+- Masa tenggang dan mode akses unit saat downgrade membuat jumlah unit melebihi entitlement.
+- Persyaratan fitur yang menunggu verifikasi.
 Keputusan ini perlu ADR dan uji skenario nyata sebelum migration.

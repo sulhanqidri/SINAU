@@ -639,3 +639,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next step: create only a synthetic disposable PoC HMAC key in a local secret file with restrictive permissions; do not print it, commit it, paste it, or use a production credential. Then securely import it into a private key table accessible only to `sinau_context_owner`, and test an external signer/verifier round trip before changing RLS policies.
 - No persistent database objects, key material, functions, or policies were changed in this checkpoint. XID 800 was allocated in a transaction that committed; XID 801 was allocated in a transaction that rolled back.
 - Safety: only `sinau_design_poc`; never touch application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (synthetic HMAC key created on application host)
+- User generated a fresh 32-byte random PoC HMAC key with OpenSSL on the SINAU host. File: `/home/sinauadmin/.local/share/sinau-poc-secrets/context-hmac-v1.hex`.
+- Verified metadata reported permission 0600, owner/group `sinauadmin:sinauadmin`, size 65 bytes (64 lowercase hex characters plus newline). The secret value was not printed or shared.
+- Key is explicitly synthetic and for `sinau_design_poc` only. Do not reuse for production or another environment; do not commit it, paste it into chat, put it in shell arguments/history, or log it.
+- Next controlled operation: copy it temporarily into `/run` only after verifying `/run` is tmpfs, as owner postgres mode 0600; import via psql client-side `\\copy` so the raw value never appears in SQL source/command-line arguments/output; create a `sinau_private.context_keys` table owned by `sinau_context_owner`; verify only key id and byte length, never key bytes. Remove the staging copy immediately after successful transaction. If `/run` is not tmpfs or the path already exists, stop rather than fall back to persistent staging.
+- No database object or secret copy inside PostgreSQL has been created yet. The original secret remains only in the restricted host file.
+- Safety: database target remains `sinau_design_poc` only. Do not touch application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 stays Draft/open/unmerged.

@@ -677,3 +677,9 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Static source inspection confirmed required security clauses and absence of policy DDL; this does not substitute for PostgreSQL runtime parsing/execution. The verifier script must be run and reviewed on the user's PostgreSQL 18.7 PoC before any valid-token test or policy integration.
 - Next: user downloads/runs only `005-verify-context-token.sql` against `sinau_design_poc` as postgres. Review SQL errors and metadata (owner, prosecdef, proconfig, ACL) plus malformed token tests. Only after successful install, build a separate non-disclosing external signer round-trip to verify a valid token; do not expose secret or token.
 - Safety: only `sinau_design_poc`; no app database `sinau`, role `sinau_app`, SQLRadius, or MikroTik touched. PR #1 remains Draft/open/unmerged.
+
+### Verifier source refinement — 2026-11-18
+- Before asking the user to execute the new verifier, the script was refined to require the token audience to equal both the PoC's fixed audience `sinau_design_poc` and `pg_catalog.current_database()`. This prevents accidental acceptance when the script/key is copied to a differently named database.
+- Updated source: `docs/03-database/poc/005-verify-context-token.sql`; latest commit `2082a249dc146bf27622fa26d253f597d2e344c5`; verified blob `ce490de5f6023020ec6d756520cbc0fbdc28a12c`.
+- The database-name audience is only an environment boundary for this PoC; production should use a unique deployment/environment audience identifier, because a clone restored under the same database name is not distinguished by database-name comparison alone.
+- Source inspection verifies the audience comparison is present. Runtime SQL syntax and behavior remain unverified until executed against the user's PostgreSQL 18.7 PoC.

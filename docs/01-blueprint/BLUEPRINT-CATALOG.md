@@ -217,3 +217,18 @@ Blueprint dinyatakan siap menjadi baseline implementasi hanya jika:
 10. Pemilik produk menyetujui baseline dan gerbang PoC teknis lulus.
 
 **Peringatan:** keberadaan dokumen atau checklist tidak berarti fitur sudah dibangun, regulasi sudah diverifikasi, atau produk sudah siap produksi. Status aktual selalu mengacu pada PROJECT-PROGRESS.md dan bukti pengujian.
+
+
+## 12. Audit konsistensi logical design MVP
+
+| Artefak | Lokasi | Status |
+|---|---|---|
+| Audit konsistensi Logical ERD dan Data Dictionary | `docs/03-database/LOGICAL-DESIGN-CONSISTENCY-AUDIT.md` | Draft AUD-LD-001 v0.1.0; 4 High, 6 Medium, 1 Low; seluruh temuan Open, menunggu keputusan dan review. |
+
+- [x] Audit dokumentasi MVP Scope, process specifications, Domain Ownership Matrix, Logical ERD, Data Dictionary, dan Data Integrity dilakukan.
+- [ ] Putuskan dan remediasi AUD-LD-01—05 serta AUD-LD-09 sebelum logical design diterima.
+- [ ] Selesaikan kontrak guardian access, HR/Academic effective dating, polymorphic file authorization, dan MVP traceability (AUD-LD-06—08, AUD-LD-10).
+- [ ] Reconcile istilah/field/nullability antara Logical ERD dan Data Dictionary (AUD-LD-11).
+- [ ] Review bersama domain owner, privacy/security, DBA/architect, dan product owner.
+
+Audit ini tidak menutup OWN-01—10 atau DD-01—15 dan bukan persetujuan migration. Process specs tetap draft dan batas MVP tetap mengikuti `MVP-SCOPE.md`.

@@ -37,7 +37,7 @@ Untuk MVP, gunakan **shared database dan shared schema** dengan defense-in-depth
 7. Test suite negatif lintas tenant/unit menjadi gerbang CI.
 8. File, cache, queue, search, export, dan audit menggunakan scope key yang konsisten.
 
-Strategi ini adalah baseline arsitektur, bukan keputusan engine database. PostgreSQL dan MySQL/MariaDB tetap dibandingkan melalui PoC. Row-Level Security dapat dievaluasi jika PostgreSQL dipilih, tetapi tidak menjadi satu-satunya lapisan keamanan dan tidak boleh diasumsikan tersedia pada semua engine.
+Strategi ini adalah baseline arsitektur, bukan keputusan engine database. PoC resmi membandingkan PostgreSQL 18 dengan MySQL 8.4 LTS menggunakan skenario dan acceptance criteria yang sama; lihat [DATABASE-POC-PLAN.md](../01-blueprint/DATABASE-POC-PLAN.md). PostgreSQL menjadi kandidat utama, bukan keputusan final. Row-Level Security dapat dievaluasi jika PostgreSQL dipilih, tetapi tidak menjadi satu-satunya lapisan keamanan dan tidak boleh diasumsikan tersedia pada semua engine.
 
 ## Jalur evolusi
 

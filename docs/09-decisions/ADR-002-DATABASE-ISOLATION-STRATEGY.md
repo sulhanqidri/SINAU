@@ -1,14 +1,15 @@
 # ADR-002: Strategi Isolasi Database Tenant
 
-- **Status:** Proposed baseline untuk MVP; menunggu PoC engine database sebelum migration.
+- **Status:** Accepted sebagai baseline isolasi MVP; validasi teknis PostgreSQL masih wajib.
 - **Tanggal:** 2026-11-18
 - **Area:** Database tenancy, isolation, scalability
+- **Keputusan engine:** [ADR-006 — PostgreSQL](ADR-006-POSTGRESQL-DATABASE.md)
 
 ## Konteks
 
 SINAU melayani tenant yayasan multi-unit dan sekolah/madrasah mandiri. Arsitektur perlu mencegah kebocoran lintas tenant, tetap sederhana untuk operasi MVP, serta menyediakan jalur scale-out tanpa mengubah model pelanggan.
 
-## Opsi
+## Opsi arsitektur isolasi
 
 ### A. Shared database, shared schema
 Semua tenant memakai tabel yang sama. Setiap tabel tenant/unit-scoped membawa scope key dan semua query menerapkan scope. Constraint database mengikat relasi dalam scope yang sama.
@@ -25,9 +26,10 @@ Tenant ditempatkan pada kelompok database atau database khusus berdasarkan kebut
 
 Kelebihan: jalur pertumbuhan dan isolasi fleksibel. Kekurangan: membutuhkan tenant routing, provisioning, migration orchestration, serta observability yang matang.
 
-## Baseline yang direkomendasikan
+## Baseline yang disepakati
 
-Untuk MVP, gunakan **shared database dan shared schema** dengan defense-in-depth:
+Untuk MVP, gunakan **shared database dan shared schema pada PostgreSQL 18** dengan defense-in-depth:
+
 1. tenant_id pada seluruh data tenant-scoped.
 2. tenant_id + unit_id pada seluruh data unit-scoped, atau relasi terkontrol yang membuktikan tenant pemilik unit.
 3. Composite unique key dan composite foreign key untuk menjaga pasangan scope.
@@ -36,8 +38,7 @@ Untuk MVP, gunakan **shared database dan shared schema** dengan defense-in-depth
 6. Database role aplikasi tidak menggunakan akses superuser; kredensial migrasi dipisahkan dari runtime bila infrastruktur memungkinkan.
 7. Test suite negatif lintas tenant/unit menjadi gerbang CI.
 8. File, cache, queue, search, export, dan audit menggunakan scope key yang konsisten.
-
-Strategi ini adalah baseline arsitektur, bukan keputusan engine database. PoC resmi membandingkan PostgreSQL 18 dengan MySQL 8.4 LTS menggunakan skenario dan acceptance criteria yang sama; lihat [DATABASE-POC-PLAN.md](../01-blueprint/DATABASE-POC-PLAN.md). PostgreSQL menjadi kandidat utama, bukan keputusan final. Row-Level Security dapat dievaluasi jika PostgreSQL dipilih, tetapi tidak menjadi satu-satunya lapisan keamanan dan tidak boleh diasumsikan tersedia pada semua engine.
+9. PostgreSQL RLS dievaluasi sebagai lapisan tambahan, bukan satu-satunya kontrol.
 
 ## Jalur evolusi
 
@@ -53,11 +54,12 @@ Rancang tenant resolver agar dapat berkembang dari satu koneksi ke tenant-to-dat
 
 ## Gerbang sebelum migration
 
-- PoC engine database membuktikan composite FK/check constraint yang dibutuhkan.
+- PoC PostgreSQL membuktikan composite FK/check constraint yang dibutuhkan.
 - Uji query planner dan indeks pada pola filter tenant_id/unit_id.
 - Uji tenant isolation untuk ORM, query builder, raw SQL, queue, file, export, dan cache.
 - Uji backup/restore dan prosedur pemulihan.
-- Threat model serta keputusan final engine database disetujui.
+- Threat model serta konfigurasi PostgreSQL final ditinjau.
+- Hasil PoC dicatat sebelum migration domain produksi.
 
 ## Kriteria evaluasi ulang
 

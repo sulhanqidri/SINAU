@@ -39,6 +39,41 @@ docker compose -f poc/database-isolation/postgresql/compose.yaml down
 
 Tidak ada volume persisten yang dikonfigurasi. Jangan mengubah nama database/schema/credential script untuk menunjuk ke database lain. Credential pada compose hanya untuk eksperimen lokal dan tidak boleh dipakai di luar lingkungan disposable.
 
+## Menjalankan dari Windows PowerShell
+
+Dari root repository:
+
+```powershell
+$compose = ".\poc\database-isolation\postgresql\compose.yaml"
+
+docker compose -f $compose up -d --wait
+
+Get-Content -Raw .\poc\database-isolation\postgresql\schema-and-fixtures.sql |
+  docker compose -f $compose exec -T postgres psql -U sinau_poc -d sinau_poc -X -v ON_ERROR_STOP=1
+
+Get-Content -Raw .\poc\database-isolation\postgresql\verify-constraints.sql |
+  docker compose -f $compose exec -T postgres psql -U sinau_poc -d sinau_poc -X -v ON_ERROR_STOP=1
+```
+
+Untuk benchmark satu juta baris (opsional, setelah tes dasar berhasil):
+
+```powershell
+Get-Content -Raw .\poc\database-isolation\postgresql\benchmark-million.sql |
+  docker compose -f $compose exec -T postgres psql -U sinau_poc -d sinau_poc -X -v ON_ERROR_STOP=1
+```
+
+Periksa versi PostgreSQL:
+
+```powershell
+docker compose -f $compose exec -T postgres psql -U sinau_poc -d sinau_poc -c "SELECT version();"
+```
+
+Setelah selesai, hapus container PoC:
+
+```powershell
+docker compose -f $compose down
+```
+
 ## Menjalankan di PostgreSQL yang sudah tersedia
 
 Pastikan DSN menunjuk ke database disposable yang memang disiapkan untuk PoC. Script schema akan menghapus dan membuat ulang schema `sinau_poc`.

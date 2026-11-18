@@ -119,7 +119,7 @@ Tidak boleh menganggap seluruh jenis lembaga memakai daftar mapel, struktur nila
 
 | Artefak | Lokasi target | Status awal |
 |---|---|---|
-| Domain model | `docs/03-database/DOMAIN-MODEL.md` | Existing baseline; perlu elaborasi |
+| Domain model | `docs/03-database/DOMAIN-MODEL.md` | Existing baseline; diperbarui terhadap MVP; perlu logical refinement |\n| Domain ownership matrix | `docs/03-database/DOMAIN-OWNERSHIP-MATRIX.md` | Draft 0.1.0; menunggu review ownership dan stakeholder |
 | ERD conceptual/logical/physical | `docs/03-database/ERD-CONCEPTUAL.md` dan diagram lanjutan | Existing conceptual; logical/physical not started |
 | Data dictionary | `docs/03-database/DATA-DICTIONARY-BASELINE.md` | Existing baseline; perlu kelengkapan |
 | Data integrity and lifecycle | `docs/03-database/DATA-INTEGRITY.md` | Existing baseline; perlu audit |

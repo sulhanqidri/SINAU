@@ -1,6 +1,6 @@
 # Model Domain Data SINAU
 
-**Status:** Conceptual model 0.3 — model pelanggan dikonfirmasi; onboarding dirinci; bukan skema migration final.
+**Status:** Conceptual model 0.4 — model pelanggan dan kebijakan onboarding/unit entitlement dikonfirmasi; bukan skema migration final.
 
 ## Prinsip
 - Pisahkan identitas orang dari peran orang pada lembaga.
@@ -26,14 +26,14 @@ Pelanggan SaaS dan batas billing, kontrak, konfigurasi pelanggan, serta isolasi 
 Profil legal/organisasi khusus tenant foundation, misalnya bentuk badan hukum, nomor pengesahan, alamat kantor, dan kontak.
 - Memiliki relasi one-to-one dengan tenant foundation.
 - Tidak dibuat untuk independent_provider.
-- Kelengkapan dokumen legal dapat mengikuti status verifikasi dan kebijakan onboarding.
+- Dokumen legal tidak wajib diunggah pada registrasi awal dan dapat dilengkapi saat verifikasi.\n- Verification status terpisah dari subscription status; fitur tertentu dapat dibatasi sampai verifikasi selesai.
 
 ### education_units
 Unit sekolah/madrasah di bawah tepat satu tenant aktif.
-- Menyimpan identitas unit, nama resmi, identitas resmi relevan (misalnya NPSN/NSM), education form, education level, alamat, status, dan konfigurasi.
+- Menyimpan identitas unit, nama resmi, identifier resmi relevan (NPSN/NSM boleh nullable saat registrasi), education form, education level, alamat, status, verification status, dan konfigurasi.\n- Identifier yang diisi harus divalidasi format dan keunikannya; konflik tidak boleh membocorkan data pemilik identifier.
 - Satu tenant foundation dapat memiliki banyak unit dengan jenis/jenjang berbeda.
 - Unit mandiri dan unit di bawah yayasan memakai struktur data yang sama.
-- Tenant mandiri memulai dengan unit pendidikan pertamanya.
+- Tenant mandiri memulai dengan unit pendidikan pertamanya.\n- Kedua tipe tenant dapat memiliki multi-unit jika entitlement paket mencukupi; tenant_type bukan penentu kuota.
 - Transfer antar tenant melalui workflow khusus dan audit.
 
 ### Membership dan akses
@@ -41,14 +41,14 @@ Unit sekolah/madrasah di bawah tepat satu tenant aktif.
 - tenant_memberships: keanggotaan user pada tenant; unique user+tenant, status dan periode berlaku.
 - unit_memberships: akses user ke unit; unique user+unit, status dan periode berlaku.
 - roles, permissions, role_permissions, user_role_assignments: role assignment mencatat scope platform/tenant/unit.
-- tenant_subscriptions, tenant_module_entitlements: langganan dan fitur SaaS.
+- tenant_subscriptions: status dan periode langganan; dipisahkan dari verifikasi lembaga.\n- tenant_entitlements / tenant_module_entitlements: fitur dan kuota termasuk batas jumlah unit; entitlement berlaku sama untuk kedua tipe tenant.\n- verification_cases atau struktur setara: proses pemeriksaan dokumen legal dan identifier resmi.
 - Tenant membership tidak otomatis memberi akses semua unit; akses unit mengikuti permission/grant eksplisit.
 - Pendaftar pertama memperoleh tenant-scoped owner/admin role dan unit-scoped admin role hanya pada unit pertama yang didaftarkan.
 - Foundation tenant admin mengelola organisasi/daftar unit sesuai permission, tetapi akses data akademik tiap unit tetap memerlukan grant unit.
 - Independent provider admin memperoleh akses operasional pada unit mandirinya.
 - Role tenant dan role unit merupakan assignment terpisah.
 
-## Referensi pendidikan
+## Subscription, verification, dan entitlement\n- Subscription menyimpan status billing dan periode paket.\n- Entitlement menyimpan fitur serta batas kuantitatif, termasuk jumlah unit yang dapat dimiliki tenant.\n- Verification menyimpan status pemeriksaan tenant/unit dan referensi dokumen/identifier yang diperiksa.\n- Subscription dan verification adalah dua dimensi independen; policy akses mengevaluasi keduanya.\n- Downgrade tidak menghapus tenant, unit, atau data historis. Jika unit melebihi entitlement baru, penambahan unit baru ditolak sampai kuota sesuai atau paket ditingkatkan. Masa tenggang dan mode akses unit di atas kuota belum diputuskan.\n\n## Referensi pendidikan
 - education_types: sekolah umum, madrasah, dan jenis lain yang disahkan.
 - education_levels: SD, SMP, SMA, SMK, MI, MTs, MA, MAK, dan perluasan yang disetujui.
 - Validasi kombinasi education form dan education level dilakukan server-side.
@@ -98,7 +98,7 @@ Identitas siswa dapat tetap dikenali saat pindah unit/tenant, tetapi akses dan p
 5. Tenant membership dan unit membership merupakan dua grant berbeda.
 6. Pendaftar pertama bukan platform admin; role awal dibatasi pada tenant dan unit yang sah.
 7. Histori enrollment, nilai, presensi, dan penugasan tidak dipindah/dihapus diam-diam saat unit/tenant berubah.
-8. Tidak ada akses lintas tenant hanya karena unit berada dalam yayasan atau user mengetahui identifier siswa.
+8. Tidak ada akses lintas tenant hanya karena unit berada dalam yayasan atau user mengetahui identifier siswa.\n9. Kuota unit berasal dari entitlement paket, bukan tenant_type.\n10. Verification status tidak disimpulkan dari subscription status atau sebaliknya.\n11. Downgrade tidak melakukan penghapusan unit/data; batas entitlement diterapkan pada penambahan unit baru.
 
 ## Keputusan teknis terbuka
 - Apakah people menjadi master identitas bersama siswa, wali, dan pegawai.
@@ -107,5 +107,5 @@ Identitas siswa dapat tetap dikenali saat pindah unit/tenant, tetapi akses dan p
 - Strategi database fisik per tenant atau shared database/schema.
 - Aturan transfer unit dan portabilitas histori.
 - Apakah reference catalog bersifat platform-global atau dapat dioverride tenant.
-- Persyaratan dokumen legal dan identifier resmi saat registrasi versus aktivasi.
+- Daftar dokumen legal, sumber verifikasi, dan sumber otoritatif identifier.\n- Daftar paket, harga, masa trial, dan kuota unit komersial.\n- Masa tenggang dan mode akses unit saat downgrade membuat jumlah unit melebihi entitlement.\n- Persyaratan fitur yang menunggu verifikasi.
 Keputusan ini perlu ADR dan uji skenario nyata sebelum migration.

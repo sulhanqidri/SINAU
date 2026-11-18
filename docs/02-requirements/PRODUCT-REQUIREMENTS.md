@@ -9,7 +9,15 @@ SINAU adalah aplikasi SaaS multi-tenant untuk administrasi dan operasional pendi
 ## 2. Masalah yang ingin diselesaikan
 Lembaga pendidikan sering memakai banyak aplikasi/berkas terpisah untuk data siswa, akademik, presensi, keuangan, surat, dan komunikasi. SINAU bertujuan mengurangi duplikasi data, menyatukan alur kerja, memperjelas hak akses, dan menyediakan riwayat yang dapat diaudit.
 
-## 3. Persona utama
+## 3. Model pelanggan dan registrasi
+Pada registrasi pelanggan, SINAU menyediakan dua pilihan:
+
+1. **Yayasan/penyelenggara pendidikan**: akun pelanggan mewakili yayasan/badan penyelenggara yang menaungi satu atau beberapa sekolah/madrasah. Berlaku untuk yayasan yang menaungi SD, SMP, SMA, SMK, MI, MTs, MA, MAK, atau kombinasi di antaranya.
+2. **Sekolah/madrasah mandiri**: satuan pendidikan menjadi pelanggan langsung tanpa perlu membuat entitas yayasan.
+
+Pilihan ini menentukan tipe tenant (foundation atau independent_provider), bukan jenis atau jenjang pendidikan. Jenis dan jenjang dipilih saat membuat setiap education unit. Yayasan dapat menambahkan beberapa unit dengan jenis/jenjang berbeda; pelanggan mandiri memulai dengan unitnya sendiri.
+
+## 4. Persona utama
 - Operator/platform admin: mengelola tenant, paket, dan dukungan platform.
 - Admin yayasan/pengelola: mengelola satu atau beberapa unit.
 - Kepala sekolah/madrasah: memantau operasional unit.
@@ -19,7 +27,7 @@ Lembaga pendidikan sering memakai banyak aplikasi/berkas terpisah untuk data sis
 - Siswa: melihat informasi yang diizinkan.
 - Orang tua/wali: melihat informasi anak yang terhubung dan sah.
 
-## 4. Prinsip kebutuhan
+## 5. Prinsip kebutuhan
 - Satu identitas orang tidak harus menjadi satu record siswa per sekolah; identitas dan riwayat enrollment dipisahkan.
 - Akses diberikan berdasarkan tenant, unit, role, permission, dan relasi yang sah.
 - Jenis lembaga dan jenjang memengaruhi konfigurasi, bukan membuat cabang aplikasi yang tidak terpelihara.
@@ -27,7 +35,7 @@ Lembaga pendidikan sering memakai banyak aplikasi/berkas terpisah untuk data sis
 - Perubahan kurikulum dan aturan harus memiliki versi/periode efektif.
 - Semua alur penting memiliki status, validasi, dan audit.
 
-## 5. Kebutuhan fungsional tingkat produk
+## 6. Kebutuhan fungsional tingkat produk
 FR-001 Platform dapat membuat dan mengelola tenant.
 FR-002 Tenant dapat memiliki satu atau beberapa unit pendidikan.
 FR-003 Pengguna dapat diberi akses ke tenant/unit tertentu.
@@ -44,7 +52,7 @@ FR-013 Sistem menyediakan antarmuka responsif desktop/tablet/ponsel.
 FR-014 Registrasi pelanggan menyediakan pilihan yayasan/penyelenggara atau sekolah/madrasah mandiri.
 FR-015 Yayasan dapat menaungi sekolah umum, madrasah, atau kombinasi keduanya dalam satu tenant.
 
-## 6. Kebutuhan nonfungsional
+## 7. Kebutuhan nonfungsional
 - Keamanan tenant/unit wajib diuji pada setiap modul.
 - Ketersediaan dan target performa ditentukan sebelum pilot.
 - Data sensitif diminimalkan dan aksesnya dibatasi.
@@ -53,17 +61,15 @@ FR-015 Yayasan dapat menaungi sekolah umum, madrasah, atau kombinasi keduanya da
 - UI memenuhi standar aksesibilitas yang ditetapkan proyek.
 - Log dan monitoring tidak membocorkan kredensial atau data pribadi berlebihan.
 
-## 7. Di luar MVP awal
+## 8. Di luar MVP awal
 Payment gateway, akuntansi penuh, tanda tangan elektronik tersertifikasi, integrasi pemerintah, PPDB end-to-end, perpustakaan, inventaris, payroll, aplikasi mobile native, dan analitik lanjutan. Modul ini tetap masuk roadmap, tetapi bukan syarat pilot pertama.
 
-## 8. Pertanyaan validasi
-- Siapa pembeli dan pemilik tenant: yayasan, sekolah, atau keduanya?
-- Apakah satu tenant selalu mewakili satu yayasan atau boleh satu sekolah mandiri?
+## 9. Pertanyaan validasi
 - Alur akademik minimum apa yang wajib ada saat pilot?
 - Metode presensi mana yang harus tersedia sejak awal?
 - Laporan apa yang paling sering digunakan setiap jenis lembaga?
 - Data apa yang wajib diimpor dari sistem lama?
 - Apakah orang tua/siswa perlu portal pada MVP atau setelahnya?
 
-## 9. Acceptance produk MVP
+## 10. Acceptance produk MVP
 MVP dinyatakan siap pilot bila pelanggan dapat onboarding sebagai yayasan atau sekolah/madrasah mandiri; tenant yayasan dapat mengelola beberapa unit termasuk sekolah umum dan madrasah; tenant mandiri dapat berjalan tanpa entitas yayasan fiktif; proses akademik dasar berjalan; seluruh akses dibatasi sesuai tenant/unit/role; dan alur diuji oleh perwakilan sekolah umum serta madrasah.

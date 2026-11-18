@@ -15,11 +15,12 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 1. Dokumentasi proyek adalah acuan utama sebelum implementasi.
 2. Modular monolith sebagai arsitektur awal.
 3. SaaS multi-tenant dengan isolasi data yang ketat.
-4. Sekolah umum dan madrasah didukung melalui konfigurasi dan modul yang sesuai, bukan asumsi bahwa aturan keduanya identik.
-5. Konsistensi UI/UX dijaga melalui satu design system.
-6. Keamanan, privasi data peserta didik, audit, dan integritas data adalah persyaratan inti.
-7. Pengembangan dilakukan bertahap melalui pengujian dan preproduction sebelum production.
-8. Perubahan ruang lingkup, arsitektur, skema data, dan desain harus didokumentasikan.
+4. PostgreSQL 18 ditetapkan sebagai database utama; schema dan operasional tetap melalui PoC sebelum migration produksi.
+5. Sekolah umum dan madrasah didukung melalui konfigurasi dan modul yang sesuai, bukan asumsi bahwa aturan keduanya identik.
+6. Konsistensi UI/UX dijaga melalui satu design system.
+7. Keamanan, privasi data peserta didik, audit, dan integritas data adalah persyaratan inti.
+8. Pengembangan dilakukan bertahap melalui pengujian dan preproduction sebelum production.
+9. Perubahan ruang lingkup, arsitektur, skema data, dan desain harus didokumentasikan.
 
 ## Mulai membaca
 - [Konstitusi Proyek](docs/00-governance/PROJECT-CONSTITUTION.md)
@@ -29,7 +30,9 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 - [Rencana Implementasi Fondasi](docs/01-blueprint/IMPLEMENTATION-PLAN.md)
 - [Evaluasi Teknologi](docs/01-blueprint/TECHNOLOGY-OPTIONS.md)
 - [Rencana PoC Database dan Isolasi Tenant](docs/01-blueprint/DATABASE-POC-PLAN.md)
+- [ADR Strategi Isolasi Database Tenant](docs/09-decisions/ADR-002-DATABASE-ISOLATION-STRATEGY.md)
 - [ADR Rekomendasi Stack Aplikasi](docs/09-decisions/ADR-005-APPLICATION-STACK-RECOMMENDATION.md)
+- [ADR Pemilihan PostgreSQL](docs/09-decisions/ADR-006-POSTGRESQL-DATABASE.md)
 - [Kebutuhan Produk](docs/02-requirements/PRODUCT-REQUIREMENTS.md)
 - [Ruang Lingkup MVP](docs/02-requirements/MVP-SCOPE.md)
 - [Model Domain dan Database](docs/03-database/DOMAIN-MODEL.md)
@@ -40,7 +43,7 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 - [Catatan Keputusan Arsitektur](docs/10-decisions/README.md)
 
 ## Status proyek
-**Tahap: Fondasi dan perencanaan.** Stack, skema database, dan modul operasional belum final sebelum divalidasi dan dicatat pada dokumen keputusan.
+**Tahap: Fondasi dan perencanaan.** PostgreSQL 18 telah dipilih. Stack aplikasi, skema database produksi, dan modul operasional masih harus divalidasi sebelum implementasi.
 
 ## Kontribusi dan perubahan
-Baca [CONTRIBUTING.md](CONTRIBUTING.md) dan aturan di folder `docs/00-governance/` sebelum membuat perubahan.
+Baca [CONTRIBUTING.md](CONTRIBUTING.md) dan aturan di folder docs/00-governance/ sebelum membuat perubahan.

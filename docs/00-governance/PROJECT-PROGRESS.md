@@ -779,3 +779,12 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - This invocation did not create or replace a token. No PostgreSQL import or verifier call occurred in this attempt. Treat the pre-existing file as a leftover candidate: inspect only metadata (regular file, not symlink, owner sinauadmin, mode 0600) and remove it before regenerating; never display its contents.
 - Keep Terminal A/XID 826 open. After safe removal, generate a fresh token using exactly XID 826 and a 60-second TTL, copy it into a new postgres-owned mode-0600 tmpfs path, then perform valid-before-expiry check, wait 62 seconds while the same transaction remains open, and perform expired-after-TTL check.
 - No DB object/key/policy changed. PR #1 remains Draft/open/unmerged; target remains `sinau_design_poc` only.
+
+### RLS PoC checkpoint — 2026-11-18 (expiry test interrupted by shell command entered in psql)
+- In the expiry test, the first verifier call in transaction XID `826` returned `valid_before_expiry=true`.
+- User entered `sleep 62` at the PostgreSQL `psql` prompt instead of Terminal B's Bash prompt. PostgreSQL raised a syntax error and marked the transaction aborted; the following verifier query was rejected with `current transaction is aborted`. Therefore no after-expiry verifier result was obtained.
+- After the abort, user generated and staged another token using XID 826 and TTL 60. That token is invalid for a new test because its signed XID belongs to the already-aborted/closed transaction; it must be discarded, not verified.
+- Current token copies are expected at `/run/sinau-poc-token-signer/context-hmac-v1.token` and `/run/sinau-poc-token-postgres`; user should first ROLLBACK and exit the aborted psql session, then remove both files.
+- Expiry remains UNVERIFIED. No successful after-expiration rejection has been demonstrated.
+- Next attempt: Terminal A opens a fresh transaction and gets a fresh XID; Terminal B signs with that exact XID and TTL 60, transfers token; Terminal A verifies immediately (must return one row), leaves transaction open; Terminal B Bash runs `sleep 62`; only after sleep finishes, type the second SQL verifier query at Terminal A's psql prompt; it must return zero rows. Never type shell commands at psql. Then ROLLBACK and clean token files.
+- Existing key store and verifier are unchanged; no RLS policy changed. No production DB/role, SQLRadius or MikroTik touched. PR #1 remains Draft/open/unmerged.

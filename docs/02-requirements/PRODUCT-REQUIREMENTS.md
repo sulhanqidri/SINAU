@@ -56,6 +56,8 @@ FR-017 NPSN/NSM dapat dilengkapi setelah registrasi awal dan diverifikasi tanpa 
 FR-018 Penambahan unit untuk semua tipe tenant mengikuti entitlement paket dan diperiksa server-side.
 FR-019 Status verifikasi lembaga terpisah dari status subscription/billing.
 FR-020 Downgrade paket tidak menghapus unit atau data; unit di atas kuota membatasi penambahan unit baru.
+FR-021 Sistem memberi tenggat verifikasi 7 hari kalender sejak onboarding selesai dan menangguhkan tenant jika persyaratan wajib belum diserahkan sampai akhir tenggat.
+FR-022 Sistem tidak menangguhkan tenant karena review internal masih berlangsung apabila persyaratan telah diserahkan tepat waktu.
 
 ## 7. Kebutuhan nonfungsional
 - Keamanan tenant/unit wajib diuji pada setiap modul.
@@ -83,5 +85,5 @@ Payment gateway, akuntansi penuh, tanda tangan elektronik tersertifikasi, integr
 - Data apa yang wajib diimpor dari sistem lama?
 - Apakah orang tua/siswa perlu portal pada MVP atau setelahnya?
 
-## 10. Acceptance produk MVP
+## 11. Acceptance produk MVP
 MVP dinyatakan siap pilot bila pelanggan dapat onboarding sebagai yayasan atau sekolah/madrasah mandiri; tenant yayasan dapat mengelola beberapa unit termasuk sekolah umum dan madrasah; tenant mandiri dapat berjalan tanpa entitas yayasan fiktif; proses akademik dasar berjalan; seluruh akses dibatasi sesuai tenant/unit/role; dan alur diuji oleh perwakilan sekolah umum serta madrasah.

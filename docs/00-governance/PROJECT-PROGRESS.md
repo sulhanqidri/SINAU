@@ -43,7 +43,8 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 - [x] Model `independent_provider` dapat menjadi tenant langsung tanpa yayasan fiktif.
 - [x] Tenant adalah batas pelanggan/kontrak/billing dan isolasi; education unit adalah batas operasional.
 - [ ] Validasi kebutuhan langsung dengan perwakilan sekolah umum, madrasah, yayasan, guru, TU, bendahara, siswa, dan orang tua/wali.
-- [x] Baseline prioritas MVP disetujui pemilik produk pada 2026-11-18; revisi selanjutnya melalui change control.\n- [ ] Validasi detail kebutuhan dan acceptance criteria dengan stakeholder/praktisi.
+- [x] Baseline prioritas MVP disetujui pemilik produk pada 2026-11-18; revisi selanjutnya melalui change control.
+- [ ] Validasi detail kebutuhan dan acceptance criteria dengan stakeholder/praktisi.
 
 ### Keputusan teknis
 - [x] PostgreSQL 18 dipilih sebagai database utama (ADR-006).
@@ -85,7 +86,8 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 ### Phase 1 — Complete blueprint & technical architecture
 - [ ] Master blueprint lengkap dan konsisten dengan seluruh spesifikasi.
 - [ ] Business process map end-to-end untuk setiap domain utama. (Baseline draft tersedia di `docs/02-requirements/BUSINESS-PROCESS-MAP.md`; menunggu validasi dan spesifikasi turunan.)
-- [x] Draft Domain Ownership Matrix MVP tersedia di `docs/03-database/DOMAIN-OWNERSHIP-MATRIX.md`; review/approval ownership masih terbuka.\n- [ ] Module catalog, batas modul, dependensi, dan ownership data final.
+- [x] Draft Domain Ownership Matrix MVP tersedia di `docs/03-database/DOMAIN-OWNERSHIP-MATRIX.md`; review/approval ownership masih terbuka.
+- [ ] Module catalog, batas modul, dependensi, dan ownership data final.
 - [ ] Spesifikasi rinci setiap modul dan submodul.
 - [x] Domain model dan ERD konseptual diperbarui agar konsisten dengan baseline MVP yang disetujui; logical ERD, data dictionary, lifecycle dan retention masih terbuka.
 - [ ] Tenant/unit context, membership, authorization matrix, dan support access.
@@ -384,7 +386,8 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Role scope dirinci platform/tenant/unit dengan CHECK/composite-FK candidate; perlu PoC constraint dan authorization.
 - Diagram konseptual diperbarui agar tidak mengaitkan EmployeeProfile ke User secara otomatis dan menampilkan enrollment, placement, attendance session, dan assessment.
 - Database README dan Blueprint Catalog ditautkan ke logical ERD.
-- Ditemukan dan diperbaiki literal "\\n" yang sebelumnya tampil di beberapa checklist/katalog sebagai teks, bukan line break.
+- Ditemukan dan diperbaiki literal "\
+" yang sebelumnya tampil di beberapa checklist/katalog sebagai teks, bukan line break.
 - Status: logical ERD masih Draft, belum direview/diterima; acceptance criteria belum dicentang. Belum ada SQL migration, kode aplikasi, atau deployment.
 - Langkah berikut: review logical ERD terhadap process specs; lanjutkan data dictionary per entitas/atribut setelah ownership dan keputusan terbuka divalidasi. Khusus OWN-01—OWN-10 dan LERD-01—LERD-10 tidak dianggap selesai.
 - PR #1 tetap Draft/open/unmerged.

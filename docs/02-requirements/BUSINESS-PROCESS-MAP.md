@@ -92,9 +92,11 @@ flowchart TD
 | ID | Proses | Pemilik domain | Output utama | Tahap |
 |---|---|---|---|---|
 | BP-PLT-01 | Registrasi dan onboarding tenant | Platform/tenant admin | Tenant dan unit pertama | Foundation |
-| BP-PLT-02 | Verifikasi, subscription, entitlement | Platform operations/finance | Status akses dan kuota | Foundation |
-| BP-PLT-03 | Lifecycle tenant dan unit | Tenant admin/platform | Unit aktif/nonaktif dan histori | Foundation |
-| BP-PLT-04 | Identity, invitation, membership, access | Platform/tenant/unit admin | Grant akses terkontrol | Foundation |
+| BP-PLT-02 | Penambahan dan pengelolaan unit pendidikan | Tenant admin/platform | Unit terdaftar dan terkelola sesuai entitlement | Foundation |
+| BP-PLT-03 | Verifikasi tenant dan unit | Platform verification officer | Status verifikasi dan keputusan terdokumentasi | Foundation |
+| BP-PLT-04 | Subscription, entitlement, downgrade, suspend, reaktivasi | Tenant billing/platform finance | Hak layanan dan kuota sesuai kontrak | Foundation |
+| BP-PLT-05 | Identity, invitation, membership, role, dan access | Platform/tenant/unit admin | Grant akses terkontrol dan dapat dicabut | Foundation |
+| BP-PLT-06 | Lifecycle tenant dan unit (suspend, close, transfer, restore) | Tenant admin/platform | Status lifecycle dan histori tenant/unit | Foundation |
 | BP-ORG-01 | Setup profil dan struktur lembaga | Operator/kepala | Master organisasi | Core |
 | BP-ORG-02 | Setup kalender, tahun ajaran, kurikulum | Admin akademik | Periode dan struktur akademik | Core |
 | BP-ADM-01 | PPDB/penerimaan peserta didik | Panitia/operator | Calon peserta didik diterima/ditolak | Candidate |
@@ -156,45 +158,65 @@ Label Core/Phase/Candidate adalah klasifikasi perencanaan awal, bukan komitmen M
 
 **Referensi:** [Registration and Onboarding Flow](REGISTRATION-AND-ONBOARDING-FLOW.md), ADR-001, ADR-003, ADR-004.
 
-### BP-PLT-02 — Verifikasi, subscription, dan entitlement
+### BP-PLT-02 — Penambahan dan pengelolaan unit pendidikan
 
-**Tujuan:** memastikan akses sesuai verifikasi pelanggan/unit dan status komersial, tanpa menyatukan kedua state machine.
+**Tujuan:** mengelola penambahan dan perubahan unit di bawah tenant yang sah, dengan pemeriksaan permission, entitlement, dan isolasi tenant/unit.
+
+**Alur utama:** tenant admin berwenang mengajukan unit → server memvalidasi tenant context, membership, permission, status tenant, entitlement, identifier, dan kuota secara atomik → unit dibuat/diperbarui dengan audit → unit menjalani verifikasi terpisah melalui BP-PLT-03 bila diwajibkan. Membership unit tidak diberikan otomatis kepada seluruh tenant member.
+
+**Batas proses:** BP-PLT-02 menangani provisioning dan pengelolaan operasional unit. Hak paket/kuota berada di BP-PLT-04; suspend, penutupan, transfer, dan pemulihan lifecycle tenant/unit berada di BP-PLT-06.
+
+**Kontrol:** kuota harus tahan race condition; unit baru tidak otomatis memberi akses akademik; kegagalan transaksi tidak meninggalkan unit atau membership yatim.
+
+### BP-PLT-03 — Verifikasi tenant dan unit
+
+**Tujuan:** memeriksa kelayakan identitas pelanggan dan unit tanpa mencampur status verifikasi dengan lifecycle tenant atau subscription.
+
+**Alur utama:** sistem membuat checklist sesuai tipe tenant/unit → pemilik mengunggah bukti melalui kanal privat → sistem memeriksa format/kelengkapan/keamanan file → reviewer berwenang menyetujui, meminta perbaikan, atau menolak dengan alasan → keputusan, reviewer, waktu, dan versi bukti diaudit → policy engine mengevaluasi status verifikasi bersama dimensi lifecycle dan subscription yang terpisah.
+
+**Kontrol:** dokumen privat dan URL unduhan sementara; submission tepat waktu yang menunggu review internal tidak dihukum akibat antrean; reviewer tidak memperoleh akses data akademik.
+
+**Terbuka:** dokumen legal resmi, sumber identifier, SLA review, dan mekanisme banding.
+
+### BP-PLT-04 — Subscription, entitlement, downgrade, suspend, dan reaktivasi
+
+**Tujuan:** mengelola hak penggunaan SaaS dan kuota sesuai paket/kontrak tanpa menghapus data atau mencampur state billing dengan verifikasi dan lifecycle.
+
+**Alur utama:** tenant billing admin memilih paket/periode → sistem membuat checkout/change intent → pembayaran/aktivasi diverifikasi → subscription dan entitlement diperbarui dengan effective date dan audit → setiap operasi kuota memeriksa entitlement server-side dan transaction-safe → downgrade menampilkan dampak dan tidak menghapus data/unit → past due, suspend billing, cancel, expiry, dan reaktivasi mengikuti policy yang disahkan.
+
+**Batas proses:** suspend/reaktivasi karena billing merupakan keputusan BP-PLT-04. Suspend/close operasional tenant/unit berada di BP-PLT-06; verifikasi identitas berada di BP-PLT-03.
+
+**Terbuka:** paket/harga/trial, grace period, refund/prorata, dan perilaku unit yang melebihi kuota setelah downgrade.
+
+### BP-PLT-05 — Identity, invitation, membership, role, dan access
+
+**Tujuan:** mengatur pemberian, perubahan, dan pencabutan akses pengguna pada scope tenant/unit secara eksplisit.
 
 **Alur utama:**
-1. Onboarding selesai dan sistem mencatat `registration_completed_at` serta tenggat verifikasi.
-2. Sistem menampilkan checklist dokumen/identifier yang dibutuhkan dan mengirim pengingat.
-3. Pelanggan mengunggah/melengkapi persyaratan melalui kanal privat.
-4. Sistem memeriksa format, metadata, virus/malware bila ada upload, dan kelengkapan.
-5. Reviewer berwenang memeriksa bukti; dapat menyetujui, meminta perbaikan, atau menolak dengan alasan.
-6. Status verification diperbarui dan diaudit.
-7. Billing mengelola trial/plan/subscription, invoice, pembayaran, renewal, dan entitlement secara terpisah.
-8. Policy engine mengevaluasi verification, subscription, entitlement, tenant status, dan permission sebelum mengizinkan aksi.
+1. Tenant/unit admin dengan permission mengundang pengguna melalui email, scope, role awal, dan masa berlaku.
+2. Server memvalidasi hak pemberi undangan, status tenant/unit, batas pengguna bila berlaku, dan kompatibilitas role-scope.
+3. Sistem mengirim token undangan sekali pakai dengan expiry.
+4. Penerima login/membuat identitas global dan menerima undangan.
+5. Sistem mengaktifkan tenant membership dan/atau unit membership sesuai scope; akses unit tidak diwariskan otomatis.
+6. Role assignment diberikan sesuai delegation ceiling, least privilege, dan audit.
+7. Admin berwenang mengubah role, menangguhkan, atau mencabut membership; perubahan harus efektif pada request berikutnya.
+8. Setiap request/API/file/export/job memeriksa identity, tenant/unit context, membership, role/permission, relationship, dan status resource di server.
 
-**Aturan yang sudah diterima:** tenggat verifikasi 7 hari kalender dari onboarding selesai; tenant yang belum menyerahkan persyaratan wajib sampai akhir hari ke-7 disuspend; pengajuan tepat waktu yang menunggu review internal tidak disuspend karena antrean; downgrade tidak menghapus unit/data dan pembuatan unit baru dibatasi oleh entitlement.
+**Pengecualian:** undangan expired/ditarik, email telah terdaftar, penerima sudah menjadi member, inviter kehilangan hak, tenant/unit suspended/closed, dan penerimaan ulang harus ditangani idempotently.
 
-**Terbuka:** daftar dokumen legal resmi, sumber verifikasi, harga/paket/trial, grace period billing, dan akses unit yang sudah melebihi kuota setelah downgrade.
+**Batas proses:** membership awal pendaftar dibuat sebagai bagian BP-PLT-01; BP-PLT-05 mengatur undangan anggota tambahan dan perubahan/pencabutan akses setelah onboarding. Hak fitur/kuota berasal dari BP-PLT-04, bukan dari role.
 
-### BP-PLT-03 — Lifecycle tenant dan unit
+### BP-PLT-06 — Lifecycle tenant dan unit
 
-**Alur utama:** tenant admin mengajukan tambah/perubahan/nonaktif unit → server memeriksa membership, permission, entitlement, status tenant dan aturan identifier → reviewer menyetujui bila diwajibkan → perubahan dilakukan dengan histori dan audit → akses disesuaikan.
+**Tujuan:** mengelola perubahan status operasional tenant/unit yang bukan sekadar perubahan subscription atau hasil verifikasi.
 
-**Variasi:** penangguhan verifikasi, penangguhan billing, penutupan sukarela, perubahan pengelola, penggabungan/transfer unit, dan pembatalan harus memiliki reason code serta proses pemulihan/ekspor. Jangan menghapus data hanya karena suspend, downgrade, atau penutupan.
+**Alur utama:** pemilik/petugas mengajukan suspend, penutupan, transfer, atau pemulihan → sistem memvalidasi kewenangan, alasan, kewajiban, dampak unit/membership/data, dan approval → perubahan dijalankan dengan effective date, audit, dan notifikasi → akses dibatasi/dipulihkan sesuai policy → histori/data dipertahankan sesuai retensi.
 
-**Terbuka:** prosedur transfer unit antar-tenant, masa retensi setelah penutupan, serta kebijakan akses read-only/ekspor.
+**Batas proses:** perubahan subscription dan suspend karena billing berada di BP-PLT-04; hasil verifikasi berada di BP-PLT-03; grant/revoke akses individu berada di BP-PLT-05. BP-PLT-06 mengatur lifecycle operasional tenant/unit.
 
-### BP-PLT-04 — Identity, invitation, membership, dan akses
+**Kontrol dan variasi:** penutupan sukarela, penangguhan operasional, perubahan pengelola, transfer unit antar-tenant, pemulihan, ekspor, dan retensi memerlukan reason code, approval, audit, serta larangan penghapusan data implisit. Transfer lintas tenant tidak boleh dilakukan dengan mengganti foreign key biasa.
 
-**Alur utama:**
-1. Admin tenant/unit mengundang pengguna dengan email, scope, role awal, dan masa berlaku.
-2. Sistem memeriksa izin pemberi undangan dan batas jumlah pengguna bila ada.
-3. Undangan dikirim melalui token sekali pakai.
-4. Pengguna login/membuat akun global dan menerima undangan.
-5. Sistem membuat/aktivasi membership pada scope yang ditentukan.
-6. Role assignment diberikan sesuai permission dan dicatat.
-7. Admin dapat mengubah atau mencabut membership; sesi/context aktif harus menolak akses setelah revoke.
-8. Setiap request memvalidasi tenant context, unit context, permission, relationship, dan status resource di server.
-
-**Pengecualian:** undangan kedaluwarsa, email telah terdaftar, user sudah menjadi anggota, pemberi undangan kehilangan hak, atau unit tidak berada di tenant aktif.
+**Terbuka:** prosedur transfer, retensi setelah penutupan, akses read-only/ekspor, dan kondisi pemulihan harus disahkan sebelum implementasi.
 
 ### BP-ORG-01 — Setup profil dan struktur lembaga
 

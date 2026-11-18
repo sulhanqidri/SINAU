@@ -1,7 +1,7 @@
 # SINAU — Audit Konsistensi Spesifikasi Proses
 
 **ID dokumen:** AUD-REQ-001  
-**Versi:** 0.1.0 — Draft hasil audit dokumentasi  
+**Versi:** 0.2.0 — Draft hasil audit dokumentasi dan remediasi  
 **Tanggal:** 2026-11-18  
 **Branch:** `feature/phase-0-requirements-blueprint`  
 **Status:** Audit dokumentasi; bukan persetujuan perubahan scope atau implementasi  
@@ -19,13 +19,13 @@ Audit ini tidak mengubah spesifikasi proses sumber dan tidak memutuskan pertanya
 |---|---|---|---|
 | AUD-01 | **High — Resolved** | Makna ID BP-PLT-02/03/04 berbeda antara Business Process Map dan spesifikasi Platform/Tenant | Process register dan peta diselaraskan dengan spesifikasi rinci; lifecycle diberi ID BP-PLT-06 |
 | AUD-02 | **High — Resolved** | Identity/access sebelumnya berbagi ID BP-PLT-04 dengan subscription | Identity/access sekarang BP-PLT-05 dan memiliki spesifikasi rinci tersendiri |
-| AUD-03 | **High** | BP-ADM-01 PPDB lengkap dan sebagian HR ditulis rinci, padahal PPDB secara eksplisit berada setelah MVP dan cakupan HR MVP jauh lebih sempit | Risiko scope creep dan salah tafsir dokumen rinci sebagai komitmen MVP |
-| AUD-04 | **High** | Batas ownership data/penugasan pegawai dan penugasan akademik belum tegas | Potensi duplikasi data pegawai/guru dan assignment |
-| AUD-05 | **Medium** | BP-ACA-02 jadwal, BP-ACA-03 pelaksanaan pembelajaran, dan BP-ASM-02 rapor formal perlu dipisahkan lebih tegas dari kebutuhan MVP | Implementasi dapat melebar melampaui MVP |
-| AUD-06 | **Medium** | BP-STD-02 mencakup lifecycle lanjutan yang belum dipilah menjadi minimum MVP dan roadmap | Acceptance MVP dan desain lifecycle siswa berpotensi terlalu luas |
-| AUD-07 | **Medium** | BP-FIN-01/02 tercantum pada peta, tetapi domain keuangan dinyatakan di luar MVP dan belum memiliki spesifikasi rinci/keputusan prioritas | Risiko menganggap finance bagian dari MVP atau memulai desain terlalu dini |
-| AUD-08 | **Medium** | Katalog menyatakan beberapa spesifikasi proses tersedia, tetapi status modul domain terkait masih “Not started” tanpa penjelasan perbedaan artefak proses dan blueprint modul | Pembaca dapat salah mengartikan kelengkapan proses sebagai kelengkapan blueprint modul |
-| AUD-09 | **Low** | README requirements belum menautkan semua spesifikasi proses yang telah dibuat | Navigasi dan penemuan dokumen kurang lengkap |
+| AUD-03 | **High — Resolved (documentation)** | PPDB dan HR minimum/lanjutan sebelumnya belum dibatasi pada artefak proses | Release boundary kini eksplisit di process spec, process map, dan Phase 4 tracker; validasi product owner tetap diperlukan |
+| AUD-04 | **High — Resolved (draft ownership baseline)** | Ownership EmployeeProfile/HR versus TeachingAssignment/Academic belum eksplisit lintas dokumen | HR menjadi system of record profil/status/penempatan; Academic menjadi system of record assignment; final domain model tetap menunggu validasi |
+| AUD-05 | **Medium — Resolved (documentation)** | Batas timetable, learning delivery, dan rapor formal terhadap MVP belum konsisten dengan tracker | Scope MVP dan post-MVP kini dipetakan eksplisit di academic spec, process map, dan Phase 4 tracker |
+| AUD-06 | **Medium — Resolved (documentation)** | Lifecycle lanjutan siswa belum dipilah dari minimum MVP | Minimum enrollment/status/history dipisahkan dari transfer, cuti formal, promosi massal, kelulusan formal, dan alumni post-MVP |
+| AUD-07 | **Medium — Resolved (MVP boundary)** | Status BP-FIN-01/02 berpotensi disalahartikan sebagai scope MVP meski belum ada spesifikasi rinci | Process map dan Phase 4 tracker menegaskan finance Candidate/roadmap, out-of-MVP, dan tanpa desain rinci sampai ada keputusan/change request |
+| AUD-08 | **Medium — Resolved (documentation)** | Status process spec draft dan module blueprint belum dibedakan | Katalog kini menjelaskan bahwa BPS draft tidak mengubah status module blueprint yang belum dimulai |
+| AUD-09 | **Low — Resolved (documentation)** | README requirements belum menautkan seluruh spesifikasi dan boundary MVP | README kini menautkan semua process specs, audit, dan MVP Scope dengan keterangan status |
 
 ## 3. Temuan dan rekomendasi
 
@@ -183,3 +183,37 @@ Audit ini tidak mengubah spesifikasi proses sumber dan tidak memutuskan pertanya
 Spesifikasi rinci BP-PLT-06 telah ditambahkan pada §14 PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md. Cakupan meliputi suspend operasional, close tenant/unit, transfer unit antar-tenant, restore, state konseptual, business rules BR-PLT-06-01—15, acceptance criteria AC-PLT-06-01—14, dan 20 test scenario minimum.
 
 **Status:** spesifikasi tersedia sebagai Draft, belum divalidasi stakeholder. Transfer lintas tenant tetap high-impact dan tidak disetujui otomatis. OPEN-PLT-11—18 menjadi blocker kebijakan/implementasi sesuai cakupan masing-masing. AUD-03—AUD-09 belum diremediasi oleh perubahan ini.
+
+## 10. Remediasi AUD-03—AUD-09 — 2026-11-18
+
+Status di bawah menyatakan remediasi **konsistensi dokumentasi**, bukan persetujuan final stakeholder, penerimaan regulasi, atau kesiapan implementasi.
+
+| ID | Remediasi yang diterapkan | Bukti utama | Status residual |
+|---|---|---|---|
+| AUD-03 | BP-ADM-01 diberi label post-MVP; BP-HR-01 dipisah menjadi HR minimum kandidat MVP dan HRIS lanjutan post-MVP. | ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md §13; BUSINESS-PROCESS-MAP.md; PROJECT-PROGRESS.md Phase 4 | Product owner tetap harus mengesahkan field minimum dan kebutuhan HR |
+| AUD-04 | HR owns EmployeeProfile, employment status, dan organization placement; Academic owns TeachingAssignment/HomeroomAssignment; BP-PLT-05 owns application identity/membership/role. | ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md §13; ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md §17 | Baseline konseptual; validasi stakeholder dan logical ERD masih wajib |
+| AUD-05 | BP-ACA-02 timetable engine, BP-ACA-03 learning delivery/LMS, dan BP-ASM-02 rapor formal diberi label post-MVP. MVP tetap presensi, penilaian dasar, rekap sederhana, dan ekspor. | ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md §17; BUSINESS-PROCESS-MAP.md; PROJECT-PROGRESS.md Phase 4 | Detail sesi minimal dan alur UAT perlu divalidasi |
+| AUD-06 | Minimum MVP lifecycle siswa dibatasi pada enrollment, status dasar, reason/effective date, histori, dan penutupan enrollment bila diperlukan. Lifecycle lanjutan dipisahkan. | ORGANIZATION-AND-STUDENT-PROCESS-SPECIFICATIONS.md §13; BUSINESS-PROCESS-MAP.md | State dan field final perlu validasi product owner/stakeholder |
+| AUD-07 | BP-FIN-01/02 tetap Candidate/roadmap dan out-of-MVP; tidak dibuat spesifikasi rinci atau model data keuangan. | MVP-SCOPE.md; BUSINESS-PROCESS-MAP.md; PROJECT-PROGRESS.md Phase 4 | Prioritas fase keuangan di masa depan masih keputusan terbuka |
+| AUD-08 | Katalog membedakan keberadaan BPS draft dari kelengkapan module blueprint; status Not started tetap dipertahankan untuk module blueprint yang belum dibuat. | BLUEPRINT-CATALOG.md §4 | Setiap module blueprint harus memiliki status sendiri dan bukti acceptance |
+| AUD-09 | README requirements menautkan process map, enam spesifikasi proses, audit, dan MVP Scope serta menjelaskan batas status artefak. | docs/02-requirements/README.md | Tautan harus diperiksa lagi bila file dipindah/diubah |
+
+### 10.1 Prinsip ownership lintas domain yang dipakai untuk remediasi
+
+- HR/staff domain adalah system of record untuk EmployeeProfile, employment status, dan organization placement.
+- Academic domain adalah system of record untuk TeachingAssignment dan HomeroomAssignment.
+- Academic assignment mereferensikan employee profile; tidak membuat profil pegawai duplikat.
+- Identity/access domain BP-PLT-05 tetap menjadi sumber akun, membership, role, dan permission.
+- Assignment akademik bukan pengganti membership/role; status kepegawaian bukan pemberian akses aplikasi.
+- Perubahan HR tidak boleh menghapus assignment/transaksi akademik historis; penutupan assignment harus eksplisit, efektif tanggal, dan diaudit.
+
+### 10.2 Keputusan dan batas yang tetap terbuka
+
+1. MVP-SCOPE.md masih berstatus Proposed; product owner harus mengesahkan daftar minimum MVP sebelum baseline dibekukan.
+2. Field minimum HR, klasifikasi data pegawai, dasar pemrosesan, retention, dan approval belum final.
+3. Perlu validasi stakeholder atas sesi minimal presensi, penilaian dasar, dan rekap sederhana.
+4. Finance tetap roadmap/candidate; tidak ada keputusan fase dan tidak boleh ada desain rinci sebelum discovery serta change request.
+5. PPDB, HRIS lanjutan, timetable engine, learning delivery/LMS, rapor formal, lifecycle siswa lanjutan, dan finance tidak boleh diimplementasikan sebagai bagian MVP tanpa change request yang disetujui.
+6. Tidak ada perubahan kode aplikasi, migration produksi, atau deployment sebagai bagian remediasi audit ini.
+
+**Kesimpulan:** AUD-03—AUD-09 ditutup pada tingkat konsistensi artefak dokumentasi dengan residual validation items yang tercatat di atas. Ini tidak mengubah status dokumen sumber yang masih Draft/Proposed dan tidak mengesahkan implementasi.

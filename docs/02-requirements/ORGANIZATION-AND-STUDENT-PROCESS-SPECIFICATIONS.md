@@ -309,6 +309,8 @@ Data identitas minimal yang dibutuhkan harus ditetapkan berdasarkan use case. Ja
 
 ## 6. BP-STD-02 — Mutasi, cuti, nonaktif, kenaikan kelas, kelulusan, dan alumni
 
+> **Scope release:** bagian ini adalah spesifikasi lifecycle lanjutan. MVP hanya memerlukan status enrollment aktif/nonaktif, perubahan dasar dengan alasan/tanggal efektif dan histori, serta penutupan enrollment bila diperlukan. Transfer lintas unit, cuti formal, promosi/kenaikan kelas otomatis, kelulusan, dan alumni adalah roadmap/post-MVP.
+
 ### 6.1 Tujuan dan trigger
 
 - **Tujuan:** mengelola perjalanan status siswa setelah enrollment, mempertahankan riwayat pendidikan dan dasar keputusan.
@@ -525,3 +527,45 @@ Jangan membuat migration, endpoint produksi, atau UI final dari dokumen ini sebe
 8. Product owner menerima baseline secara eksplisit.
 
 **Status akhir dokumen: Draft 0.1.0.** Dokumen ini memperjelas kebutuhan dan pertanyaan; bukan bukti bahwa fitur sudah dibangun atau bahwa aturan eksternal telah diverifikasi.
+
+
+## 13. Batas lifecycle siswa untuk MVP (remediasi AUD-06)
+
+### 13.1 Minimum MVP
+
+BP-STD-01 dan bagian minimum BP-STD-02 harus mendukung:
+- StudentProfile terpisah dari StudentEnrollment; satu identitas siswa dapat memiliki riwayat enrollment sesuai kebijakan.
+- Enrollment terikat ke tenant, education unit, tahun ajaran/periode, dan rombel bila sudah ditetapkan.
+- Status enrollment dasar active/inactive atau state minimal setara yang disepakati, dengan actor, reason, effective date, dan audit.
+- Penutupan enrollment jika siswa keluar dari unit atau hubungan belajar harus dihentikan; record lama tidak dihapus.
+- Perubahan status dasar tidak menghapus presensi, nilai, dokumen, atau histori akademik yang terkait.
+- Koreksi data/status memiliki jejak perubahan dan permission yang jelas.
+- Registrasi langsung siswa tanpa PPDB tetap didukung oleh BP-STD-01; ini bukan implementasi workflow PPDB BP-ADM-01.
+
+### 13.2 Roadmap / post-MVP kecuali change request
+
+- Transfer lintas unit/tenant dan orkestrasi ekspor data siswa.
+- Cuti formal dengan workflow, pengajuan, approval, dan reaktivasi.
+- Kenaikan kelas/promosi massal dengan rule engine, preview, exception list, dan approval.
+- Workflow kelulusan formal dan penerbitan dokumen kelulusan.
+- Lifecycle alumni, tracer study, portal alumni, dan komunikasi alumni.
+- Integrasi pemerintah atau sistem pendidikan eksternal untuk mutasi/kelulusan.
+
+Transfer data siswa lintas unit/tenant tidak boleh disamakan dengan menutup enrollment sumber. Setiap transfer membutuhkan legal basis, consent/authority, minimisasi, keputusan data disposition, dan audit. Jangan membuat enrollment tujuan otomatis pada MVP.
+
+### 13.3 Acceptance criteria tambahan
+
+- AC-STD-SCOPE-01: MVP dapat membuat dan mempertahankan StudentProfile serta StudentEnrollment terpisah.
+- AC-STD-SCOPE-02: perubahan status dasar mencatat reason, effective date, actor, dan audit.
+- AC-STD-SCOPE-03: penutupan enrollment tidak menghapus histori presensi/nilai/dokumen.
+- AC-STD-SCOPE-04: registrasi langsung tidak bergantung pada BP-ADM-01.
+- AC-STD-SCOPE-05: transfer lintas unit, cuti formal, promosi massal, kelulusan formal, dan alumni tidak menjadi syarat MVP tanpa change request.
+- AC-STD-SCOPE-06: operasi lifecycle dasar tenant/unit scoped dan tidak membocorkan data lintas unit.
+
+Test minimum tambahan:
+1. Registrasi siswa langsung dan enrollment tanpa membuat admission application.
+2. Menonaktifkan/menutup enrollment dengan tanggal efektif dan alasan.
+3. Histori presensi/nilai tetap mengacu ke enrollment lama setelah ditutup.
+4. Pembuatan enrollment baru tidak menimpa enrollment sebelumnya.
+5. Endpoint transfer/mutasi lanjutan tidak tersedia sebagai fitur MVP tanpa approval scope.
+6. Cross-tenant/unit access terhadap profile dan enrollment ditolak.

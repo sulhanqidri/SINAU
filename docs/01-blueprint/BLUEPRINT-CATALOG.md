@@ -122,7 +122,7 @@ Tidak boleh menganggap seluruh jenis lembaga memakai daftar mapel, struktur nila
 | Domain model | `docs/03-database/DOMAIN-MODEL.md` | Existing baseline; diperbarui terhadap MVP; perlu logical refinement |
 | Domain ownership matrix | `docs/03-database/DOMAIN-OWNERSHIP-MATRIX.md` | Draft 0.1.0; menunggu review ownership dan stakeholder |
 | ERD conceptual/logical/physical | `docs/03-database/ERD-CONCEPTUAL.md`; `docs/03-database/LOGICAL-ERD-MVP.md` | Conceptual existing; logical MVP draft v0.1.0; physical not started |
-| Data dictionary | `docs/03-database/DATA-DICTIONARY-BASELINE.md` | Existing baseline; perlu kelengkapan |
+| Data dictionary | `docs/03-database/DATA-DICTIONARY-MVP.md`; `docs/03-database/DATA-DICTIONARY-BASELINE.md` | MVP dictionary draft v0.1.0 tersedia; menunggu domain/privacy/security review |
 | Data integrity and lifecycle | `docs/03-database/DATA-INTEGRITY.md` | Existing baseline; perlu audit |
 | Data classification and privacy | `docs/05-security/DATA-CLASSIFICATION-AND-PRIVACY.md` | Not started/audit path |
 | Retention, archive, deletion | `docs/03-database/DATA-RETENTION-AND-ARCHIVING.md` | Not started |

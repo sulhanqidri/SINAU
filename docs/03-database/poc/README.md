@@ -177,3 +177,15 @@ The functional SQL file is assertion-oriented and deliberately does not commit o
 
 **Not yet executed:** adding this file to the repository is not evidence that the functional assertions passed. Record actual server output in the project tracker only after the user runs it.
 
+### 8.2 Transaction-local context reset
+
+After the assertions in `008-test-signed-context-rls.sql` pass, do not exit psql yet. First execute `ROLLBACK;` to end the token-bearing transaction. In the same psql connection, keep `SET SESSION AUTHORIZATION sinau_poc` unchanged and run:
+
+```sql
+\\i /run/009-test-context-reset.sql
+```
+
+The script begins a new transaction, applies `SET LOCAL ROLE sinau_rls_test`, and asserts that the prior transaction-local `app.context_token` is absent/empty and that `academic_years` exposes zero rows without a token. It does not need a new token. After the assertions pass, execute `ROLLBACK;` again and then `\\q`.
+
+This proves local GUC reset across a transaction boundary on the same connection. It is a useful connection-reuse check, but it is not a substitute for testing the actual application pooler or worker lifecycle.
+

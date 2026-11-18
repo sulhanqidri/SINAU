@@ -788,3 +788,7 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Expiry remains UNVERIFIED. No successful after-expiration rejection has been demonstrated.
 - Next attempt: Terminal A opens a fresh transaction and gets a fresh XID; Terminal B signs with that exact XID and TTL 60, transfers token; Terminal A verifies immediately (must return one row), leaves transaction open; Terminal B Bash runs `sleep 62`; only after sleep finishes, type the second SQL verifier query at Terminal A's psql prompt; it must return zero rows. Never type shell commands at psql. Then ROLLBACK and clean token files.
 - Existing key store and verifier are unchanged; no RLS policy changed. No production DB/role, SQLRadius or MikroTik touched. PR #1 remains Draft/open/unmerged.
+
+### Expiry test procedure refinement — 2026-11-18
+- To avoid confusion between Bash and psql prompts during the short-TTL test, use PostgreSQL's SQL function `SELECT pg_catalog.pg_sleep(32);` between the before-expiry and after-expiry verifier calls in the SAME explicit transaction. This keeps the transaction and signed XID open while elapsed time passes.
+- Before retry, ROLLBACK and close any aborted XID 826 session; delete both token files under `/run`. Start a new transaction and sign for its exact new XID.

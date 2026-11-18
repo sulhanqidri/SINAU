@@ -262,3 +262,19 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Tidak ada kode aplikasi, migration domain produksi, konfigurasi server, SQLRadius, atau MikroTik yang diubah.
 - PR #1 tetap Draft/open/unmerged; jangan merge tanpa instruksi eksplisit.
 - Next action: putuskan mapping ID BP-PLT, lalu scope PPDB/HR minimum, ownership HR versus academic assignment, dan boundary MVP jadwal/pembelajaran/rapor. Setelah keputusan, lakukan remediation ke dokumen sumber dan sinkronkan traceability.
+
+
+---
+
+### Session checkpoint — 2026-11-18 (remediasi konflik ID BP-PLT)
+- Fokus: menghilangkan konflik process ID platform antara Business Process Map dan spesifikasi Platform/Tenant.
+- Branch: `feature/phase-0-requirements-blueprint`.
+- ID kanonis: BP-PLT-01 registrasi/onboarding; BP-PLT-02 penambahan/pengelolaan unit; BP-PLT-03 verifikasi; BP-PLT-04 subscription/entitlement; BP-PLT-05 identity/invitation/membership/role/access; BP-PLT-06 lifecycle tenant/unit.
+- Business Process Map diperbarui: process register dan uraian BP-PLT-02—06 diselaraskan; batas provisioning unit, verification, billing, access grant, dan operational lifecycle dinyatakan eksplisit.
+- PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md diperluas menjadi BP-PLT-01—05; BP-PLT-05 memiliki alur invitation/acceptance, perubahan/revoke, state konseptual, aturan keamanan, acceptance criteria AC-PLT-05-01—10, dan test minimum.
+- BP-PLT-01 tetap membuat membership awal dalam transaksi onboarding; BP-PLT-05 mengatur invitation anggota tambahan dan perubahan/pencabutan akses.
+- Audit AUD-01 dan AUD-02 ditandai resolved pada tingkat ID/dokumentasi. BP-PLT-06 masih perlu spesifikasi rinci sebelum implementasi.
+- Blueprint Catalog dan README requirements diperbarui; checkpoint dicatat untuk handoff.
+- Tidak ada kode aplikasi, migration, deployment, SQLRadius, atau MikroTik yang diubah.
+- PR #1 tetap Draft/open dan tidak di-merge.
+- Next action: verifikasi menyeluruh semua referensi BP-PLT, lalu remediasi AUD-03—AUD-09 sesuai prioritas dan keputusan scope.

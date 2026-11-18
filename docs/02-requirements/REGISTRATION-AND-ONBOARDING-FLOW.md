@@ -295,19 +295,18 @@ Skema di atas adalah model konseptual, bukan perintah membuat migration final. N
 5. Akun pendaftar menjadi user global dan memperoleh tenant membership.
 6. Akun pendaftar memperoleh unit membership hanya pada unit yang ditugaskan saat onboarding.
 7. Pendaftar bukan platform admin.
-8. Foundation tenant dapat menambahkan unit dan mengundang admin unit lain.
-9. Foundation dan independent provider dapat menambah unit berdasarkan entitlement paket; tenant dengan kuota sama diperlakukan konsisten.\n10. Dokumen legal foundation boleh dilengkapi setelah registrasi.\n11. NPSN/NSM boleh kosong saat registrasi; identifier yang diberikan divalidasi tanpa membocorkan data pihak lain.\n12. Verification status dan subscription status dapat berubah secara independen.\n13. Downgrade tidak menghapus unit atau data; penambahan unit baru dibatasi jika melewati entitlement.
-10. Kegagalan saat pembuatan tenant/unit/membership tidak meninggalkan data parsial.
-11. Tenant/unit yang pending verification dibatasi sesuai kebijakan.
-12. Percobaan akses lintas tenant/unit ditolak dan tercatat bila relevan.
-13. UI registrasi dapat digunakan melalui desktop dan ponsel serta menjelaskan istilah dengan bahasa sederhana.
+8. Tenant foundation maupun independent provider dapat menambah unit berdasarkan entitlement paket.
+9. Dokumen legal foundation boleh dilengkapi setelah registrasi dan status verifikasinya terlihat.
+10. NPSN/NSM boleh kosong saat registrasi; identifier yang diberikan divalidasi tanpa membocorkan data pihak lain.
+11. Verification status dan subscription status dapat berubah secara independen.
+12. Downgrade tidak menghapus unit atau data; penambahan unit baru dibatasi jika melewati entitlement.
+13. Kegagalan saat pembuatan tenant/unit/membership tidak meninggalkan data parsial.
+14. Tenant/unit yang pending verification dibatasi sesuai kebijakan.
+15. Percobaan akses lintas tenant/unit ditolak dan tercatat bila relevan.
+16. UI registrasi dapat digunakan melalui desktop dan ponsel serta menjelaskan istilah dengan bahasa sederhana.
 
 ## 10. Kebijakan yang sudah diputuskan dan hal terbuka
 
-- Apakah dokumen legal yayasan wajib sebelum tenant aktif, atau dapat menyusul setelah trial?
-- Apakah NPSN/NSM wajib saat registrasi atau hanya saat verifikasi unit?
-- Apakah tenant mandiri boleh menambah unit kedua pada paket tertentu, atau selalu satu unit?
-- Apakah satu email boleh menjadi pemilik beberapa tenant tanpa undangan tambahan?
-- Siapa yang menyetujui transfer unit dan perubahan tipe tenant?
+Sudah diputuskan dalam ADR-004: dokumen legal yayasan dapat menyusul pada tahap verifikasi; NPSN/NSM dapat dilengkapi kemudian; kedua tipe tenant dapat memiliki multi-unit berdasarkan entitlement paket; verification dan subscription adalah status terpisah; downgrade tidak menghapus data/unit dan memblokir penambahan unit baru bila kuota terlampaui.
 
-Jangan mengunci aturan di atas dalam migration atau UI final sebelum keputusan produk dibuat.
+Masih terbuka: daftar dokumen legal dan sumber verifikasi; sumber otoritatif/aturan keunikan identifier; harga, nama paket, masa trial, dan kuota komersial; masa tenggang serta mode akses unit yang melebihi kuota setelah downgrade; fitur yang wajib menunggu verifikasi; aturan pemilik beberapa tenant dan persetujuan transfer unit.

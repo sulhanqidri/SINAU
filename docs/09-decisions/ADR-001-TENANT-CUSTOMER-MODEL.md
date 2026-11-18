@@ -7,18 +7,20 @@
 
 ## Konteks
 
-SINAU melayani sekolah umum dan madrasah. Sebagian pelanggan dikelola yayasan yang menaungi beberapa unit pendidikan; sebagian lain berdiri sendiri tanpa yayasan. Memaksa semua pelanggan menjadi yayasan akan menambah entitas administratif yang tidak nyata bagi sekolah mandiri. Menjadikan setiap unit selalu tenant terpisah juga menyulitkan yayasan yang membutuhkan tata kelola lintas unit.
+SINAU melayani sekolah umum (SD, SMP, SMA, SMK) dan madrasah (MI, MTs, MA, MAK). Keduanya dapat berada di bawah naungan yayasan/badan penyelenggara; keduanya juga dapat menjadi pelanggan mandiri. Karena itu, pilihan bentuk pelanggan saat registrasi harus dipisahkan dari jenis dan jenjang pendidikan unit. Memaksa semua pelanggan menjadi yayasan akan menambah entitas administratif yang tidak nyata bagi sekolah mandiri. Membatasi model yayasan hanya untuk madrasah juga keliru karena yayasan dapat menaungi sekolah umum, madrasah, atau kombinasi keduanya.
 
 ## Keputusan
 
 SINAU menggunakan satu model tenant yang mendukung dua tipe pelanggan:
 
-- foundation: yayasan/badan penyelenggara yang dapat menaungi satu atau banyak education unit.
+- foundation: yayasan/badan penyelenggara pendidikan yang dapat menaungi satu atau banyak unit pendidikan, baik sekolah umum maupun madrasah.
 - independent_provider: sekolah/madrasah mandiri yang menjadi pelanggan langsung tanpa parent foundation.
+
+Pilihan ini menjawab apakah akun pelanggan didaftarkan sebagai yayasan atau satuan pendidikan mandiri; bukan menentukan jenis atau jenjang sekolah.
 
 Tenant menjadi batas kontrak SaaS, billing, konfigurasi pelanggan, dan isolasi data. Education unit menjadi batas operasional pendidikan, identitas sekolah/madrasah, konfigurasi akademik, dan data unit.
 
-Setiap education unit terhubung ke tepat satu tenant aktif pada satu waktu. Tenant mandiri dibuat bersama education unit pertamanya. Tenant yayasan dapat menambahkan beberapa unit, termasuk campuran sekolah umum dan madrasah. Education type dan education level disimpan per unit, bukan pada tenant.
+Setiap education unit terhubung ke tepat satu tenant aktif pada satu waktu. Tenant mandiri dibuat bersama education unit pertamanya. Tenant yayasan dapat menambahkan beberapa unit: SD, SMP, SMA, SMK, MI, MTs, MA, MAK, atau kombinasi sekolah umum dan madrasah. Education type dan education level disimpan per unit, bukan pada tenant.
 
 Kedua tipe tenant menggunakan codebase, skema domain, modul akademik, UX, dan mekanisme keamanan yang sama. Tenant membership dan unit membership dipisahkan. Keanggotaan tenant tidak otomatis memberikan akses operasional ke seluruh unit; akses unit harus mengikuti role/permission yang eksplisit.
 
@@ -27,6 +29,9 @@ Perpindahan education unit antar tenant wajib melalui proses transfer terotorisa
 ## Konsekuensi
 
 ### Positif
+- Yayasan penyelenggara sekolah umum dapat mendaftar dan mengelola satu atau banyak sekolah.
+- Yayasan penyelenggara madrasah dapat melakukan hal yang sama.
+- Yayasan yang menaungi sekolah umum sekaligus madrasah dapat mengelolanya dalam satu tenant.
 - Sekolah/madrasah mandiri dapat onboarding tanpa membuat yayasan fiktif.
 - Yayasan dapat mengelola banyak unit dari satu tenant.
 - Unit umum dan madrasah dapat hidup dalam satu tenant dengan konfigurasi pendidikan masing-masing.

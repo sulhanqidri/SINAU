@@ -597,3 +597,14 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Secret/key separation remains a design issue: HMAC requires the same key at the backend signer and database verifier. The test key must be synthetic, not a production credential, delivered out-of-band with restrictive OS permissions, and never printed in logs/chat/SQL history. For production, evaluate an asymmetric signing approach or dedicated identity/context broker if eliminating shared verifier secret from the database is required.
 - No key store, secret, token, verifier function, or policy changes have been created. No persistent database mutation occurred in this test.
 - Safety: only `sinau_design_poc`; never touch application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (transaction binding preflight)
+- User ran the transaction binding preflight on `sinau_design_poc`.
+- Both `sinau_rls_test` and `sinau_context_owner` can execute `pg_catalog.pg_current_xact_id()`. This is a public PostgreSQL system function; it does not grant access to context-owner role or secrets.
+- Neither `sinau_poc` nor `sinau_rls_test` is a member of `sinau_context_owner`.
+- Neither `sinau_poc` nor `sinau_rls_test` has USAGE or CREATE on `sinau_private`.
+- One transaction returned XID 799 before a savepoint, after savepoint, and after rollback to that savepoint. This verifies the same top-level transaction ID is returned across that subtransaction boundary. It does not yet test distinct top-level transactions.
+- PostgreSQL 18 docs confirm `pg_current_xact_id()` assigns an XID if none is assigned, and `pg_current_xact_id_if_assigned()` returns NULL rather than assigning one; use the latter inside the verifier to fail closed without allocating an XID when the caller has not established a transaction binding. The signer flow would have to call `pg_current_xact_id()` inside an explicit transaction, sign that value, set the signed token transaction-locally, and keep all scoped queries on the same connection/transaction. This intentionally allocates an XID for read-only scoped transactions; measure overhead before adopting.
+- Next: verify two separate top-level transactions produce distinct XIDs using a psql script. After that, draft the token contract and verifier threat model before creating any secret/key table or function. A nonce is for uniqueness/audit; transaction binding prevents replay in another transaction. Reuse of the same valid token within its own transaction is expected so several scoped SQL statements can execute under one authorization context.
+- No persistent database changes in this check.
+- Safety: only `sinau_design_poc`; no application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik changes. PR #1 remains Draft/open/unmerged.

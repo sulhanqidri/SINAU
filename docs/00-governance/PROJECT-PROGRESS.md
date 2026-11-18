@@ -15,7 +15,7 @@
 | Area | Status | Catatan |
 |---|---|---|
 | Product discovery dan requirement baseline | 🟡 In progress | Dokumen fondasi tersedia; validasi kebutuhan praktisi dan keputusan MVP belum seluruhnya ditutup |
-| Master blueprint dan katalog dokumen | 🟡 In progress | Blueprint awal ada; perlu pendalaman domain dan spesifikasi modul |
+| Master blueprint dan katalog dokumen | 🟡 In progress | Master blueprint, katalog kelengkapan, dan peta proses bisnis memiliki baseline draft; belum tervalidasi/diterima |
 | Arsitektur aplikasi | 🟡 In progress | Modular monolith adalah baseline; stack aplikasi masih rekomendasi PoC |
 | Tenant dan authorization | 🟡 In progress | Model baseline dan ADR ada; implementasi serta pembuktian keamanan belum dilakukan |
 | Database PostgreSQL 18 | 🟡 In progress | Engine diputuskan; CI constraint smoke test lulus, PoC menyeluruh belum lulus |
@@ -84,7 +84,7 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 
 ### Phase 1 — Complete blueprint & technical architecture
 - [ ] Master blueprint lengkap dan konsisten dengan seluruh spesifikasi.
-- [ ] Business process map end-to-end untuk setiap domain utama.
+- [ ] Business process map end-to-end untuk setiap domain utama. (Baseline draft tersedia di `docs/02-requirements/BUSINESS-PROCESS-MAP.md`; menunggu validasi dan spesifikasi turunan.)
 - [ ] Module catalog, batas modul, dependensi, dan ownership data.
 - [ ] Spesifikasi rinci setiap modul dan submodul.
 - [ ] Domain model, ERD konseptual/logis, data dictionary, lifecycle dan retention.
@@ -169,21 +169,24 @@ Setiap sesi kerja wajib melakukan langkah berikut:
 ## 5. Session handoff — checkpoint terbaru
 
 **Tanggal:** 2026-11-18  
-**Fokus terakhir:** membangun baseline Master Blueprint, katalog kelengkapan blueprint, dan project progress/session handoff.
+**Fokus terakhir:** membangun baseline Master Blueprint, katalog kelengkapan blueprint, tracker, dan peta proses bisnis end-to-end.
 
 **Yang sudah dikonfirmasi pada sesi ini:**
 - README, Master Blueprint, Project Constitution, Development Rules, Change Control, Implementation Plan, Decision Log, dan dokumen sekolah umum/madrasah telah ditinjau.
 - `docs/01-blueprint/MASTER-BLUEPRINT.md` telah diperluas menjadi baseline v0.2.0; tetap Draft dan belum final.
 - `docs/01-blueprint/BLUEPRINT-CATALOG.md` telah dibuat sebagai matriks kelengkapan blueprint lintas produk, pendidikan, data, arsitektur, keamanan, UX, testing, dan operasi.
 - `docs/00-governance/PROJECT-PROGRESS.md` telah dibuat sebagai sumber status dan handoff sesi.
-- README telah diperbarui agar memulai dari tracker dan katalog blueprint.
+- README telah diperbarui agar memulai dari tracker dan katalog blueprint, serta menautkan peta proses bisnis.
+- `docs/02-requirements/BUSINESS-PROCESS-MAP.md` telah dibuat sebagai draft baseline proses end-to-end, mencakup platform SaaS, onboarding, siklus akademik, keuangan, layanan pendukung, komunikasi, laporan, keamanan, dan penutupan periode.
+- Process register, aktor, output, alur utama, variasi, kontrol tenant/unit, serta pertanyaan terbuka telah dicatat. Dokumen belum tervalidasi dengan stakeholder dan bukan spesifikasi final.
+- Blueprint Catalog telah ditautkan ke peta proses dan mencatat pekerjaan validasi/turunan yang tersisa.
 - Perubahan berada pada branch `feature/phase-0-requirements-blueprint`; PR #1 tetap Draft dan belum merged.
 
 **Pekerjaan berikutnya (urutan wajib):**
 1. Audit seluruh struktur dokumen repository dan cocokkan semua tautan/path dalam README serta Blueprint Catalog.
-2. Audit kedalaman dokumen requirement, security, design system, testing, dan domain model yang sudah ada; tandai status berdasarkan isi, bukan nama file.
-3. Susun business process end-to-end dan spesifikasi modul secara bertahap, mulai dari platform/tenant onboarding lalu siklus akademik inti.
-4. Lengkapi persona/journey, acceptance criteria, authorization matrix, ERD logis, dan data dictionary setelah proses bisnis disepakati.
+2. Validasi peta proses bisnis dengan stakeholder/perwakilan yayasan, sekolah umum, madrasah, operator, guru, bendahara, siswa, dan wali; putuskan prioritas MVP.
+3. Turunkan BP-PLT-01 sampai BP-PLT-04 dan BP-ORG/STD/ACA/ATT/ASM prioritas menjadi spesifikasi proses rinci dengan swimlane, state machine, exception, approval, dan acceptance criteria.
+4. Susun persona/journey dan RACI; setelah proses disepakati, sinkronkan domain model, ERD logis, data dictionary, dan authorization matrix.
 5. Perbarui tracker setiap selesai satu artefak atau gerbang.
 
 **Jangan dilakukan sebelum persetujuan/gerbang:**

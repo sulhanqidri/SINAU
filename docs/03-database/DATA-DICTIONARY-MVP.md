@@ -619,7 +619,7 @@ Sesi manual bukan timetable. Perlu diputuskan apakah assignment mengajar harus d
 
 ### 7.2 `attendance_records`
 
-**Owner:** Attendance · **Scope:** unit · **Klasifikasi:** SENS (data kehadiran anak).
+**Owner:** Attendance · **Scope:** unit · **Klasifikasi:** SENS (data kehadiran anak). **Relasi v0.1.0 superseded:** v0.2.0 requires attendance_session_participant_id.
 
 | Kolom | Tipe kandidat | Null | Klasifikasi | Definisi/validasi |
 |---|---|---:|---|---|
@@ -633,7 +633,7 @@ Sesi manual bukan timetable. Perlu diputuskan apakah assignment mengajar harus d
 | note | TEXT | Ya | SENS | Catatan minimal; jangan simpan diagnosis/health details |
 | created_at / updated_at | TS | Tidak | SYS | Timestamp UTC |
 
-Unique(session,enrollment) dalam scope; transaksi dan idempotency mencegah double submit. Validasi enrollment milik kelas/periode yang tepat.
+Superseded by §11.2—11.4: record must reference attendance_session_participant; snapshot is the authoritative roster. Do not use direct session + enrollment uniqueness as the only academic eligibility check.
 
 ### 7.3 `attendance_corrections`
 
@@ -677,7 +677,7 @@ Jangan overwrite record tanpa audit. Apakah semua koreksi memerlukan approval ma
 
 ### 7.5 `student_scores`
 
-**Owner:** Assessment · **Scope:** unit · **Klasifikasi:** SENS (hasil belajar anak).
+**Owner:** Assessment · **Scope:** unit · **Klasifikasi:** SENS (hasil belajar anak). **Relasi v0.1.0 superseded:** v0.2.0 requires assessment_participant_id.
 
 | Kolom | Tipe kandidat | Null | Klasifikasi | Definisi/validasi |
 |---|---|---:|---|---|
@@ -685,12 +685,12 @@ Jangan overwrite record tanpa audit. Apakah semua koreksi memerlukan approval ma
 | tenant_id / unit_id | ID | Tidak | INT | Scope |
 | assessment_definition_id | ID | Tidak | SENS | FK asesmen unit |
 | student_enrollment_id | ID | Tidak | SENS | FK enrollment unit |
-| score_value | NUMERIC(8,2) | Tidak | SENS | 0 <= score <= max_score |
+| score_value | NUMERIC(8,2) | Ya | SENS | Nullable for pending/absent/exempt; required only for scored in v0.2.0 |
 | feedback | TEXT | Ya | SENS | Umpan balik profesional; tidak memuat data sensitif tak relevan |
 | entered_by_user_id | ID | Tidak | PII | Actor penginput |
 | created_at / updated_at | TS | Tidak | SYS | Timestamp UTC |
 
-Unique(assessment_definition_id,student_enrollment_id) dalam scope. Validasi enrollment pada kelas, tingkat, tahun, dan subject yang dinilai.
+Superseded by §11.6—11.9: result must reference assessment_participant and preserve result_status separately from score_value.
 
 ### 7.6 `student_score_change_history`
 

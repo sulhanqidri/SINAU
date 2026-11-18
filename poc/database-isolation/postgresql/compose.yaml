@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: sinau-postgres-poc
+    environment:
+      POSTGRES_DB: sinau_poc
+      POSTGRES_USER: sinau_poc
+      POSTGRES_PASSWORD: sinau_poc_local_only
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sinau_poc -d sinau_poc"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    # No persistent volume: this disposable PoC database is recreated from scratch.

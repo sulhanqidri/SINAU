@@ -802,3 +802,17 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Negative test suite now passed for malformed/empty token, MAC tampering, cross-transaction replay, and expiration. Key revocation remains outstanding.
 - Next: test revocation with a valid token in an open transaction. First verify it succeeds; from a second PostgreSQL admin connection, `SET ROLE sinau_context_owner` and set `revoked_at=clock_timestamp()` for `poc-k1`, COMMIT; then re-run verifier in the still-open original transaction and expect zero rows. Restore `revoked_at=NULL` from the admin connection and verify the token becomes valid again within the same transaction (optional but useful). Always restore active status in a guaranteed cleanup step; do not leave the synthetic key revoked. Never select or display secret bytes. Only after revocation tests pass proceed to audience/malformed-claim tests and RLS integration.
 - No RLS policy changed. Key remains synthetic PoC-only. Safety boundary unchanged: only `sinau_design_poc`; no app DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik touched. PR #1 remains Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (key revocation and reactivation verified)
+- User repeated the revocation test in a clean transaction bound to PostgreSQL top-level XID `840`.
+- With key `poc-k1` active, the signed token for XID 840 was imported and accepted by `sinau_private.verify_context_token(text)`: `active_key_token_accepted_before_revoke=true`.
+- After the key was revoked and that change committed from the separate administrative connection, the same token in the still-open XID 840 transaction returned zero rows: `revoked_key_token_rejected=true`.
+- After key reactivation, the same token in the same transaction was accepted again: `restored_key_token_accepted=true`.
+- Final independent status query showed `poc-k1` as `ACTIVE`. User removed both temporary token files from `/run`; checks reported `Token signer: BERSIH` and `Token PostgreSQL: BERSIH`. Token and secret contents were never displayed.
+- This demonstrates active-key lookup and immediate revocation enforcement under the tested READ COMMITTED transaction behavior, including reactivation visibility from a still-open transaction. It does not establish production key-management controls, resistance to a privileged DBA/host administrator, or real actor-membership validation.
+- The first revocation attempt (XID 835) did not yield a valid test because the psql transaction entered an aborted state; it was discarded. The successful, clean rerun is XID 840 and supersedes that attempt.
+- **Session cleanup still to confirm:** Terminal A's final `ROLLBACK`/psql exit was requested but not yet shown in the submitted output. Before starting another SQL test, confirm the XID 840 session has been rolled back/closed.
+- Negative PoC tests now demonstrated: malformed/empty token rejection, MAC tampering rejection, cross-transaction replay rejection, expiry rejection, and revoked-key rejection. Same-transaction acceptance before revocation and after key reactivation also passed.
+- No RLS policy was changed by these tests. Only synthetic PoC database `sinau_design_poc` and roles were used; application database `sinau`, role `sinau_app`, SQLRadius, and MikroTik were not touched.
+- Next: confirm Terminal A rollback/close; then test audience mismatch and canonical field/claim validation before considering a dedicated RLS policy integration PoC. Do not alter application schemas or production systems. PR #1 remains Draft/open/unmerged.
+

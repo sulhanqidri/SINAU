@@ -14,7 +14,7 @@
 
 | Area | Status | Catatan |
 |---|---|---|
-| Product discovery dan requirement baseline | 🟡 In progress | Dokumen fondasi tersedia; validasi kebutuhan praktisi dan keputusan MVP belum seluruhnya ditutup |
+| Product discovery dan requirement baseline | 🟡 In progress | Baseline MVP disetujui 2026-11-18; validasi stakeholder/praktisi dan requirement rinci tetap berjalan |
 | Master blueprint dan katalog dokumen | 🟡 In progress | Master blueprint, katalog kelengkapan, dan peta proses bisnis memiliki baseline draft; belum tervalidasi/diterima |
 | Arsitektur aplikasi | 🟡 In progress | Modular monolith adalah baseline; stack aplikasi masih rekomendasi PoC |
 | Tenant dan authorization | 🟡 In progress | Model baseline dan ADR ada; implementasi serta pembuktian keamanan belum dilakukan |
@@ -43,7 +43,7 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 - [x] Model `independent_provider` dapat menjadi tenant langsung tanpa yayasan fiktif.
 - [x] Tenant adalah batas pelanggan/kontrak/billing dan isolasi; education unit adalah batas operasional.
 - [ ] Validasi kebutuhan langsung dengan perwakilan sekolah umum, madrasah, yayasan, guru, TU, bendahara, siswa, dan orang tua/wali.
-- [ ] Finalisasi prioritas MVP dan keputusan fitur yang ditunda.
+- [x] Baseline prioritas MVP disetujui pemilik produk pada 2026-11-18; revisi selanjutnya melalui change control.\n- [ ] Validasi detail kebutuhan dan acceptance criteria dengan stakeholder/praktisi.
 
 ### Keputusan teknis
 - [x] PostgreSQL 18 dipilih sebagai database utama (ADR-006).
@@ -119,7 +119,7 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 - **Exit gate:** fondasi aman dan test tenant isolation lulus sebelum modul domain dimulai.
 
 ### Phase 4 — MVP domain modules
-Urutan dan isi final harus mengikuti MVP-SCOPE.md yang masih Proposed dan menunggu persetujuan product owner. Daftar berikut memisahkan **minimum MVP** dari **roadmap/post-MVP** agar kandidat modul tidak terbaca sebagai komitmen fitur.
+Urutan dan isi baseline mengikuti MVP-SCOPE.md yang disetujui pemilik produk pada 2026-11-18; revisi tetap dimungkinkan melalui change control. Daftar berikut memisahkan **minimum MVP** dari **roadmap/post-MVP** agar kandidat modul tidak terbaca sebagai komitmen fitur.
 
 **Minimum MVP yang diturunkan dari MVP-SCOPE.md:**
 - [ ] Platform SaaS: tenant, unit, onboarding/verifikasi, subscription/entitlement, identity, membership, role, permission.
@@ -325,3 +325,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - PR #1 harus tetap Draft/open/unmerged.
 - Next action: verifikasi konsistensi tujuh temuan audit, tautan README, process register, MVP Scope, Phase 4 tracker, dan status PR. Setelah verifikasi, minta product owner mengesahkan MVP boundary dan ownership baseline sebelum domain model/ERD logis.
 - Hal yang tidak boleh dilakukan: jangan implementasikan PPDB, HRIS lanjutan, timetable engine, LMS, rapor formal, finance, atau transfer siswa lintas tenant tanpa change request/approval; jangan merge PR #1.
+
+
+### Checkpoint tambahan — 2026-11-18: Persetujuan baseline MVP
+
+- Pemilik produk menyetujui `docs/02-requirements/MVP-SCOPE.md` sebagai baseline perencanaan MVP.
+- Persetujuan dicatat pada `docs/09-decisions/DECISION-LOG.md` dan di dalam MVP-SCOPE.md.
+- Scope dapat direvisi di tengah proyek. Perubahan perilaku/scope wajib melalui change control, mencatat alasan dan dampak lintas proses, modul, data, keamanan/privasi, jadwal, dan acceptance criteria, serta memperoleh persetujuan pemilik produk.
+- Persetujuan MVP bukan persetujuan final atas setiap detail proses/data/regulasi/stack dan bukan izin memulai migration atau deployment produksi.
+- Tahap berikut: audit dan pemutakhiran domain model serta ERD konseptual agar konsisten dengan MVP yang disetujui; setelah itu lanjut ke ownership domain, logical ERD, data dictionary, dan traceability.
+- Tidak ada kode aplikasi, migration, konfigurasi server, SQLRadius, atau MikroTik yang diubah. PR #1 tetap Draft/open/unmerged.

@@ -7,13 +7,11 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 > **Prinsip produk:** Satu Platform, Seluruh Kebutuhan Pendidikan.
 
 ## Cakupan lembaga
-
 - Sekolah umum: SD, SMP, SMA, SMK.
 - Madrasah: MI, MTs, MA, MAK.
 - RA dapat dipertimbangkan dalam tahap pengembangan berikutnya.
 
 ## Prinsip pengembangan
-
 1. Dokumentasi proyek adalah acuan utama sebelum implementasi.
 2. Modular monolith sebagai arsitektur awal.
 3. SaaS multi-tenant dengan isolasi data yang ketat.
@@ -24,23 +22,23 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 8. Perubahan ruang lingkup, arsitektur, skema data, dan desain harus didokumentasikan.
 
 ## Mulai membaca
-
 - [Konstitusi Proyek](docs/00-governance/PROJECT-CONSTITUTION.md)
 - [Aturan Pengembangan](docs/00-governance/DEVELOPMENT-RULES.md)
 - [Pengendalian Perubahan](docs/00-governance/CHANGE-CONTROL.md)
 - [Blueprint Utama](docs/01-blueprint/MASTER-BLUEPRINT.md)
-- [Arsitektur Sistem](docs/01-blueprint/SYSTEM-ARCHITECTURE.md)
-- [Arsitektur Multi-Tenant](docs/01-blueprint/MULTI-TENANT.md)
-- [Design System](docs/03-design-system/DESIGN-GUIDELINES.md)
+- [Rencana Implementasi Fondasi](docs/01-blueprint/IMPLEMENTATION-PLAN.md)
+- [Evaluasi Teknologi](docs/01-blueprint/TECHNOLOGY-OPTIONS.md)
+- [Kebutuhan Produk](docs/02-requirements/PRODUCT-REQUIREMENTS.md)
+- [Ruang Lingkup MVP](docs/02-requirements/MVP-SCOPE.md)
+- [Model Domain dan Database](docs/03-database/DOMAIN-MODEL.md)
+- [Design System](docs/03-design-system/README.md)
 - [Dukungan Sekolah Umum](docs/04-education/GENERAL-SCHOOLS.md)
 - [Dukungan Madrasah](docs/04-education/MADRASAH.md)
-- [Roadmap](docs/01-blueprint/ROADMAP.md)
+- [Strategi Pengujian](docs/07-testing/TEST-STRATEGY.md)
 - [Catatan Keputusan Arsitektur](docs/10-decisions/README.md)
 
 ## Status proyek
-
-**Tahap: Fondasi dan perencanaan.** Belum ada stack, skema database, maupun modul operasional yang dianggap final sebelum divalidasi dan dicatat pada dokumen keputusan terkait.
+**Tahap: Fondasi dan perencanaan.** Stack, skema database, dan modul operasional belum final sebelum divalidasi dan dicatat pada dokumen keputusan.
 
 ## Kontribusi dan perubahan
-
 Baca [CONTRIBUTING.md](CONTRIBUTING.md) dan aturan di folder `docs/00-governance/` sebelum membuat perubahan.

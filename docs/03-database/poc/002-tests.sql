@@ -37,7 +37,7 @@ BEGIN
   EXCEPTION WHEN foreign_key_violation THEN
     RAISE NOTICE 'PASS: cross-tenant/unit reference rejected';
   END;
-END $;
+END $$;
 
 -- Placement overlap must be rejected (exclusion constraint).
 DO $$
@@ -98,7 +98,7 @@ BEGIN
   EXCEPTION WHEN unique_violation THEN
     RAISE NOTICE 'PASS: duplicate correction idempotency key rejected';
   END;
-END $;
+END $$;
 
 -- Invalid result-status/score combination must fail.
 DO $$

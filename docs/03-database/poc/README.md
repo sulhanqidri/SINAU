@@ -110,3 +110,28 @@ PoC is considered technically informative only after all SQL tests and concurren
 - \`001-schema.sql\` — candidate schema subset.
 - \`002-tests.sql\` — positive/negative smoke tests.
 - \`README.md\` — isolation, execution, evidence, and exit criteria.
+
+
+## 7. RLS tenant/unit isolation test (separate from smoke tests)
+
+The RLS experiment uses two additional scripts:
+
+- `003-rls-setup.sql` — run as PostgreSQL administrator against `sinau_design_poc`. It creates a non-login role `sinau_rls_test`, seeds deterministic test fixtures before enabling RLS, applies `ENABLE ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY` to tenant-scoped tables, and grants limited table privileges to the test role.
+- `004-rls-tests.sql` — run as `sinau_poc` against `sinau_design_poc`. It switches to `sinau_rls_test`, sets a simulated tenant/unit context, and tests SELECT, INSERT, UPDATE, and DELETE isolation. Its transaction ends with ROLLBACK.
+
+Commands:
+
+```bash
+# Download both scripts from the same repository branch/commit used for this PoC.
+# Then configure RLS as the PostgreSQL administrator:
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d sinau_design_poc -f 003-rls-setup.sql
+
+# Run policy tests using the dedicated PoC login:
+psql -h 127.0.0.1 -U sinau_poc -d sinau_design_poc -X -P pager=off -v ON_ERROR_STOP=1 -f 004-rls-tests.sql
+```
+
+Expected PASS notices cover same-unit visibility/write, cross-unit and cross-tenant read isolation, cross-unit UPDATE zero rows, cross-tenant DELETE zero rows, and cross-tenant INSERT rejection. The test transaction rolls back.
+
+**Critical limitation:** this is a policy behavior test, not a complete authentication boundary test. The scripts use custom session settings `app.tenant_id` and `app.unit_id`. A database client able to issue arbitrary SQL can change those settings. Production must establish tenant/unit context through a trusted mechanism that validates the authenticated principal's memberships, and must test connection-pool reset, background jobs, exports, support access, and IDOR paths. Do not interpret a passing run as proof against context forgery or as production approval.
+
+If the setup script reports that the role already exists, it is designed to reuse it. Do not run it against `sinau`, `sinau_app`, or SQLRadius.

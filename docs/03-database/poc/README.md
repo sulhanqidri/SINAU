@@ -162,3 +162,18 @@ Important limitations:
 - This script does not install a trusted context setter and does not prove connection-pool, rollback, nested-transaction, concurrency, performance, or real membership behavior. Those require separate tests.
 - Do not treat this as production authorization approval. Do not run it against `sinau`, use `sinau_app`, or alter SQLRadius/MikroTik.
 
+### 8.1 Functional assertions
+
+After successfully applying `007-rls-signed-context.sql`, run the functional test in the same psql session/transaction that owns the token's XID:
+
+1. Open psql against `sinau_design_poc`; set session authorization to `sinau_poc`; create a temporary token input table; grant SELECT/INSERT on it to `sinau_rls_test`; begin; set local role to `sinau_rls_test`; allocate and record `pg_current_xact_id()::text`.
+2. Use `006-sign-context-token.py` in a separate Bash terminal to create a token for exactly that XID. Copy it into a postgres-owned mode-0600 file under `/run` (tmpfs). Never display the token or key.
+3. At the original psql prompt, import the token into `pg_temp.poc_signed_context_input` using `\\copy`.
+4. Stage `008-test-signed-context-rls.sql` under `/run` and run `\\i /run/008-test-signed-context-rls.sql` from that same psql session. Do not run the test file with a new psql process because the XID and temp table are session-bound.
+5. Expected assertions: valid token sees only tenant A/unit A1; changing unsigned legacy `app.tenant_id` and `app.unit_id` to tenant B/unit B1 does not change visibility; empty/malformed token sees zero rows; same-scope INSERT succeeds; cross-tenant and cross-unit INSERTs are rejected by RLS `WITH CHECK`.
+6. After all assertions pass, execute `ROLLBACK;`, exit psql, and remove both token copies from `/run`. Do not commit test data.
+
+The functional SQL file is assertion-oriented and deliberately does not commit or roll back the outer transaction. If it raises an assertion error, the transaction becomes aborted; run `ROLLBACK;` before retrying with a fresh XID and token. The token is valid for at most 240 seconds; discard it if expired or if the transaction ends.
+
+**Not yet executed:** adding this file to the repository is not evidence that the functional assertions passed. Record actual server output in the project tracker only after the user runs it.
+

@@ -1,9 +1,9 @@
 # Audit Konsistensi Logical Design MVP SINAU
 
 **ID:** AUD-LD-001  
-**Versi:** 0.1.0  
+**Versi:** 0.2.0 — remediation proposal recorded  
 **Tanggal:** 2026-11-18  
-**Status:** Draft hasil audit dokumentasi; menunggu review domain, privacy/security, dan product owner  
+**Status:** Audit dan remediation dokumenter selesai pada level proposal; temuan belum ditutup sampai review/approval dan test gate lulus  
 **Branch:** `feature/phase-0-requirements-blueprint`  
 **Ruang lingkup:** Rekonsiliasi MVP-SCOPE, spesifikasi proses organisasi/siswa, akademik/presensi/asesmen, PPDB/HR (khusus bagian minimum MVP), Domain Model, Domain Ownership Matrix, Logical ERD MVP, Data Dictionary MVP, dan Data Integrity.  
 **Batas:** Audit ini tidak menjalankan database/PoC dan bukan audit implementasi. Tidak ada migration, kode aplikasi, atau keputusan bisnis baru yang disahkan oleh dokumen ini.
@@ -272,3 +272,41 @@ Severity:
 | Tanggal | Versi | Perubahan |
 |---|---|---|
 | 2026-11-18 | 0.1.0 | Audit awal konsistensi MVP scope, process specs, ownership, logical ERD, data dictionary, dan data integrity. |
+
+
+## 8. Status remediation — 2026-11-18 (v0.2.0)
+
+Dokumen sumber yang diperbaiki:
+- LOGICAL-ERD-MVP.md §16 — candidate logical model v0.2.0.
+- DATA-DICTIONARY-MVP.md §11 — candidate attributes, types, nullability, and classification v0.2.0.
+- DATA-INTEGRITY.md — academic invariants, enforcement matrix, file and actor security.
+- DOMAIN-OWNERSHIP-MATRIX.md §9 — clarified cross-domain ownership proposal.
+- ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md §10 — MVP/post-MVP boundary and initial traceability.
+
+| Temuan | Remediasi dokumentasi | Status audit |
+|---|---|---|
+| AUD-LD-01 | StudentClassPlacement effective-dated, class_group_id pada enrollment deprecated, temporal overlap/test proposal | Draft addressed; owner approval + PoC pending |
+| AUD-LD-02 | AttendanceSessionParticipant roster snapshot, participant-based attendance record, optional teaching assignment contract | Draft addressed; session policy decision + PoC pending |
+| AUD-LD-03 | AssessmentParticipant snapshot, result_status vs score_value, workflow finalization, scoring rule version/snapshot | Draft addressed; DD-09 policy decision + review pending |
+| AUD-LD-04 | Cross-entity invariant matrix, composite FK, temporal constraint, serialized transaction and negative/concurrency tests | Draft addressed; PostgreSQL PoC pending |
+| AUD-LD-05 | Append-only AttendanceRecordRevision, correction apply state, atomic/idempotent transaction contract | Draft addressed; DD-08 approval policy + PoC pending |
+| AUD-LD-06 | Existing guardian separation retained; no automatic User/login or portal access | Open; privacy/guardian authority decision required |
+| AUD-LD-07 | Effective-date and overlap contract for HR placement and Academic assignments | Draft addressed; HR policy and temporal PoC pending |
+| AUD-LD-08 | Polymorphic metadata explicitly not authorization; typed association for sensitive files; access re-check matrix | Draft addressed; security architecture and implementation test pending |
+| AUD-LD-09 | Unified actor_type, actor_user_id, actor_service_code, support reference, mandatory correlation contract | Draft addressed; security review and tamper-evidence design pending |
+| AUD-LD-10 | Explicit MVP/post-MVP table and process→entity→owner→test traceability | Draft addressed; product owner acceptance pending |
+| AUD-LD-11 | ERD/Dictionary authority rule and v0.2.0 addenda aligned | Draft addressed; final automated/manual reconciliation pending |
+
+**Penting:** “Draft addressed” berarti proposal desain telah ditulis dan artefak disejajarkan. Itu bukan status Accepted/Closed. Seluruh temuan tetap terbuka untuk gerbang persetujuan, test, dan PoC yang disebut di atas. AUD-LD-06 memerlukan keputusan produk/privacy sebelum portal wali atau akses akun wali dirancang.
+
+## 9. Gerbang untuk menutup audit
+
+Audit baru dapat ditutup setelah:
+1. Product owner menyetujui atau merevisi batas MVP untuk placement, session, assessment result, dan attendance correction.
+2. Student/Academic owner menyetujui ownership StudentClassPlacement dan kontrak lintas domain.
+3. Privacy/security menyetujui klasifikasi, file access, guardian boundary, audit actor, dan retention principles.
+4. DBA/architect menjalankan PoC PostgreSQL 18 untuk composite FK, temporal overlap, transaction locking, revision idempotency, dan constraint result status.
+5. Test matrix LD-01—LD-16 memiliki bukti lulus termasuk negative dan concurrency tests.
+6. Logical ERD dan Data Dictionary lulus reconciliation akhir dan disetujui Product Owner.
+
+Tidak ada migration atau physical schema final sebelum semua gerbang di atas lulus.

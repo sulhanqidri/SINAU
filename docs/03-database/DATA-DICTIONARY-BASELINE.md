@@ -3,14 +3,17 @@
 | Entitas | Scope | Fungsi | Catatan integritas |
 |---|---|---|---|
 | tenants | Platform | Pelanggan SaaS | tenant_type: foundation/independent_provider; status dan lifecycle |
-| education_units | Tenant | Unit sekolah/madrasah | Wajib tenant_id; tepat satu tenant aktif |
-| users | Platform | Akun autentikasi | Bukan sumber hak akses unit |
-| tenant_memberships | Tenant | Keanggotaan tenant | Unique user+tenant; status/periode berlaku |
-| unit_memberships | Unit | Akses unit | Unique user+unit; status/periode berlaku |
-| roles | Platform/tenant/unit | Kelompok permission | Role assignment wajib mencatat scope |
-| permissions | Reference | Aksi yang dapat diberikan | Nama stabil dan scope jelas |
-| students | Tenant/unit | Profil siswa | Tidak menyimpan riwayat kelas sebagai atribut tunggal |
-| student_guardians | Unit/tenant | Hubungan wali-siswa | Verifikasi dan periode berlaku |
+| education_units | Tenant | Unit sekolah/madrasah | Wajib tenant_id; unique (tenant_id,id) untuk composite reference |
+| users | Platform | Akun autentikasi global | Bukan sumber hak akses domain |
+| tenant_memberships | Tenant | Keanggotaan user pada tenant | Unique user+tenant; status/periode berlaku |
+| unit_memberships | Unit | Akses user ke unit | Tenant konsisten dengan pemilik unit; status/periode berlaku |
+| permissions | Reference | Aksi yang dapat diberikan | Kode stabil dan scope jelas |
+| roles | Platform/tenant/unit | Kumpulan permission | Scope dan pemilik role tervalidasi |
+| platform_user_roles | Platform | Role operator platform | Hanya untuk akses platform |
+| tenant_membership_roles | Tenant | Role pada membership tenant | FK ke membership tenant |
+| unit_membership_roles | Unit | Role pada membership unit | FK ke membership unit |
+| students | Tenant/unit | Profil siswa | Scope eksplisit; identitas tidak menyimpan kelas aktif sebagai histori |
+| student_guardians | Unit/tenant | Hubungan wali-siswa | Verifikasi, status, periode berlaku |
 | student_enrollments | Unit | Riwayat sekolah/kelas | Periode, status, rombel; scope konsisten |
 | academic_years | Unit | Tahun ajaran | Tanggal dan status tervalidasi |
 | academic_terms | Unit | Semester/periode | Terikat tahun ajaran |
@@ -21,7 +24,7 @@
 | attendance_records | Unit | Presensi | Unique key mencegah duplikasi sesuai sesi |
 | student_scores | Unit | Nilai siswa | Asesmen dan enrollment |
 | audit_events | Tenant/unit/platform | Audit | Minimalkan PII dan secret |
-| stored_files | Tenant/unit | Metadata file privat | Otorisasi sebelum akses |
+| stored_files | Tenant/unit | Metadata file privat | Authorization sebelum akses; object key opaque |
 
 ## Aturan tenant dan unit
 - tenants.tenant_type dibatasi ke foundation atau independent_provider.
@@ -30,7 +33,10 @@
 - Tenant yayasan dapat mempunyai banyak education unit.
 - Jenis/jenjang pendidikan adalah atribut/reference education unit, bukan tenant.
 - Membership tenant dan unit disimpan terpisah dan tidak saling menggantikan.
-- Untuk tabel unit-scoped, gunakan unit_id dan strategi konsistensi tenant_id yang diputuskan melalui ADR database.
+- Baseline MVP adalah shared database/shared schema; setiap tabel tenant/unit-scoped harus membawa scope key yang dibutuhkan.
+- Tabel unit-scoped menyimpan tenant_id dan unit_id untuk composite FK, kecuali PoC membuktikan strategi setara yang aman.
+- Relasi ke unit menggunakan pasangan (tenant_id, unit_id), bukan unit_id saja.
+- Role assignment dipisahkan berdasarkan scope agar integritas FK dan otorisasi dapat diuji.
 
 ## Aturan kolom umum
 - Gunakan primary key yang konsisten; strategi UUID/ULID/integer ditetapkan melalui ADR.

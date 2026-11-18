@@ -60,6 +60,7 @@ BEGIN
 
     IF v_parts[1] <> 'v1'
        OR v_parts[2] <> 'sinau_design_poc'
+       OR v_parts[2] <> pg_catalog.current_database()
        OR v_parts[3] !~ '^[a-z0-9][a-z0-9-]{0,31}$'
        OR v_parts[4] !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
        OR v_parts[5] !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'

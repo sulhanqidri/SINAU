@@ -1,6 +1,6 @@
 # Rencana PoC Database dan Isolasi Tenant SINAU
 
-**Status:** Harness PoC PostgreSQL 18 dan tes constraint otomatis tersedia; belum ada hasil eksekusi lokal yang diverifikasi  
+**Status:** CI PostgreSQL 18.7 berhasil menjalankan schema/fixture dan tes constraint otomatis; benchmark skala, authorization aplikasi, RLS, backup/restore, dan tes lokal pengguna masih belum dilakukan  
 **Tanggal:** 2026-11-18  
 **Keputusan engine:** PostgreSQL 18 — [ADR-006](../09-decisions/ADR-006-POSTGRESQL-DATABASE.md)  
 **Terkait:** ADR-002, ADR-003, ADR-005
@@ -9,7 +9,7 @@
 
 Membuktikan bahwa desain shared database/shared schema SINAU menjaga integritas tenant/unit dan siap dioperasikan pada PostgreSQL 18 sebelum migration domain produksi dibuat. Keputusan engine PostgreSQL sudah disetujui; PoC ini memvalidasi desain skema, keamanan, kinerja awal, dan operasional — bukan membandingkan pilihan engine.
 
-Schema dan fixture sintetis, tes constraint otomatis, Docker Compose lokal, runner shell, benchmark opsional satu juta baris, dan workflow CI tersedia di [poc/database-isolation/postgresql](../../poc/database-isolation/postgresql/schema-and-fixtures.sql). Hasil lokal pemilik proyek belum diterima; PoC belum boleh dinyatakan lulus.
+Schema dan fixture sintetis, tes constraint otomatis, Docker Compose lokal, runner shell, benchmark opsional satu juta baris, dan workflow CI tersedia di [poc/database-isolation/postgresql](../../poc/database-isolation/postgresql/schema-and-fixtures.sql). CI run #3 pada PostgreSQL 18.7 berhasil (setup schema/fixture dan verify-constraints). Hasil ini hanya membuktikan smoke test integritas relasional di CI; bukan kelulusan seluruh PoC. Hasil lokal pemilik proyek belum diterima.
 
 Draft MySQL 8.4 yang masih berada di direktori PoC dipertahankan hanya sebagai artefak historis/rujukan dan bukan target pengujian atau implementasi MVP. Workflow CI PostgreSQL 18 menjalankan schema dan tes constraint saat perubahan PoC terkait masuk ke pull request.
 

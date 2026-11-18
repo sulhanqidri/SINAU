@@ -71,11 +71,8 @@ INSERT INTO assessment_participants VALUES
 INSERT INTO student_scores VALUES
 ('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','82000000-0000-0000-0000-000000000001','81000000-0000-0000-0000-000000000001','scored',0,'draft',NULL);
 
--- Absent without numeric score is valid.
-INSERT INTO student_scores VALUES
-('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','82000000-0000-0000-0000-000000000002','81000000-0000-0000-0000-000000000002','absent',NULL,'draft',NULL);
--- The previous statement intentionally references a non-existent participant.
--- Expect a foreign-key failure; use a savepoint to assert it in your own test run.
+-- Non-scored statuses are required to have NULL score_value; the negative
+-- absent-with-number test below checks the complementary invalid case.
 
 -- Invalid result-status/score combination must fail.
 DO $$

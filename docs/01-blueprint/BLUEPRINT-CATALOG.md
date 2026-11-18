@@ -50,7 +50,8 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 - [ ] Remediasi temuan audit setelah keputusan pemilik produk; jangan renumber ID atau mengubah scope tanpa persetujuan.
 - [x] Turunkan BP-PLT-01 sampai BP-PLT-05 ke spesifikasi proses platform/tenant draft di `docs/02-requirements/PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md`.
 - [ ] Turunkan BP-PLT-06 (lifecycle tenant/unit) menjadi spesifikasi rinci sebelum implementasi.
-- [ ] Validasi spesifikasi BP-PLT-01—04 dengan stakeholder dan tutup OPEN-PLT-01 sampai OPEN-PLT-10.
+- [ ] Validasi spesifikasi BP-PLT-01—05 dengan stakeholder dan tutup OPEN-PLT-01 sampai OPEN-PLT-10.
+- [ ] Spesifikasikan BP-PLT-06 (lifecycle tenant/unit) dan validasi batasnya terhadap BP-PLT-03—05.
 - [x] Turunkan BP-ACA-01—03, BP-ATT-01, dan BP-ASM-01—02 ke spesifikasi proses akademik/presensi/asesmen draft di `docs/02-requirements/ACADEMIC-ATTENDANCE-ASSESSMENT-PROCESS-SPECIFICATIONS.md`.
 - [x] Turunkan BP-ADM-01 dan BP-HR-01 ke spesifikasi proses PPDB/HR draft di `docs/02-requirements/ADMISSIONS-AND-HR-PROCESS-SPECIFICATIONS.md`.
 - [ ] Turunkan proses prioritas lain (keuangan dan layanan pendukung) menjadi business process specification/swimlane per proses.

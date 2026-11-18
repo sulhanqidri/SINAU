@@ -578,3 +578,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Berikutnya: jalankan HMAC-SHA256 bytea primitive test memakai RFC 4231 Test Case 1 (key 0b x 20 bytes, data "Hi There") sebagai `sinau_context_owner`; cocokkan hasil dengan digest acuan. Ini hanya tes fungsi tanpa secret/token permanen dan tanpa perubahan database. Setelah tes kriptografi lulus, baru rancang payload canonical dan key lifecycle; belum membuat verifier atau mengubah RLS policies.
 - Catatan trust boundary: PostgreSQL `pgcrypto` menjalankan operasi di server database; host administrator dan database superuser tetap tepercaya. Signed context mengurangi pemalsuan oleh runtime role yang tidak dapat membaca key, bukan kompromi DBA/host.
 - Safety: hanya `sinau_design_poc` / role PoC. Jangan sentuh database aplikasi `sinau`, role `sinau_app`, SQLRadius, atau MikroTik. PR #1 tetap Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (HMAC RFC 4231 test invocation correction)
+- User executed the initial HMAC-SHA256 test vector as `sinau_context_owner`; the resulting MAC did not match RFC 4231 Case 1. Transaction ended with ROLLBACK and no persistent data changes.
+- Inspection against the official PostgreSQL 18 pgcrypto documentation found the test SQL supplied arguments in the wrong order. The documented signature is `hmac(data bytea, key bytea, type text)`; the previous test passed key as data and data as key.
+- This mismatch is a test-call defect, not evidence of a broken pgcrypto installation. The correct rerun must use `hmac(convert_to('Hi There','UTF8'), decode(repeat('0b',20),'hex'), 'sha256')`.
+- Runtime role restrictions were independently confirmed: `sinau_rls_test` has no USAGE on `sinau_crypto` and no EXECUTE on the bytea HMAC overload.
+- Status: RFC vector test is NOT YET PASSED; do not create the secret store, signed payload, verifier, or RLS policy changes until the corrected vector returns the expected digest.
+- Safety boundary unchanged: only `sinau_design_poc`; no application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik changes. PR #1 remains Draft/open/unmerged.

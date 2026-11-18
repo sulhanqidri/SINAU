@@ -170,9 +170,16 @@ Audit ini tidak mengubah spesifikasi proses sumber dan tidak memutuskan pertanya
 | BP-PLT-03 | Verifikasi tenant dan unit | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md |
 | BP-PLT-04 | Subscription, entitlement, downgrade, suspend, reaktivasi | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md |
 | BP-PLT-05 | Identity, invitation, membership, role, access | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md |
-| BP-PLT-06 | Lifecycle tenant dan unit (suspend, close, transfer, restore) | Business Process Map; spesifikasi rinci masih diperlukan |
+| BP-PLT-06 | Lifecycle tenant dan unit (suspend, close, transfer, restore) | PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md §14 (Draft 0.1.0); Business Process Map |
 
 **Batas tanggung jawab:** BP-PLT-02 mengatur provisioning/pengelolaan unit; BP-PLT-03 mengatur verifikasi; BP-PLT-04 mengatur hak kontrak dan billing; BP-PLT-05 mengatur grant akses individu; BP-PLT-06 mengatur lifecycle operasional tenant/unit. Suspend akibat billing tetap keputusan BP-PLT-04; suspend/close operasional dicatat di BP-PLT-06. Membership awal pendaftar tetap dibuat oleh BP-PLT-01, sedangkan invitation anggota tambahan dan revoke/change dikelola BP-PLT-05.
 
-**Status AUD-01/AUD-02:** resolved pada tingkat process ID dan dokumentasi baseline. Detail lifecycle BP-PLT-06 masih membutuhkan spesifikasi proses tersendiri sebelum implementasi. Temuan AUD-03 sampai AUD-09 tetap terbuka.
+**Status AUD-01/AUD-02:** resolved pada tingkat process ID dan dokumentasi baseline. BP-PLT-06 kini memiliki spesifikasi proses rinci draft pada §14 Platform/Tenant spec, termasuk suspend, close, transfer, restore, state konseptual, kontrol, acceptance criteria, dan test minimum. Ini menyelesaikan kekosongan artefak spesifikasi rinci, bukan keputusan kebijakan atau persetujuan implementasi. OPEN-PLT-11—18 tetap terbuka; transfer lintas tenant tetap diblokir sampai keputusan legal/privacy/data/teknis disahkan. AUD-03 sampai AUD-09 tetap terbuka.
 
+
+
+## 9. Update cakupan BP-PLT-06 — 2026-11-18
+
+Spesifikasi rinci BP-PLT-06 telah ditambahkan pada §14 PLATFORM-TENANT-PROCESS-SPECIFICATIONS.md. Cakupan meliputi suspend operasional, close tenant/unit, transfer unit antar-tenant, restore, state konseptual, business rules BR-PLT-06-01—15, acceptance criteria AC-PLT-06-01—14, dan 20 test scenario minimum.
+
+**Status:** spesifikasi tersedia sebagai Draft, belum divalidasi stakeholder. Transfer lintas tenant tetap high-impact dan tidak disetujui otomatis. OPEN-PLT-11—18 menjadi blocker kebijakan/implementasi sesuai cakupan masing-masing. AUD-03—AUD-09 belum diremediasi oleh perubahan ini.

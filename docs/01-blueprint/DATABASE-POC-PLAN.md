@@ -1,14 +1,17 @@
 # Rencana PoC Database dan Isolasi Tenant SINAU
 
-**Status:** Rencana pengujian dengan draft SQL PoC tersedia; belum dieksekusi  
+**Status:** Rencana pengujian PostgreSQL 18; draft SQL tersedia dan belum dieksekusi  
 **Tanggal:** 2026-11-18  
+**Keputusan engine:** PostgreSQL 18 — [ADR-006](../09-decisions/ADR-006-POSTGRESQL-DATABASE.md)  
 **Terkait:** ADR-002, ADR-003, ADR-005
 
 ## 1. Tujuan
 
-Membuktikan bahwa pola shared database/shared schema dapat menjaga integritas tenant dan unit pada engine yang diuji, sebelum migration domain SINAU dibuat. PoC membandingkan PostgreSQL 18 dan MySQL 8.4 LTS menggunakan skenario, data sintetis, dan acceptance criteria yang sama.
+Membuktikan bahwa desain shared database/shared schema SINAU menjaga integritas tenant/unit dan siap dioperasikan pada PostgreSQL 18 sebelum migration domain produksi dibuat. Keputusan engine PostgreSQL sudah disetujui; PoC ini memvalidasi desain skema, keamanan, kinerja awal, dan operasional — bukan membandingkan pilihan engine.
 
-PoC bukan aplikasi produksi dan tidak boleh memakai data siswa, guru, wali, atau lembaga nyata. Draft schema dan fixture awal tersedia di [poc/database-isolation](../../poc/database-isolation/README.md) untuk PostgreSQL 18 dan MySQL 8.4 LTS. Script belum dijalankan karena lingkungan eksekusi database belum disediakan; hasil belum boleh dinyatakan lulus.
+Draft schema dan fixture sintetis PostgreSQL tersedia di [poc/database-isolation/postgresql](../../poc/database-isolation/postgresql/schema-and-fixtures.sql). Script belum dijalankan terhadap PostgreSQL nyata; hasil belum boleh dinyatakan lulus.
+
+Draft MySQL 8.4 yang masih berada di direktori PoC dipertahankan hanya sebagai artefak historis/rujukan dan bukan target pengujian atau implementasi MVP.
 
 ## 2. Scope data sintetis
 
@@ -26,30 +29,30 @@ Gunakan identifier sintetis yang jelas bukan data resmi.
 ## 3. Skema minimum yang diuji
 
 ### tenants
-- `id` primary key.
-- `tenant_type`.
-- `status`.
+- id primary key.
+- tenant_type.
+- status.
 
 ### education_units
-- `id` primary key.
-- `tenant_id` not null.
-- `unit_code` not null.
-- `UNIQUE (tenant_id, id)`.
-- `UNIQUE (tenant_id, unit_code)`.
-- FK `tenant_id` → `tenants.id`.
+- id primary key.
+- tenant_id not null.
+- unit_code not null.
+- UNIQUE (tenant_id, id).
+- UNIQUE (tenant_id, unit_code).
+- FK tenant_id → tenants.id.
 
 ### unit_scoped_records
-- `id` primary key.
-- `tenant_id` not null.
-- `unit_id` not null.
-- Composite FK `(tenant_id, unit_id)` → `education_units(tenant_id, id)`.
+- id primary key.
+- tenant_id not null.
+- unit_id not null.
+- Composite FK (tenant_id, unit_id) → education_units(tenant_id, id).
 
 ### memberships
 - Tenant membership dan unit membership dipisah.
 - Unique constraint sesuai pasangan membership.
-- Unit membership mengacu pada pasangan `(tenant_id, unit_id)` yang valid.
+- Unit membership mengacu pada pasangan (tenant_id, unit_id) yang valid.
 
-Pilih tipe data ID yang konsisten pada seluruh parent dan child. Semua FK harus eksplisit dan menggunakan engine/storage engine yang benar.
+Pilih tipe data ID yang konsisten pada seluruh parent dan child. Semua FK harus eksplisit.
 
 ## 4. Skenario pengujian wajib
 
@@ -67,7 +70,7 @@ Pilih tipe data ID yang konsisten pada seluruh parent dan child. Semua FK harus 
 | DB-10 | Dua request bersamaan menambah unit pada sisa entitlement satu | Maksimal satu yang berhasil |
 | DB-11 | Query daftar unit dan data siswa dengan tenant/unit scope | Hanya mengembalikan data scope sah |
 | DB-12 | Raw SQL tanpa filter scope | PoC harus membuktikan kontrol defense-in-depth yang dipilih; jangan menganggap ORM scope melindungi raw SQL |
-| DB-13 | RLS (PostgreSQL saja) tanpa context atau dengan context tenant lain | Ditolak; reset context antar transaksi/connection diuji |
+| DB-13 | RLS PostgreSQL tanpa context atau dengan context tenant lain | Ditolak; reset context antar transaksi/connection diuji |
 | DB-14 | Index dan query plan untuk pola tenant_id + unit_id | Index dipakai secara masuk akal pada dataset uji |
 | DB-15 | Migration up/down dan restore backup | Dapat direproduksi dan hasil konsisten |
 
@@ -97,33 +100,33 @@ Gunakan dataset sintetis bertingkat, misalnya 10 ribu, 100 ribu, dan 1 juta reco
 - Insert/import batch dan transaksi.
 - Index size, query plan, lock contention, dan waktu migration.
 - Backup, restore, dan prosedur export satu tenant.
+- Uji partisi untuk histori berbasis waktu sebagai eksperimen terpisah bila dataset dan query membenarkannya; jangan mempartisi semua tabel secara otomatis.
 
-Catat hardware, versi engine, konfigurasi, ukuran dataset, warm/cold cache, serta metodologi. Jangan menyimpulkan pemenang hanya dari satu benchmark.
+Catat hardware, versi PostgreSQL 18, konfigurasi, ukuran dataset, warm/cold cache, serta metodologi. Jangan menyimpulkan kesiapan produksi hanya dari satu benchmark.
 
 ## 8. Kriteria lulus
 
-PoC dinyatakan lulus bila:
+PoC PostgreSQL dinyatakan lulus bila:
 
-1. Semua tes integritas DB-01 sampai DB-10 lulus pada engine yang dipilih.
+1. Semua tes integritas DB-01 sampai DB-10 lulus.
 2. Semua tes authorization dan IDOR lulus.
 3. Tidak ada jalur akses lintas tenant/unit yang hanya bergantung pada disiplin developer.
 4. Concurrency tidak melampaui entitlement.
 5. Backup/restore dapat diuji dan hasilnya diverifikasi.
 6. Migration dan rollback/forward-fix dapat direproduksi.
 7. Kinerja query memenuhi target awal yang disepakati dan bottleneck diketahui.
-8. Keterbatasan engine, ORM, dan operasional dicatat.
+8. Keterbatasan PostgreSQL, ORM, dan operasional dicatat.
 
 Satu saja bypass lintas tenant/unit adalah blocker, bukan sekadar temuan performa.
 
 ## 9. Output PoC
 
-- Repository/branch PoC terpisah atau direktori eksperimen yang tidak masuk aplikasi produksi.
-- Script/schema PoC untuk kedua engine.
-- Automated tests dan hasil eksekusi.
+- Script/schema PoC PostgreSQL 18 dan automated tests.
+- Hasil eksekusi yang dapat direproduksi.
 - Ringkasan performa dengan metodologi.
 - Threat/risk notes.
-- Rekomendasi engine dan konfigurasi.
-- ADR database final (revisi ADR-002 atau ADR baru) setelah pemilik produk menyetujui hasil.
+- Rekomendasi konfigurasi PostgreSQL dan prosedur operasional.
+- Checklist kesiapan migration produksi.
 
 ## 10. Larangan selama PoC
 
@@ -131,5 +134,5 @@ Satu saja bypass lintas tenant/unit adalah blocker, bukan sekadar temuan perform
 - Jangan memakai data pribadi nyata.
 - Jangan memakai database atau credential SQLRadius.
 - Jangan menaruh secret di Git.
-- Jangan menyatakan RLS sebagai pengganti authorization aplikasi.
-- Jangan memakai `ON DELETE CASCADE` untuk menghapus histori akademik secara tidak sengaja.
+- Jangan memakai RLS sebagai pengganti authorization aplikasi.
+- Jangan memakai ON DELETE CASCADE untuk menghapus histori akademik secara tidak sengaja.

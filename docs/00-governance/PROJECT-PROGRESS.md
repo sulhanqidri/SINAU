@@ -418,3 +418,20 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Tidak ada kode aplikasi, migration, physical schema, deployment, server, SQLRadius, atau MikroTik yang diubah. PR #1 tetap Draft/open/unmerged.
 - Next action: putuskan batas MVP dan kontrak domain untuk AUD-LD-01—05; setelah disetujui, revisi Logical ERD dan Data Dictionary lalu buat traceability/test matrix. Jangan membuat migration sebelum domain/privacy/security review dan gate PoC lulus.
 - Hal yang tidak boleh dilakukan: jangan merge PR #1; jangan implementasikan PPDB, HRIS lanjutan, timetable engine, LMS, rapor formal, finance, atau transfer lintas tenant; jangan menganggap audit sebagai approval schema.
+
+
+---
+
+### Session checkpoint — 2026-11-18 (remediation logical design audit v0.2.0)
+- User meminta perbaikan atas audit konsistensi logical design.
+- Branch: feature/phase-0-requirements-blueprint.
+- Logical ERD diperbarui ke proposal v0.2.0: StudentClassPlacement effective-dated; class_group_id pada enrollment deprecated; attendance session participant snapshot; assessment participant snapshot; result_status terpisah dari score_value; scoring rule version/snapshot; attendance record revisions; correction approval/apply terpisah; effective dating HR/Academic; actor contract; file authorization; MVP boundary dan LD-01—LD-16 test matrix.
+- Data Dictionary diperbarui ke proposal v0.2.0 dengan field candidate, nullability, klasifikasi, validasi, dan histori yang sesuai.
+- Data Integrity ditambah invariant akademik, enforcement matrix, concurrency/negative test expectations, serta file/audit access controls.
+- Domain Ownership Matrix menambahkan proposal Student sebagai candidate owner StudentClassPlacement, dengan Academic tetap owner ClassGroup; keputusan owner final menunggu persetujuan.
+- Spesifikasi proses akademik/presensi/asesmen menambahkan batas MVP/post-MVP dan traceability awal. Tidak ada timetable engine, LMS, rapor formal, remedial/retake, biometric/GPS, atau portal wali yang dimasukkan sebagai MVP.
+- Audit AUD-LD-001 diperbarui ke v0.2.0. 10 temuan memiliki proposal remediation dokumenter; AUD-LD-06 (guardian access) tetap terbuka untuk keputusan product/privacy. Semua temuan masih menunggu acceptance/PoC; "draft addressed" bukan closed.
+- README database dan Blueprint Catalog diperbarui.
+- Tidak ada kode aplikasi, migration, physical schema, database/server, deployment, SQLRadius, atau MikroTik yang diubah.
+- PR #1 tetap Draft/open/unmerged; jangan merge tanpa instruksi eksplisit.
+- Next: review proposal bersama Product Owner/domain owners, terutama ownership StudentClassPlacement, session granularity/teaching assignment, score scale/status, correction approval policy; kemudian privacy/security review dan PoC PostgreSQL 18. Jangan membuat migration sebelum gate lulus.

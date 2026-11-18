@@ -373,3 +373,18 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - `docs/03-database/README.md` dan Blueprint Catalog ditautkan ke artefak baru.
 - Langkah berikut: review matrix dan lanjutkan logical ERD MVP dengan hanya entitas yang scope/ownership-nya cukup jelas; unresolved decisions tetap ditandai, tidak ditebak.
 - Tidak ada kode aplikasi, migration, deployment, atau perubahan server. PR #1 tetap Draft/open/unmerged.
+
+
+### Checkpoint tambahan — 2026-11-18: Logical ERD MVP v0.1.0
+
+- Dibuat `docs/03-database/LOGICAL-ERD-MVP.md` sebagai draft logical design: relasi utama, kandidat tabel/kolom, PK/unique/FK scope, candidate constraints/index, histori, serta 10 keputusan terbuka.
+- Logical ERD mengadopsi PostgreSQL 18 dan shared database/shared schema sebagai baseline; semua unit-scoped FK dirancang membawa tenant_id + unit_id.
+- Profil siswa dan wali sementara unit-scoped; employee profile tenant-scoped dengan employee placement per unit; tidak ada asumsi identity resolution lintas tenant.
+- Attendance memakai session context manual berbasis tanggal dan class group sebagai kandidat minimum MVP, bukan timetable engine.
+- Role scope dirinci platform/tenant/unit dengan CHECK/composite-FK candidate; perlu PoC constraint dan authorization.
+- Diagram konseptual diperbarui agar tidak mengaitkan EmployeeProfile ke User secara otomatis dan menampilkan enrollment, placement, attendance session, dan assessment.
+- Database README dan Blueprint Catalog ditautkan ke logical ERD.
+- Ditemukan dan diperbaiki literal "\\n" yang sebelumnya tampil di beberapa checklist/katalog sebagai teks, bukan line break.
+- Status: logical ERD masih Draft, belum direview/diterima; acceptance criteria belum dicentang. Belum ada SQL migration, kode aplikasi, atau deployment.
+- Langkah berikut: review logical ERD terhadap process specs; lanjutkan data dictionary per entitas/atribut setelah ownership dan keputusan terbuka divalidasi. Khusus OWN-01—OWN-10 dan LERD-01—LERD-10 tidak dianggap selesai.
+- PR #1 tetap Draft/open/unmerged.

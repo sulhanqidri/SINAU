@@ -1,6 +1,6 @@
 # Model Domain Data SINAU
 
-**Status:** Conceptual model 0.2 — keputusan model pelanggan dikonfirmasi; bukan skema migration final.
+**Status:** Conceptual model 0.3 — model pelanggan dikonfirmasi; onboarding dirinci; bukan skema migration final.
 
 ## Prinsip
 - Pisahkan identitas orang dari peran orang pada lembaga.
@@ -9,6 +9,7 @@
 - Tenant adalah pelanggan SaaS; education unit adalah sekolah/madrasah operasional.
 - Semua tabel diklasifikasikan platform, tenant, unit, user, atau reference.
 - Tenant/unit scope ditegakkan di query, constraint, policy, job, file, cache, dan export.
+- Pilihan bentuk pelanggan tidak menentukan jenis atau jenjang unit.
 
 ## Platform dan organisasi
 
@@ -16,29 +17,41 @@
 Pelanggan SaaS dan batas billing, kontrak, konfigurasi pelanggan, serta isolasi data.
 - tenant_type: foundation atau independent_provider.
 - Menyimpan identitas legal/organisasi, status lifecycle, zona waktu default, dan metadata kontrak.
-- Tenant yayasan dapat memiliki banyak unit.
-- Tenant mandiri mewakili sekolah/madrasah secara langsung dan dibuat bersama unit pertamanya.
+- Tenant yayasan dapat memiliki banyak unit, termasuk sekolah umum dan madrasah.
+- Tenant mandiri mewakili sekolah/madrasah secara langsung dan dibuat bersama unit pertamanya; tidak memerlukan foundation profile.
 - Kedua tipe memakai model dan modul pendidikan yang sama.
+- Pendaftar pertama bukan platform administrator.
+
+### foundation_profiles
+Profil legal/organisasi khusus tenant foundation, misalnya bentuk badan hukum, nomor pengesahan, alamat kantor, dan kontak.
+- Memiliki relasi one-to-one dengan tenant foundation.
+- Tidak dibuat untuk independent_provider.
+- Kelengkapan dokumen legal dapat mengikuti status verifikasi dan kebijakan onboarding.
 
 ### education_units
 Unit sekolah/madrasah di bawah tepat satu tenant aktif.
-- Menyimpan identitas unit, nama resmi, identitas resmi relevan (misalnya NPSN/NSM), education type, education level, alamat, status, dan konfigurasi.
-- Satu tenant dapat memiliki satu atau banyak unit.
-- Unit yayasan dan unit mandiri memakai struktur data yang sama.
-- Tenant mandiri lazimnya dimulai dengan satu unit; tidak ada parent foundation wajib.
+- Menyimpan identitas unit, nama resmi, identitas resmi relevan (misalnya NPSN/NSM), education form, education level, alamat, status, dan konfigurasi.
+- Satu tenant foundation dapat memiliki banyak unit dengan jenis/jenjang berbeda.
+- Unit mandiri dan unit di bawah yayasan memakai struktur data yang sama.
+- Tenant mandiri memulai dengan unit pendidikan pertamanya.
 - Transfer antar tenant melalui workflow khusus dan audit.
 
 ### Membership dan akses
-- users: akun autentikasi global.
+- users: akun autentikasi global; email unik global setelah normalisasi dan verifikasi sesuai kebijakan.
 - tenant_memberships: keanggotaan user pada tenant; unique user+tenant, status dan periode berlaku.
 - unit_memberships: akses user ke unit; unique user+unit, status dan periode berlaku.
 - roles, permissions, role_permissions, user_role_assignments: role assignment mencatat scope platform/tenant/unit.
 - tenant_subscriptions, tenant_module_entitlements: langganan dan fitur SaaS.
 - Tenant membership tidak otomatis memberi akses semua unit; akses unit mengikuti permission/grant eksplisit.
+- Pendaftar pertama memperoleh tenant-scoped owner/admin role dan unit-scoped admin role hanya pada unit pertama yang didaftarkan.
+- Foundation tenant admin mengelola organisasi/daftar unit sesuai permission, tetapi akses data akademik tiap unit tetap memerlukan grant unit.
+- Independent provider admin memperoleh akses operasional pada unit mandirinya.
+- Role tenant dan role unit merupakan assignment terpisah.
 
 ## Referensi pendidikan
 - education_types: sekolah umum, madrasah, dan jenis lain yang disahkan.
 - education_levels: SD, SMP, SMA, SMK, MI, MTs, MA, MAK, dan perluasan yang disetujui.
+- Validasi kombinasi education form dan education level dilakukan server-side.
 - academic_years, academic_terms.
 - curriculum_versions, curriculum_subjects, subject_catalog.
 - grade_levels, class_groups, teacher_assignments.
@@ -80,10 +93,12 @@ Identitas siswa dapat tetap dikenali saat pindah unit/tenant, tetapi akses dan p
 ## Invarian domain
 1. Setiap education unit memiliki tepat satu tenant aktif.
 2. tenant_type hanya mengklasifikasikan pelanggan, bukan jenis/jenjang pendidikan.
-3. Setiap operasi unit-scoped memverifikasi unit berada pada tenant context aktif.
-4. Tenant membership dan unit membership merupakan dua grant berbeda.
-5. Histori enrollment, nilai, presensi, dan penugasan tidak dipindah/dihapus diam-diam saat unit/tenant berubah.
-6. Tidak ada akses lintas tenant hanya karena unit berada dalam yayasan atau user mengetahui identifier siswa.
+3. foundation_profiles hanya berlaku untuk tenant foundation.
+4. Setiap operasi unit-scoped memverifikasi unit berada pada tenant context aktif.
+5. Tenant membership dan unit membership merupakan dua grant berbeda.
+6. Pendaftar pertama bukan platform admin; role awal dibatasi pada tenant dan unit yang sah.
+7. Histori enrollment, nilai, presensi, dan penugasan tidak dipindah/dihapus diam-diam saat unit/tenant berubah.
+8. Tidak ada akses lintas tenant hanya karena unit berada dalam yayasan atau user mengetahui identifier siswa.
 
 ## Keputusan teknis terbuka
 - Apakah people menjadi master identitas bersama siswa, wali, dan pegawai.
@@ -92,4 +107,5 @@ Identitas siswa dapat tetap dikenali saat pindah unit/tenant, tetapi akses dan p
 - Strategi database fisik per tenant atau shared database/schema.
 - Aturan transfer unit dan portabilitas histori.
 - Apakah reference catalog bersifat platform-global atau dapat dioverride tenant.
+- Persyaratan dokumen legal dan identifier resmi saat registrasi versus aktivasi.
 Keputusan ini perlu ADR dan uji skenario nyata sebelum migration.

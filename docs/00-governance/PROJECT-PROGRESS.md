@@ -87,7 +87,7 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 - [ ] Business process map end-to-end untuk setiap domain utama. (Baseline draft tersedia di `docs/02-requirements/BUSINESS-PROCESS-MAP.md`; menunggu validasi dan spesifikasi turunan.)
 - [ ] Module catalog, batas modul, dependensi, dan ownership data.
 - [ ] Spesifikasi rinci setiap modul dan submodul.
-- [ ] Domain model, ERD konseptual/logis, data dictionary, lifecycle dan retention.
+- [x] Domain model dan ERD konseptual diperbarui agar konsisten dengan baseline MVP yang disetujui; logical ERD, data dictionary, lifecycle dan retention masih terbuka.
 - [ ] Tenant/unit context, membership, authorization matrix, dan support access.
 - [ ] API/integration blueprint, event, webhook, queue, retry, idempotency.
 - [ ] Security/privacy threat model, data classification, audit, consent, retention.
@@ -335,3 +335,30 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Persetujuan MVP bukan persetujuan final atas setiap detail proses/data/regulasi/stack dan bukan izin memulai migration atau deployment produksi.
 - Tahap berikut: audit dan pemutakhiran domain model serta ERD konseptual agar konsisten dengan MVP yang disetujui; setelah itu lanjut ke ownership domain, logical ERD, data dictionary, dan traceability.
 - Tidak ada kode aplikasi, migration, konfigurasi server, SQLRadius, atau MikroTik yang diubah. PR #1 tetap Draft/open/unmerged.
+
+
+### Checkpoint tambahan — 2026-11-18: Domain model dan ERD konseptual
+
+**Keputusan yang tercatat**
+- MVP-SCOPE.md berstatus Accepted sebagai baseline perencanaan setelah persetujuan pemilik produk. Revisi di tengah jalan diperbolehkan melalui change control.
+- Decision Log dan MVP-SCOPE.md menjelaskan bahwa perubahan scope/perilaku harus mencatat alasan, dampak lintas domain, keamanan/privasi, jadwal, acceptance criteria, dan persetujuan pemilik produk.
+- Persetujuan MVP tidak mengesahkan otomatis detail field, aturan regulasi, stack, logical schema, atau implementasi produksi.
+
+**Artefak diperbarui**
+- `docs/03-database/DOMAIN-MODEL.md`: bounded context, ownership data, pemetaan MVP/post-MVP, batas lintas domain, dan daftar keputusan model yang masih terbuka ditambahkan.
+- `docs/03-database/ERD-CONCEPTUAL.md`: batas interpretasi diagram, ownership HR/Academic/Identity/Student, dan batas teknis yang belum diputuskan ditambahkan.
+- `docs/09-decisions/DECISION-LOG.md`: persetujuan baseline MVP dicatat.
+- `docs/02-requirements/MVP-SCOPE.md`: status dan prosedur revisi ditambahkan.
+
+**Status pekerjaan**
+- Domain model/ERD konseptual diselaraskan pada level konseptual; belum merupakan logical ERD atau skema database final.
+- Keputusan tentang Person master, multi-enrollment aktif, portabilitas identitas siswa, penempatan pegawai lintas unit, attendance session context, guardian access, retention/privacy masih terbuka.
+- Tidak ada migration, kode aplikasi, deployment, atau perubahan server.
+- PR #1 tetap Draft/open/unmerged.
+
+**Langkah berikutnya**
+1. Buat domain ownership matrix yang lebih rinci per entitas, termasuk authoritative owner, scope (platform/tenant/unit), lifecycle, dan consumer.
+2. Turunkan entity relationship dan cardinality ke logical ERD untuk domain MVP.
+3. Lengkapi data dictionary dengan definisi, scope, klasifikasi, source of truth, nullability kandidat, dan aturan historisasi.
+4. Validasi keputusan privasi/identitas anak, akses wali, serta enrollment sebelum logical schema dianggap siap.
+5. Jangan membuat migration domain sebelum logical model direview dan gerbang PoC/keamanan dipenuhi.

@@ -629,3 +629,47 @@ Test minimum tambahan:
 6. HR tidak dapat membuat/mengubah TeachingAssignment.
 7. User tanpa membership/permission yang tepat tidak dapat mengakses data hanya karena memiliki assignment referensi.
 8. Ekspor rekap sederhana tidak menghasilkan rapor resmi atau status pengesahan palsu.
+
+
+## 10. Batas MVP dan kontrak data hasil remediation AUD-LD-001
+
+Bagian proses di atas tetap draft dan harus dibaca dengan batas release berikut. Detail workflow yang lebih luas tidak otomatis menjadi komitmen MVP.
+
+| Proses/kemampuan | Batas MVP yang diusulkan | Post-MVP / keputusan terpisah |
+|---|---|---|
+| BP-ACA-01 penempatan siswa | Penempatan rombel efektif tanggal dan histori perpindahan dalam unit | Transfer lintas tenant, shared person, mass promotion kompleks |
+| BP-ACA-03 sesi | Sesi manual/minimal sebagai konteks transaksi; roster peserta snapshot | LMS, learning content lengkap, timetable engine |
+| BP-ATT-01 presensi | Roster snapshot, status dasar, submit, correction request/revision, audit dan rekap sederhana | Offline sync, biometric/GPS/QR default, advanced attendance analytics |
+| BP-ASM-01 asesmen | Definisi asesmen dasar, snapshot peserta, result status, nilai numerik, finalisasi sederhana, rekap | Rubrik kompleks, multi-stage moderation, remedial/retake, multiple attempts, formal report card, portal publication |
+| BP-ASM-02 pelaporan | Rekap operasional sederhana dari data yang telah difinalisasi | Rapor formal, transcript, publikasi dan arsip resmi |
+
+### 10.1 Snapshot dan effective date
+- Roster sesi presensi dan peserta asesmen dibentuk dari enrollment serta penempatan rombel yang berlaku pada tanggal transaksi.
+- Snapshot peserta tidak berubah karena perpindahan rombel atau perubahan master sesudah tanggal transaksi.
+- Attendance dan Assessment tidak membuat sumber kebenaran kedua untuk enrollment atau class group.
+- Record peserta yang tidak termasuk snapshot tidak dapat menerima presensi/nilai pada sesi/asesmen tersebut tanpa workflow koreksi snapshot yang memiliki permission, reason, actor, dan audit.
+
+### 10.2 Hasil penilaian minimum
+- Hasil membedakan pending, scored, absent, dan exempt; angka nol hanya direpresentasikan sebagai nilai numerik 0 pada status scored.
+- Pending/absent/exempt tidak diberi angka nol otomatis.
+- Versi aturan/skala yang dipakai harus dapat diidentifikasi dan tidak berubah retroaktif.
+- Nilai finalized hanya dapat diubah melalui jalur revisi yang tercatat.
+- Tidak ada formula, skala, bobot, ambang ketuntasan, atau format rapor universal yang ditetapkan oleh dokumen ini.
+
+### 10.3 Koreksi presensi
+- Correction request, keputusan approval/rejection, dan penerapan revision adalah state yang berbeda.
+- Approval belum mengubah status presensi sampai revision diterapkan secara atomik.
+- Revision menyimpan before/after, actor, timestamp, alasan, dan referensi correction; retry tidak boleh membuat revision ganda.
+- Kewajiban approval dan lock window tetap memerlukan keputusan kebijakan unit.
+
+### 10.4 Traceability awal
+| Process ID | Entitas/data utama | Owner authoritative | Test family |
+|---|---|---|---|
+| BP-ACA-01 | StudentEnrollment, StudentClassPlacement, ClassGroup, TeachingAssignment | Student + Academic sesuai ownership matrix | LD-01—03, LD-13 |
+| BP-ACA-03 | AttendanceSession, AttendanceSessionParticipant | Attendance; referensi Student/Academic | LD-04—06, LD-16 |
+| BP-ATT-01 | AttendanceRecord, AttendanceRecordRevision, AttendanceCorrection | Attendance | LD-05—06, LD-11—12 |
+| BP-ASM-01 | AssessmentDefinition, AssessmentParticipant, StudentScore, score history | Assessment; referensi Student/Academic | LD-07—10, LD-16 |
+| BP-HR-01 dependency | EmployeeProfile, EmployeePlacement | HR; Academic owns assignments | LD-13 |
+
+Test family dirinci pada LOGICAL-ERD-MVP.md §16.10. Traceability ini belum menggantikan acceptance criteria per layar/API atau UAT stakeholder.
+

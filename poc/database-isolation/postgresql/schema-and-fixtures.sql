@@ -1,4 +1,5 @@
 -- SINAU database isolation PoC: PostgreSQL 18
+-- Disposable test schema only; never point this script at production.
 -- Destructive reset: run only in a disposable PoC database.
 DROP SCHEMA IF EXISTS sinau_poc CASCADE;
 CREATE SCHEMA sinau_poc;
@@ -68,6 +69,10 @@ CREATE TABLE unit_scoped_records (
         REFERENCES education_units (tenant_id, id) ON DELETE RESTRICT
 );
 
+-- Query index for common unit-scoped pagination and benchmark queries.
+CREATE INDEX unit_records_scope_id_idx
+    ON unit_scoped_records (tenant_id, unit_id, id DESC);
+
 -- Synthetic fixture only; no real school or personal data.
 INSERT INTO tenants (id, tenant_type, status) VALUES
     (1, 'foundation', 'active'),
@@ -76,6 +81,7 @@ INSERT INTO tenants (id, tenant_type, status) VALUES
 INSERT INTO education_units (id, tenant_id, unit_code, name) VALUES
     (101, 1, 'A-SD', 'Unit A1 - Sekolah Umum'),
     (102, 1, 'A-MI', 'Unit A2 - Madrasah'),
+    (103, 1, 'A-SMK', 'Unit A3 - SMK'),
     (201, 2, 'B-SMP', 'Unit B1 - Mandiri');
 
 INSERT INTO users (id, email) VALUES
@@ -96,7 +102,8 @@ INSERT INTO unit_memberships (id, tenant_id, unit_id, user_id, status) VALUES
 INSERT INTO unit_scoped_records (id, tenant_id, unit_id, record_key, payload) VALUES
     (10001, 1, 101, 'fixture-1', 'synthetic record A1'),
     (10002, 1, 102, 'fixture-2', 'synthetic record A2'),
-    (20001, 2, 201, 'fixture-3', 'synthetic record B1');
+    (10003, 1, 103, 'fixture-3', 'synthetic record A3'),
+    (20001, 2, 201, 'fixture-4', 'synthetic record B1');
 
 -- Align identity sequences after explicit synthetic fixture IDs.
 SELECT setval(pg_get_serial_sequence('tenants', 'id'), (SELECT MAX(id) FROM tenants));
@@ -106,7 +113,7 @@ SELECT setval(pg_get_serial_sequence('tenant_memberships', 'id'), (SELECT MAX(id
 SELECT setval(pg_get_serial_sequence('unit_memberships', 'id'), (SELECT MAX(id) FROM unit_memberships));
 SELECT setval(pg_get_serial_sequence('unit_scoped_records', 'id'), (SELECT MAX(id) FROM unit_scoped_records));
 
--- Sanity query: expected row counts are tenants=2, units=3, records=3.
+-- Sanity query: expected row counts are tenants=2, units=4, records=4.
 SELECT 'tenants' AS table_name, COUNT(*) AS row_count FROM tenants
 UNION ALL SELECT 'education_units', COUNT(*) FROM education_units
 UNION ALL SELECT 'unit_scoped_records', COUNT(*) FROM unit_scoped_records;

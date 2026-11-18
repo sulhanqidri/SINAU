@@ -723,3 +723,14 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Never pass the literal word `NOMOR_XID`; use the numeric value returned by `pg_current_xact_id()`. Do not run SQL commands at Bash prompt; `\\copy` and verifier SELECT must be entered at the psql prompt in Terminal A.
 - No token/key was displayed or copied to persistent disk; no persistent database objects or RLS policy changed during the failed attempt.
 - Safety: only `sinau_design_poc`; no application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (valid signed token and MAC tampering tests passed)
+- User completed the external signer/verifier round trip using synthetic key `poc-k1` and PostgreSQL top-level XID `806`.
+- The verifier returned exactly one row with the expected synthetic claims: actor `90000000-0000-0000-0000-000000000001`, tenant A `00000000-0000-0000-0000-000000000001`, and unit A1 `10000000-0000-0000-0000-000000000001`.
+- Reusing the same valid token in the same transaction returned `valid_token_reusable=true`.
+- Mutating the final MAC character caused zero verifier rows; `tampered_mac_rejected=true`.
+- Transaction was rolled back and temporary token files were removed from `/run`. Token and secret values were not printed in the submitted output.
+- This confirms Python HMAC-SHA256 signer and PostgreSQL pgcrypto verifier interoperability for the tested token, key lookup, audience, current XID, expiry window, and claim parser. It does not yet demonstrate expiry rejection, revoked-key rejection, audience mismatch, cross-transaction replay rejection, or real membership verification. The actor/tenant/unit values are synthetic and membership is not checked by verifier; backend membership validation remains a prerequisite.
+- Next: extend PoC signer with a bounded `--ttl-seconds` option (1..300) while keeping default 240, then test a 1-second token after expiry. Test key revocation within controlled transaction with key-store update performed as `sinau_context_owner`, verify rejection, then restore `revoked_at=NULL` and confirm active key again. Finally, sign token for one XID, end that transaction, begin a fresh transaction with a distinct XID and verify same token returns zero rows. Keep token only in `/run` until replay test completes; remove all temporary copies afterward.
+- Do not change RLS policies until expiry, revocation and cross-transaction replay tests pass. No policy was modified in this checkpoint.
+- Safety: only `sinau_design_poc`; no application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik touched. PR #1 remains Draft/open/unmerged.

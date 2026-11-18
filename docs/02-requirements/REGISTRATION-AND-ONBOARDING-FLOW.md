@@ -174,9 +174,9 @@ Status tenant operasional:
 - `draft`: registrasi belum lengkap.
 - `active`: akses mengikuti subscription, entitlement, dan verification policy.
 - `suspended`: akses operasional dibatasi berdasarkan kebijakan.
-- `closed`: tenant ditutup sesuai proses retensi/ekspor data.
+- `closed`: tenant ditutup sesuai proses retensi/ekspor data.\n- `suspended`: akses operasional dibatasi; alasan/sumber penangguhan wajib dicatat (misalnya verification deadline). Akses terbatas untuk penyelesaian verifikasi dan pengelolaan data tetap tersedia.
 
-Status verifikasi tenant/unit: `not_started`, `pending`, `verified`, `requires_changes`, `rejected`.
+Status verifikasi tenant/unit: `not_started`, `pending`, `verified`, `requires_changes`, `rejected`.\n\nMasa tenggang verifikasi adalah 7 hari kalender sejak onboarding berhasil diselesaikan (`registration_completed_at`). Sistem menampilkan tenggat dan mengirim pengingat. Jika persyaratan wajib belum dilengkapi sampai akhir hari ke-7, tenant otomatis `suspended`. Jika dokumen sudah diserahkan tepat waktu dan hanya menunggu pemeriksaan internal, tenant tetap `pending_verification` dan tidak disuspend karena antrean internal. Tenant suspended karena verifikasi hanya mendapat akses terbatas untuk login, melengkapi dokumen/identifier, melihat alasan, menghubungi dukungan, serta mengakses/mengekspor data sesuai hak. Data tidak dihapus. Setelah lolos verifikasi, tenant dapat diaktifkan kembali tanpa otomatis mengubah status subscription.
 
 Status subscription mengikuti lifecycle billing tersendiri, misalnya `trial`, `active`, `past_due`, `suspended`, dan `cancelled/expired`. Tenant dapat terverifikasi tetapi subscription tidak aktif, atau sebaliknya. Policy akses harus mengevaluasi keduanya secara eksplisit.
 
@@ -298,7 +298,7 @@ Skema di atas adalah model konseptual, bukan perintah membuat migration final. N
 8. Tenant foundation maupun independent provider dapat menambah unit berdasarkan entitlement paket.
 9. Dokumen legal foundation boleh dilengkapi setelah registrasi dan status verifikasinya terlihat.
 10. NPSN/NSM boleh kosong saat registrasi; identifier yang diberikan divalidasi tanpa membocorkan data pihak lain.
-11. Verification status dan subscription status dapat berubah secara independen.
+11. Verification status dan subscription status dapat berubah secara independen.\n12. Tenant yang belum melengkapi persyaratan wajib sampai 7 hari kalender setelah pendaftaran selesai otomatis suspended.\n13. Tenant yang sudah menyerahkan persyaratan tepat waktu tidak disuspend karena keterlambatan pemeriksaan internal.\n14. Tenant suspended tetap dapat login secara terbatas untuk menyelesaikan verifikasi; data tidak dihapus.
 12. Downgrade tidak menghapus unit atau data; penambahan unit baru dibatasi jika melewati entitlement.
 13. Kegagalan saat pembuatan tenant/unit/membership tidak meninggalkan data parsial.
 14. Tenant/unit yang pending verification dibatasi sesuai kebijakan.
@@ -307,6 +307,6 @@ Skema di atas adalah model konseptual, bukan perintah membuat migration final. N
 
 ## 10. Kebijakan yang sudah diputuskan dan hal terbuka
 
-Sudah diputuskan dalam ADR-004: dokumen legal yayasan dapat menyusul pada tahap verifikasi; NPSN/NSM dapat dilengkapi kemudian; kedua tipe tenant dapat memiliki multi-unit berdasarkan entitlement paket; verification dan subscription adalah status terpisah; downgrade tidak menghapus data/unit dan memblokir penambahan unit baru bila kuota terlampaui.
+Sudah diputuskan dalam ADR-004: dokumen legal yayasan dapat menyusul pada tahap verifikasi; NPSN/NSM dapat dilengkapi kemudian; masa tenggang verifikasi 7 hari kalender sejak pendaftaran selesai dan tenant otomatis suspended bila persyaratan wajib belum dilengkapi; tenant yang sudah menyerahkan persyaratan tepat waktu tidak disuspend karena antrean internal; kedua tipe tenant dapat memiliki multi-unit berdasarkan entitlement paket; verification dan subscription adalah status terpisah; downgrade tidak menghapus data/unit dan memblokir penambahan unit baru bila kuota terlampaui.
 
 Masih terbuka: daftar dokumen legal dan sumber verifikasi; sumber otoritatif/aturan keunikan identifier; harga, nama paket, masa trial, dan kuota komersial; masa tenggang serta mode akses unit yang melebihi kuota setelah downgrade; fitur yang wajib menunggu verifikasi; aturan pemilik beberapa tenant dan persetujuan transfer unit.

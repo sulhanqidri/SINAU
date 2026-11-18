@@ -38,3 +38,23 @@ erDiagram
 - Tabel unit-scoped harus mempunyai scope terverifikasi dan constraint mencegah relasi lintas tenant.
 - Tabel operasional memiliki referensi periode eksplisit.
 - Transfer unit melalui workflow terotorisasi dan audit.
+
+
+## Cakupan dan batas interpretasi diagram
+
+Diagram di atas adalah peta relasi konseptual awal, bukan skema final. Baseline MVP yang disetujui mencakup tenant/unit, identity/access, subscription/entitlement, verification, konfigurasi institusi dan periode, kurikulum/mapel, student/guardian/enrollment, HR minimum, academic organization/assignment, attendance, assessment dasar, import/export, serta audit/file.
+
+Entitas atau relasi untuk timetable engine lengkap, LMS, formal report-card workflow, PPDB end-to-end, finance, dan lifecycle siswa lanjutan berada pada roadmap/post-MVP. Keberadaannya pada model lama atau diagram lanjutan tidak menjadikannya bagian MVP.
+
+### Domain ownership yang harus dipertahankan
+
+- HR memiliki EmployeeProfile dan riwayat status/placement dasar.
+- Academic Organization memiliki ClassGroup, TeachingAssignment, dan HomeroomAssignment; assignment merujuk profil pegawai HR.
+- Identity & Access memiliki User, TenantMembership, UnitMembership, Role, Permission, dan assignment role. Profil pegawai/siswa tidak otomatis menjadi akun.
+- Student memiliki StudentProfile, relasi wali, dan StudentEnrollment.
+- Attendance dan Assessment harus merujuk enrollment/periode yang benar.
+- Subscription/Entitlement, Verification, dan operational lifecycle merupakan concern terpisah.
+
+### Batas teknis
+
+Belum ditentukan kolom final, primary key strategy, nullability, unique constraints, composite foreign keys, RLS policy, cascade behavior, soft delete, retention, atau physical partitioning. Semua itu menunggu logical ERD, data dictionary, threat/privacy review, dan hasil PoC PostgreSQL.

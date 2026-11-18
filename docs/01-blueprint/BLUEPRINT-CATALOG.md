@@ -73,6 +73,9 @@ Sebuah blueprint dianggap lengkap bila memuat tujuan, ruang lingkup, aktor, alur
 
 ## 4. Education domain blueprint
 
+**Pemisahan status wajib:** keberadaan Business Process Specification (BPS) draft hanya berarti alur/kontrol bisnis telah dideskripsikan. Itu tidak berarti module blueprint, data model, UI, API, test plan, regulasi, atau implementasi domain telah selesai/diterima. Status `Not started` tetap benar untuk module blueprint yang belum dibuat meskipun BPS terkait tersedia. Scope MVP mengikuti `MVP-SCOPE.md` dan checkpoint Phase 4 di `PROJECT-PROGRESS.md`, bukan sekadar daftar domain atau kelengkapan BPS.
+
+
 Setiap domain di bawah perlu memiliki module specification tersendiri, bukan hanya daftar fitur. Semua alur harus memperhatikan foundation multi-unit dan independent provider, sekolah umum/madrasah, jenjang, periode efektif, dan kewenangan.
 
 | Domain | Cakupan minimum | Status awal |
@@ -80,19 +83,19 @@ Setiap domain di bawah perlu memiliki module specification tersendiri, bukan han
 | Organization & institution master | Profil lembaga, unit, struktur, identitas dan legalitas | In progress |
 | Academic calendar & periods | Tahun ajaran, semester, kalender, hari efektif, periode | Not started |
 | Curriculum & learning structure | Kurikulum berversi, struktur, mapel, kelompok mapel, program | Not started |
-| Admission / PPDB | Gelombang, pendaftaran, seleksi, daftar ulang, enrollment | Not started |
-| Student master & enrollment | Identitas, wali, riwayat sekolah, status, mutasi, alumni | In progress |
+| Admission / PPDB | Gelombang, pendaftaran, seleksi, daftar ulang, enrollment | Not started — process spec draft tersedia; post-MVP, module blueprint belum dimulai |
+| Student master & enrollment | Identitas, wali, enrollment, status dasar, riwayat; mutasi/alumni lanjutan | In progress — process spec draft tersedia; minimum MVP dipisah dari lifecycle lanjutan, module blueprint belum lengkap |
 | Parent/guardian relationship | Relasi wali, hak akses, komunikasi, persetujuan | Not started |
 | Class & homeroom | Rombel, wali kelas, kapasitas, perpindahan | Not started |
-| Teacher & staff HR | Pegawai, penugasan, kompetensi, kontrak, kehadiran pegawai | Not started |
-| Timetable & scheduling | Jadwal ruang, guru, rombel, benturan | Not started |
-| Attendance | Presensi siswa/guru, izin, sakit, koreksi, rekap | Not started |
-| Learning delivery | Materi, aktivitas belajar, tugas, praktik, LMS boundary | Not started |
-| Assessment & grading | Asesmen, bobot, skala, remedial, pengesahan nilai | Not started |
-| Report cards & academic records | Rapor, transkrip, arsip, koreksi, cetak | Not started |
+| Teacher & staff HR | Profil pegawai minimum, status, penempatan; HRIS lanjutan terpisah | Not started — process spec draft tersedia; hanya subset HR minimum kandidat MVP, module blueprint belum dimulai |
+| Timetable & scheduling | Jadwal ruang, guru, rombel, benturan | Not started — process spec draft tersedia; timetable engine post-MVP, module blueprint belum dimulai |
+| Attendance | Presensi siswa, koreksi, audit, rekap sederhana | Not started — process spec draft tersedia; scope minimum MVP belum menjadi module blueprint |
+| Learning delivery | Sesi minimal untuk konteks transaksi; materi/tugas/LMS lanjutan | Not started — process spec draft tersedia; learning delivery lengkap post-MVP, module blueprint belum dimulai |
+| Assessment & grading | Penilaian dasar terkonfigurasi dan rekap sederhana; workflow lanjutan | Not started — process spec draft tersedia; module blueprint belum dimulai |
+| Report cards & academic records | Rapor formal, transkrip, publikasi, arsip, koreksi | Not started — process spec draft tersedia; formal report workflow post-MVP, module blueprint belum dimulai |
 | Student affairs & counseling | BK, pelanggaran, prestasi, kegiatan, pembinaan | Not started |
 | Internship / vocational | PKL/praktik kerja, mitra, pembimbing, penilaian SMK/MAK | Not started |
-| School finance | Tagihan, pembayaran, potongan, beasiswa, kas, jurnal, anggaran | Not started |
+| School finance | Tagihan, pembayaran, potongan, beasiswa, kas, jurnal, anggaran | Not started — Candidate/post-MVP; belum ada spesifikasi rinci atau keputusan prioritas |
 | Procurement & budget planning | Pengadaan, persetujuan, RKS/RKT/RKAS sesuai kebutuhan | Not started |
 | Library | Koleksi, eksemplar, sirkulasi, denda, katalog | Not started |
 | Inventory & assets | Aset, lokasi, kondisi, pemeliharaan, mutasi | Not started |

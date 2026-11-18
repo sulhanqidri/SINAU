@@ -157,6 +157,8 @@ Transisi dan nama status final perlu diselaraskan dengan domain model serta kebu
 
 ## 5. BP-ACA-02 — Penyusunan dan publikasi jadwal
 
+> **Scope release:** engine penyusunan, validasi konflik, approval, versioning, dan publikasi jadwal lengkap adalah Phase/post-MVP. Kebutuhan MVP cukup memiliki konteks sesi sederhana untuk presensi/asesmen dasar; jangan menjadikan timetable engine sebagai dependency wajib MVP.
+
 ### 5.1 Alur utama
 1. Admin akademik memilih unit, periode, dan versi struktur aktif.
 2. Admin menetapkan kalender operasional, hari belajar, slot waktu, durasi, jeda, serta pengecualian hari libur.
@@ -195,6 +197,8 @@ Transisi dan nama status final perlu diselaraskan dengan domain model serta kebu
 - Kegagalan publikasi tidak meninggalkan jadwal setengah aktif.
 
 ## 6. BP-ACA-03 — Pelaksanaan pembelajaran dan sesi
+
+> **Scope release:** learning delivery lengkap (materi, aktivitas, tugas, sumber belajar, umpan balik, LMS) adalah post-MVP. Untuk MVP, sesi hanya boleh menjadi konteks operasional minimal bila diperlukan untuk mencatat presensi/asesmen; tidak mencakup LMS.
 
 ### 6.1 Alur utama
 1. Guru membuka daftar jadwal hari ini untuk assignment yang aktif.
@@ -389,6 +393,8 @@ Hindari menyimpan formula dinamis yang dieksekusi sebagai kode bebas. Formula ha
 
 ## 9. BP-ASM-02 — Review, pengesahan, rapor, dan publikasi hasil belajar
 
+> **Scope release:** workflow review/pengesahan formal, snapshot rapor resmi, template rapor, publikasi privat, amendment, dan arsip rapor adalah post-MVP kecuali diputuskan melalui change request. MVP hanya mencakup penilaian dasar yang dapat dikonfigurasi, rekap hasil belajar sederhana, dan ekspor sesuai permission sebagaimana MVP-SCOPE.md.
+
 ### 9.1 Alur utama
 1. Setelah nilai mapel dikirim, sistem memeriksa kelengkapan dan status review.
 2. Guru memperbaiki item yang dikembalikan; setiap perubahan dicatat.
@@ -576,3 +582,50 @@ Dokumen ini belum menjadi spesifikasi implementasi final. Sebelum migration/doma
 
 ## 16. Riwayat perubahan
 - 2026-11-18 — Draft 0.1.0 dibuat sebagai spesifikasi proses awal BP-ACA-01—03, BP-ATT-01, BP-ASM-01—02. Belum melalui validasi stakeholder atau verifikasi regulasi.
+
+
+## 17. Batas release MVP dan ownership penugasan (remediasi AUD-04/AUD-05)
+
+### 17.1 Matriks scope proses akademik
+
+| Process ID | Cakupan MVP | Cakupan Phase/post-MVP |
+|---|---|---|
+| BP-ACA-01 | Kelas/tingkat, rombel, mata pelajaran/kelompok yang diperlukan, penempatan siswa, referensi guru, TeachingAssignment/HomeroomAssignment minimum per unit/periode | Versi struktur lanjutan, multi-program kompleks, approval berlapis, optimasi beban dan variasi lanjutan sesuai discovery |
+| BP-ACA-02 | Tidak wajib ada timetable engine. MVP boleh membuat konteks sesi sederhana/manual bila diperlukan presensi/asesmen | Penyusunan jadwal periodik, slot/ruang, deteksi konflik otomatis, approval, publikasi, revisi, notifikasi jadwal |
+| BP-ACA-03 | Sesi minimal sebagai referensi transaksi presensi/asesmen bila diperlukan; bukan modul learning delivery | Materi, aktivitas, tugas, praktik, sumber belajar, umpan balik, LMS dan learner portal |
+| BP-ATT-01 | Presensi siswa per kelas/sesi, status, pencatat/waktu, koreksi beralasan, audit, rekap sederhana | Otomasi/analitik/notifikasi lanjutan mengikuti keputusan |
+| BP-ASM-01 | Penilaian dasar yang dapat dikonfigurasi dan rekap sederhana; formula tidak dikunci universal | Moderasi, remedial kompleks, analitik, workflow lanjutan sesuai kebutuhan |
+| BP-ASM-02 | Tidak ada kewajiban workflow rapor formal pada MVP. Output sederhana/ekspor berasal dari BP-ASM-01 | Review/pengesahan formal, snapshot rapor resmi, template lintas jenjang, publikasi privat, amendment dan arsip rapor |
+
+Pemetaan ini mengikuti MVP-SCOPE.md yang menjadi sumber release boundary. Label Core/Phase pada process map tidak boleh mengalahkan batas eksplisit MVP. Perubahan scope memerlukan change request dan persetujuan product owner.
+
+### 17.2 Ownership TeachingAssignment dan HomeroomAssignment
+
+- Academic domain BP-ACA-01 adalah satu-satunya system of record untuk TeachingAssignment dan HomeroomAssignment.
+- Assignment selalu terikat ke unit, periode/tahun ajaran, subject offering atau rombel/kelompok, peran, dan tanggal efektif.
+- Assignment mereferensikan EmployeeProfile milik HR; academic domain tidak membuat salinan profil pegawai.
+- HR mengelola identitas/profil, employment status, dan organization placement. HR tidak mengelola atau mengedit assignment akademik.
+- Employment status dapat menjadi eligibility guard. Perubahan HR tidak boleh menghapus histori sesi, presensi, nilai, atau assignment.
+- Perubahan guru dilakukan dengan mengakhiri assignment lama dan membuat assignment baru dengan tanggal efektif, alasan, dan audit.
+- Akses aplikasi tetap berasal dari BP-PLT-05; assignment adalah relationship/eligibility untuk resource akademik, bukan pengganti role/membership.
+
+### 17.3 Acceptance criteria scope dan ownership
+
+- AC-ACA-SCOPE-01: MVP dapat menyelesaikan setup kelas/rombel/mapel/assignment dasar tanpa timetable engine lengkap.
+- AC-ACA-SCOPE-02: MVP dapat mencatat presensi dengan konteks sesi minimal tanpa LMS.
+- AC-ACA-SCOPE-03: MVP menyediakan penilaian dasar dan rekap sederhana tanpa mensyaratkan rapor formal.
+- AC-ACA-SCOPE-04: timetable engine, learning delivery lengkap, dan rapor formal tidak dibangun tanpa change request.
+- AC-ACA-OWN-01: TeachingAssignment/HomeroomAssignment hanya dimiliki dan ditulis oleh academic domain.
+- AC-ACA-OWN-02: academic assignment mereferensikan EmployeeProfile tanpa duplikasi profil pegawai.
+- AC-ACA-OWN-03: perubahan employee status tidak menghapus transaksi akademik historis.
+- AC-ACA-OWN-04: assignment tidak memberikan application role atau membership secara otomatis.
+
+Test minimum tambahan:
+1. Presensi MVP berjalan dengan sesi manual/minimal tanpa jadwal periodik.
+2. Timetable engine tidak menjadi dependency build/test MVP.
+3. Guru mengajar lebih dari satu rombel/mapel dengan assignment efektif yang tidak overlap secara tidak sah.
+4. HR mengubah employee status; assignment dan transaksi historis tetap terjaga.
+5. Modul akademik tidak dapat mengubah field EmployeeProfile yang dimiliki HR.
+6. HR tidak dapat membuat/mengubah TeachingAssignment.
+7. User tanpa membership/permission yang tepat tidak dapat mengakses data hanya karena memiliki assignment referensi.
+8. Ekspor rekap sederhana tidak menghasilkan rapor resmi atau status pengesahan palsu.

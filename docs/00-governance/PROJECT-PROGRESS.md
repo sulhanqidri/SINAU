@@ -566,3 +566,15 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - This is a PoC setup only, not a production key-management endorsement. HMAC key will need a secure backend secret-manager source and a protected verifier copy in PostgreSQL; DBA/superuser and host administrator remain trusted.
 - No database objects changed in this checkpoint.
 - Safety: only `sinau_design_poc`; do not touch application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik. PR #1 stays Draft/open/unmerged.
+
+### RLS PoC checkpoint — 2026-11-18 (isolated pgcrypto installation succeeded)
+- User menjalankan setup dalam satu transaksi pada database `sinau_design_poc`; transaksi COMMIT berhasil.
+- Role `sinau_context_owner` berhasil dibuat: NOLOGIN, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOINHERIT, NOREPLICATION, NOBYPASSRLS.
+- Schema `sinau_crypto` dibuat dengan owner `postgres`; schema `sinau_private` dibuat dengan owner `sinau_context_owner`.
+- Extension `pgcrypto` versi 1.4 terpasang hanya di `sinau_design_poc`, schema `sinau_crypto`; owner extension dan owner schema adalah `postgres`.
+- Fungsi `sinau_crypto.hmac(text,text,text)` dan `sinau_crypto.hmac(bytea,bytea,text)` dimiliki postgres. EXECUTE diberikan kepada `sinau_context_owner`; pemeriksaan privilege menyatakan role tersebut dapat execute dan `sinau_rls_test` tidak dapat execute. Schema crypto USAGE hanya diberikan kepada context owner selain owner postgres.
+- Schema private hanya memberi owner `sinau_context_owner` hak USAGE/CREATE; PUBLIC, `sinau_poc`, dan `sinau_rls_test` tidak diberi akses. Belum ada secret atau table/function verifier.
+- Pemeriksaan role mengonfirmasi `sinau_context_owner` NOLOGIN, bukan superuser, bukan CREATEDB/CREATEROLE, dan bukan BYPASSRLS.
+- Berikutnya: jalankan HMAC-SHA256 bytea primitive test memakai RFC 4231 Test Case 1 (key 0b x 20 bytes, data "Hi There") sebagai `sinau_context_owner`; cocokkan hasil dengan digest acuan. Ini hanya tes fungsi tanpa secret/token permanen dan tanpa perubahan database. Setelah tes kriptografi lulus, baru rancang payload canonical dan key lifecycle; belum membuat verifier atau mengubah RLS policies.
+- Catatan trust boundary: PostgreSQL `pgcrypto` menjalankan operasi di server database; host administrator dan database superuser tetap tepercaya. Signed context mengurangi pemalsuan oleh runtime role yang tidak dapat membaca key, bukan kompromi DBA/host.
+- Safety: hanya `sinau_design_poc` / role PoC. Jangan sentuh database aplikasi `sinau`, role `sinau_app`, SQLRadius, atau MikroTik. PR #1 tetap Draft/open/unmerged.

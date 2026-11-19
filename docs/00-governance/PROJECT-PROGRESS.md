@@ -989,3 +989,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next: perform a read-only environment check for an installed/configured PgBouncer or other pooler, without reading credentials or changing services. Do not create a pooler or alter the PostgreSQL topology before the deployment choice is approved.
 - No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, application migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.
 
+
+### Read-only pooler inventory started — 2026-11-19
+- Server check output: `pgbouncer` binary not found; `pgcat` and `odyssey` binaries not found; `systemctl is-active pgbouncer.service` returned `inactive`; no matching pooler service unit was listed.
+- The command intended to inspect listeners on ports 6432/6433 was truncated during paste; no valid `ss` output was captured. Therefore the inventory is partial and does not yet establish that no other process is listening on those ports.
+- Next: run the standalone read-only command `sudo ss -lntp | grep -E ':(6432|6433)\\b' || echo "Tidak ditemukan listener pada port 6432/6433."` and report its exact output. Do not install/configure PgBouncer or change PostgreSQL services/topology yet.
+- No pooler packages were installed and no service/configuration was changed. PR #1 remains Draft/open/unmerged; production database `sinau`, role `sinau_app`, SQLRadius, and MikroTik remain untouched.
+

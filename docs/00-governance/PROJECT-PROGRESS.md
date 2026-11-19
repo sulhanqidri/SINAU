@@ -1157,3 +1157,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Before actual merge, adjust `.env.example` from SQLite to PostgreSQL application PoC values: DB_CONNECTION=pgsql, DB_HOST=127.0.0.1, DB_PORT=5432, DB_DATABASE=sinau_app_poc, username placeholder and blank/placeholder password. Verify `config/session.php` uses database session and supports SESSION_CONNECTION; inspect whether migration creates `sessions`, `cache`, and `jobs` tables. CI must continue overriding DB_CONNECTION and DB_DATABASE to SQLite with an absolute workspace path.
 - No actual rsync performed, no app dependencies installed, and no migration. Production, `sinau_design_poc`, SQLRadius and MikroTik untouched.
 
+
+### Session migration and PostgreSQL example pre-merge review — 2026-11-19
+- Laravel 13 starter config confirms session driver default is `database`, session connection reads `SESSION_CONNECTION`, and the users migration creates the `sessions` table alongside users/password_reset_tokens. Cache migration creates `cache` and `cache_locks`; jobs migration creates jobs, job_batches, failed_jobs. Therefore database session/cache/queue migrations exist in the scaffold.
+- Before merge, set `.env.example`: `DB_CONNECTION=pgsql`, `DB_HOST=127.0.0.1`, `DB_PORT=5432`, `DB_DATABASE=sinau_app_poc`, `DB_USERNAME=sinau_app_poc_app` as a proposed placeholder role name, `DB_PASSWORD=` empty pending provisioning, and `SESSION_CONNECTION=pgsql`. Preserve `SESSION_DRIVER=database`, `SESSION_LIFETIME=120`, `SESSION_DOMAIN=null`, `SESSION_HTTP_ONLY=true`, `SESSION_SAME_SITE=lax`. Keep `SESSION_ENCRYPT=false` until compatibility is tested, and set `SESSION_SECURE_COOKIE=true` only in HTTPS environment configuration.
+- Important CI correction: because `.env.example` will explicitly set `SESSION_CONNECTION=pgsql`, GitHub Actions must override `SESSION_CONNECTION=sqlite` in job env in addition to DB_CONNECTION/DB_DATABASE. Use absolute `$`{{ github.workspace }} path for DB_DATABASE and `touch "$DB_DATABASE"` before composer setup. This prevents CI session storage from reaching app PostgreSQL.
+- Updated runbook with the PostgreSQL example and explicit isolated session override for CI in commit `4aceff4bd11a474aa61edf93d8e8535fe5095fb9`.
+- No `.env.example` edit, actual rsync, dependency installation, PostgreSQL DB/role creation, or migration has been performed yet.
+

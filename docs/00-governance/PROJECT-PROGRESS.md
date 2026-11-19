@@ -1091,3 +1091,8 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Updated `APP-BOOTSTRAP-RUNBOOK.md` to require removing the `@chisel-passkeys` block in addition to suppressing package routes (commit `26321f9d30fe0f4ec72b138fa957dad4c9d3dea0`).
 - Next local action: remove exactly the marked `@chisel-passkeys` block from `routes/settings.php`, regenerate Wayfinder, verify `route:list --path=passkey` is empty and `route:list --name=two-factor` still shows the expected endpoints. Then update local checkout before subsequent work. No database migrations or PostgreSQL changes.
 
+
+### Passkeys discovery route marker mismatch — 2026-11-19
+- User's local `routes/settings.php` does not contain the `@chisel-passkeys` marker comments expected by the initial safe-delete script; that script aborted and made no change. The discovery route remains at line 29 and generated Wayfinder still has `resources/js/routes/well-known/index.ts`.
+- Next: remove exactly the one route definition bounded by `Route::get('.well-known/passkey-endpoints'` and `})->name('well-known.passkeys');`, after asserting each boundary occurs exactly once; then lint, clear route cache, verify discovery route is absent and all nine TOTP routes persist, and only then regenerate Wayfinder.
+

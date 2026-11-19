@@ -1,0 +1,148 @@
+# Runbook Bootstrap Aplikasi SINAU
+
+- **Status:** siap dijalankan setelah pemeriksaan host
+- **Tanggal:** 2026-11-19
+- **Stack:** Laravel 13, PHP 8.4, official Vue starter kit, Inertia 3, Vue 3, TypeScript, Tailwind 4, Fortify, PostgreSQL 18.
+- **Keputusan:** ADR-005 dan ADR-008.
+
+## 1. Prinsip resource dan keselamatan
+
+- Tidak perlu server/VPS baru. Gunakan host yang tersedia hanya bila pemeriksaan resource dan runtime lulus.
+- Jangan memasang PgBouncer, PgBouncer/PgCat/Odyssey, Redis, atau service tambahan untuk bootstrap.
+- Jangan menjalankan perintah di /var/www/sqlradius atau mengubah konfigurasi SQLRadius.
+- Jangan gunakan database sinau_design_poc sebagai database aplikasi. Database tersebut khusus fixture dan tes RLS/context.
+- Database aplikasi awal harus terpisah (nama usulan sinau_app_poc) pada PostgreSQL server yang sama. Pembuatan database/role menunggu preflight dan instruksi tahap berikutnya.
+- Jangan jalankan migration terhadap database produksi sinau atau gunakan role produksi sinau_app.
+- Jangan commit .env, APP_KEY, password, session cookie, mail credential, atau signing key.
+- Tahap ini hanya membuat application scaffold dan smoke test framework/auth. Belum membuat migration domain tenant, unit, membership, role, permission, atau akademik.
+
+## 2. Pemeriksaan host read-only
+
+Sebelum mengunduh dependency, periksa PHP, extension PostgreSQL, Composer, Node, npm, Git, storage, dan memory. Tidak ada perintah instalasi pada tahap ini.
+
+Skrip pemeriksaan: scripts/check-sinau-bootstrap-host.sh.
+
+Jalankan di Bash server:
+
+```bash
+cd ~/sinau-poc || exit 1
+
+curl -fsSL \
+  https://raw.githubusercontent.com/sulhanqidri/SINAU/feature/phase-0-requirements-blueprint/scripts/check-sinau-bootstrap-host.sh \
+  -o /tmp/check-sinau-bootstrap-host.sh
+
+bash /tmp/check-sinau-bootstrap-host.sh
+```
+
+Kirim seluruh output sebelum instalasi. Hentikan bila PHP bukan 8.4.x, pdo_pgsql tidak aktif, Composer/Node/npm tidak tersedia, atau disk/memory tidak memadai. Jangan otomatis mengganti runtime global karena host dapat menjalankan layanan lain.
+
+## 3. Siapkan checkout repository
+
+Gunakan checkout terpisah dari direktori PoC dan SQLRadius:
+
+```bash
+git clone --branch feature/phase-0-requirements-blueprint \
+  https://github.com/sulhanqidri/SINAU.git \
+  "$HOME/SINAU"
+```
+
+Jika direktori $HOME/SINAU sudah ada, jangan menimpanya. Periksa branch, status, dan perubahan lokal terlebih dahulu.
+
+## 4. Generate scaffold resmi (setelah preflight disetujui)
+
+Laravel 13 menyediakan official starter kit Vue melalui Laravel installer. Perintah resmi pemasangan installer bila belum tersedia:
+
+```bash
+composer global require laravel/installer
+```
+
+Setelah installer tersedia, buat scaffold di direktori sementara agar dokumentasi yang sudah ada tidak tertimpa:
+
+```bash
+laravel new "$HOME/sinau-laravel-bootstrap"
+```
+
+Pilih jawaban berikut pada prompt:
+- Starter kit: Yes
+- Frontend: Vue
+- Authentication: Laravel built-in authentication (bukan WorkOS)
+- Teams: No
+- Database saat wizard: jangan arahkan ke sinau_design_poc; pilih PostgreSQL bila wizard meminta database. Jangan jalankan migration aplikasi sebelum database sinau_app_poc dibuat khusus untuk app.
+
+Official Vue starter kit mencakup Vue 3/Composition API, TypeScript, Inertia, Tailwind dan shadcn-vue; starter kit memakai Fortify untuk authentication. SINAU tidak mengaktifkan Laravel Teams karena domain tenant/unit berbeda.
+
+## 5. Gabungkan scaffold ke checkout SINAU
+
+Pastikan $HOME/SINAU adalah checkout branch yang benar dan tidak punya perubahan lokal yang belum diamankan. Gabungkan file starter kit tanpa menyalin runtime dependencies atau file secret:
+
+```bash
+cd "$HOME/SINAU" || exit 1
+
+git branch --show-current
+git status --short
+
+rsync -a --ignore-existing \
+  --exclude='.env' \
+  --exclude='.env.*.local' \
+  --exclude='vendor/' \
+  --exclude='node_modules/' \
+  --exclude='storage/logs/*' \
+  --exclude='storage/framework/cache/*' \
+  --exclude='storage/framework/sessions/*' \
+  --exclude='storage/framework/views/*' \
+  --exclude='bootstrap/cache/*.php' \
+  "$HOME/sinau-laravel-bootstrap/" "$HOME/SINAU/"
+```
+
+Opsi --ignore-existing mempertahankan dokumentasi/root files yang sudah ada. Review konflik secara manual. Jangan menimpa README.md proyek dengan README starter kit.
+
+Sebelum commit:
+- pastikan .env tidak berada dalam Git index;
+- pastikan vendor/ dan node_modules/ diabaikan;
+- periksa .env.example agar tidak berisi secret;
+- ubah koneksi contoh menjadi PostgreSQL (DB_CONNECTION=pgsql) dan nama DB PoC aplikasi yang disetujui, bukan sinau_design_poc;
+- pastikan session database connection menggunakan koneksi PostgreSQL aplikasi yang sama;
+- nonaktifkan Teams dan pastikan action registrasi hanya membuat global user sesuai ADR-008.
+
+## 6. Instal dependency dan verifikasi lokal
+
+Jalankan setelah file scaffold digabung dan konfigurasi database PoC aplikasi tersedia:
+
+```bash
+cd "$HOME/SINAU" || exit 1
+
+composer install
+npm install
+npm run build
+php artisan route:list
+php artisan test
+```
+
+Jangan menjalankan php artisan migrate sampai database sinau_app_poc dan role PoC aplikasi dibuat secara eksplisit. Jangan gunakan sinau_design_poc, sinau, atau sinau_app.
+
+## 7. Penyesuaian auth wajib sebelum route onboarding
+
+Ikuti ADR-008:
+- global user account dibuat sendiri; jangan buat tenant/unit/role saat action Fortify membuat user;
+- aktifkan email verification untuk penyelesaian onboarding;
+- public registration membuat global identity saja;
+- jangan menambahkan tenant_id/unit_id pada users;
+- jangan aktifkan Laravel Teams;
+- gunakan database session, cookie HttpOnly + SameSite=Lax, Secure pada HTTPS;
+- login rate limit, CSRF, logout/session invalidation, dan 2FA opsional harus diuji;
+- API bearer token/Sanctum tidak diaktifkan pada bootstrap web;
+- context RLS token tidak pernah dikirim ke browser.
+
+## 8. Gerbang selesai bootstrap
+
+Bootstrap dinyatakan lulus hanya bila:
+1. scaffold Laravel 13/Vue starter kit berhasil dibuat;
+2. Composer install dan npm production build berhasil;
+3. route:list menunjukkan route auth yang diharapkan;
+4. test suite awal lulus;
+5. database aplikasi terpisah dari database RLS PoC dan database SQLRadius;
+6. tidak ada secret/runtime artifacts yang masuk Git;
+7. auth registration tidak membuat tenant/role otomatis;
+8. CI minimal untuk backend/frontend build sudah ditambahkan.
+
+Setelah itu baru lanjut ke migration identity/membership PoC yang disetujui dan integrasi trusted context issuer sesuai ADR-007/008.

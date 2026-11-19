@@ -1021,3 +1021,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next user action: install NVM/Node 24.22.3 as `sinauadmin` without sudo, then report `node --version`, `npm --version`, `command -v node`, and `command -v npm`. Do not run a global npm install. After that, clone the SINAU branch into `$HOME/SINAU`, generate official Vue starter kit into the separate `$HOME/sinau-laravel-bootstrap` path, and merge it carefully while retaining docs.
 - Application scaffold remains ungenerated. Do not create `sinau_app_poc` database/role or run migrations until Node/toolchain, scaffold, and database isolation plan have been reviewed. Never use `sinau_design_poc` as app DB and never touch production `sinau`/`sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
 
+
+### Node.js LTS installed for sinauadmin — 2026-11-19
+- User installed NVM v0.41.0 and Node.js v24.22.3 under `/home/sinauadmin/.nvm`; npm v11.19.1 is bundled. Checksums matched during download. `node` resolves to `/home/sinauadmin/.nvm/versions/node/v24.22.3/bin/node`; npm resolves from the same NVM installation. No sudo/global APT Node installation was used.
+- PHP 8.4.27, Composer 2.8.8, pdo_pgsql, required PHP extensions, disk (16 GB free), and memory (7.3 GiB available) passed the earlier read-only preflight.
+- Updated the bootstrap runbook (latest commit `b6f5fbceb720280c35391c8c297573b0cfd9c296`) to use explicit Laravel installer flags `--vue --pest --no-boost --no-node`, no Teams/WorkOS, and a temporary installer SQLite database only for starter-kit initialization. The actual SINAU application database remains a separate PostgreSQL PoC database and has not been created.
+- Next user action: clone branch `feature/phase-0-requirements-blueprint` into `$HOME/SINAU` (preflight confirmed the path did not exist), install Laravel installer per-user using Composer, add Composer's global bin directory to PATH, and verify `laravel --version`. Then create scaffold in `$HOME/sinau-laravel-bootstrap`.
+- Application scaffold has not yet been generated. No `sinau_app_poc` DB/role exists, and no app migrations were run against PostgreSQL. Production `sinau`/`sinau_app`, SQLRadius, and MikroTik remain untouched. PR #1 remains Draft/open/unmerged.
+

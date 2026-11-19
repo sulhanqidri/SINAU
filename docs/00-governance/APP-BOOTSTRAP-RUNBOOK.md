@@ -36,6 +36,41 @@ bash /tmp/check-sinau-bootstrap-host.sh
 
 Kirim seluruh output sebelum instalasi. Hentikan bila PHP bukan 8.4.x, pdo_pgsql tidak aktif, Composer/Node/npm tidak tersedia, atau disk/memory tidak memadai. Jangan otomatis mengganti runtime global karena host dapat menjalankan layanan lain.
 
+## 3. Pasang Node.js untuk user sinauadmin
+
+Preflight menemukan Node/npm belum tersedia. Jangan memasang paket Node global melalui APT atau mengubah service sistem. Gunakan NVM pada home user `sinauadmin`, sehingga Node/npm hanya berlaku untuk user tersebut.
+
+Node.js 24.22.3 adalah rilis LTS yang tersedia pada tanggal runbook ini dan memenuhi rentang Node yang didukung Vite+ 1.x (Node 24.11.0 atau lebih baru). Gunakan NVM v0.41.0.
+
+Jalankan di Bash sebagai `sinauadmin`, tanpa `sudo`:
+
+```bash
+cd ~/sinau-poc || exit 1
+
+curl -fsSL \
+  https://raw.githubusercontent.com/nvm-sh/nvm/v0.41.0/install.sh \
+  -o /tmp/nvm-install.sh
+
+bash /tmp/nvm-install.sh
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+
+nvm install 24.22.3
+nvm alias default 24.22.3
+nvm use default
+
+echo "===== NODE / NPM ====="
+node --version
+npm --version
+command -v node
+command -v npm
+```
+
+Output yang diharapkan: Node `v24.22.3`; npm mengikuti distribusi Node 24.22.3 (rilis tersebut membundel npm 11.19.1). NVM menambahkan pemuatan versi user ke shell profile; tidak memasang service daemon atau mengubah PHP/PostgreSQL. Jika shell SSH baru belum menemukan Node, muat `~/.bashrc` atau jalankan blok `export NVM_DIR... source nvm.sh` di atas.
+
+Jangan jalankan `sudo npm install -g`. Dependency aplikasi harus dipasang dari direktori checkout SINAU dan dicatat dalam lockfile.
+
 ## 3. Siapkan checkout repository
 
 Gunakan checkout terpisah dari direktori PoC dan SQLRadius:

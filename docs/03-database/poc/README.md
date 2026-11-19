@@ -315,3 +315,34 @@ The script performs no persistent DDL and no application-row writes. It finishes
 
 **Limit:** this is a direct PostgreSQL session lifecycle test. It does not verify PgBouncer, Laravel/PDO pooling, persistent connections, asynchronous workers, cancellation, or production token issuance. Run only against `sinau_design_poc`.
 
+
+## 13. Aborted transaction recovery and same-connection reuse
+
+This experiment injects one controlled SQL error (`division_by_zero`, SQLSTATE `22012`) after a transaction-local invalid context marker is installed and the RLS query role is selected. The error is expected and is detected by psql's `ERROR`/`SQLSTATE` variables. The script then issues ROLLBACK and verifies that the same connection can start a new transaction with no inherited context or role.
+
+Prerequisites: scripts 005 (verifier/key store) and 007 (verified-context accessor) are installed in `sinau_design_poc`.
+
+Stage `014-test-aborted-transaction-recovery.sql` under `/run` with owner postgres/mode 0600, then open psql:
+
+```bash
+sudo -u postgres psql -X -d sinau_design_poc -v ON_ERROR_STOP=1 -P pager=off
+```
+
+At the psql prompt:
+
+```sql
+SET SESSION AUTHORIZATION sinau_poc;
+\\i /run/sinau-poc-014.sql
+```
+
+Expected behavior:
+- Before the injected error, invalid context is rejected and no academic rows are visible.
+- The script deliberately emits a PostgreSQL division-by-zero error (SQLSTATE 22012); this is a PASS condition only when psql confirms that exact error.
+- It rolls back the aborted transaction, then checks that `app.context_token` is empty and the role is `sinau_poc`.
+- It starts another transaction on the same connection under `sinau_rls_test`; the verified-context accessor returns no context and zero academic rows remain visible.
+- It finishes with ROLLBACK and restores `sinau_poc`.
+
+Expected final notice: `ABORTED TRANSACTION RECOVERY TESTS PASSED — SAME CONNECTION REUSED`.
+
+**Limit:** this simulates a SQL statement error and manual transaction rollback on a direct psql connection. It is not a Laravel exception-handler, PDO pool, PgBouncer, network disconnect, cancellation, or production connection-pool test. Run only against `sinau_design_poc`.
+

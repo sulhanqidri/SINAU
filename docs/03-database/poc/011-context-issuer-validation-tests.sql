@@ -256,7 +256,7 @@ DECLARE
 BEGIN
     -- The validator derives actor_id from the session bearer; no actor_id
     -- parameter is present that a caller could forge.
-    SELECT p.proargnames
+    SELECT p.proargnames[1:3]
       INTO v_argument_names
       FROM pg_catalog.pg_proc AS p
      WHERE p.oid =

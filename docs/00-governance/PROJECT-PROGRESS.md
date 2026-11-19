@@ -931,3 +931,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next prerequisite: prepare/review a separate ADR for authentication/session principal provenance, tenant/unit selector validation, runtime/issuer/migration PostgreSQL roles, connection-pool behavior, same-connection XID-bound transaction flow, transaction-local context cleanup, and revocation/in-flight request semantics. Only after the authentication and application bootstrap decisions are approved should an executable Laravel signer be designed.
 - PR #1 remains open and Draft, unmerged. No Laravel application code or production migration was added. No production database `sinau`, role `sinau_app`, SQLRadius, or MikroTik was accessed or modified.
 
+
+### ADR-007 trusted context issuer contract drafted — 2026-11-19
+- Created `docs/09-decisions/ADR-007-TRUSTED-CONTEXT-ISSUER.md` (commit `71f2152ee16b84d7b5e76836d23374ac1df41475`; verified blob `2cad1f871eac70e0f00820c17510027ec9bcdd2d`). It records the server-authenticated principal contract, scope validation, same-connection/top-level-XID transaction sequence, transaction-local token installation, conceptual least-privilege PostgreSQL roles, connection-pool compatibility requirements, revocation semantics, key algorithm options, and implementation acceptance tests.
+- ADR-007 remains **Proposed**. It deliberately does not finalize Laravel/session/API auth, Sanctum, session store, HMAC versus asymmetric signing, production database role names, pooler mode, or immediate revocation inside an already-running transaction.
+- Linked ADR-007 from `docs/05-security/TRUSTED-CONTEXT-ISSUER-DESIGN.md` (commit `a468900833ab9d0eb2f94df6ee6a4466ff485862`; verified blob `a355652134cd1ea09f56635fd9d31cd8bd2c9547`).
+- Next: review ADR-007 with Product Owner/security; then build a database-only PoC for role switching issuer executor → query role on one connection and one top-level XID, including rollback/exception/connection reuse and pooler behavior. Do not write Laravel signer code until stack/auth decisions and Stage E bootstrap are approved.
+- No application code, production migration, production DB role, or new server credential was created. All database work remains restricted to `sinau_design_poc`; do not touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+

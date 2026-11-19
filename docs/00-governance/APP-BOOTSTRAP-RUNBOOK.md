@@ -8,7 +8,7 @@
 ## 1. Prinsip resource dan keselamatan
 
 - Tidak perlu server/VPS baru. Gunakan host yang tersedia hanya bila pemeriksaan resource dan runtime lulus.
-- Jangan memasang PgBouncer, PgBouncer/PgCat/Odyssey, Redis, atau service tambahan untuk bootstrap.
+- Jangan memasang PgBouncer, PgCat, Odyssey, Redis, atau service tambahan untuk bootstrap.
 - Jangan menjalankan perintah di /var/www/sqlradius atau mengubah konfigurasi SQLRadius.
 - Jangan gunakan database sinau_design_poc sebagai database aplikasi. Database tersebut khusus fixture dan tes RLS/context.
 - Database aplikasi awal harus terpisah (nama usulan sinau_app_poc) pada PostgreSQL server yang sama. Pembuatan database/role menunggu preflight dan instruksi tahap berikutnya.
@@ -54,6 +54,9 @@ Laravel 13 menyediakan official starter kit Vue melalui Laravel installer. Perin
 
 ```bash
 composer global require laravel/installer
+
+export PATH="$HOME/.composer/vendor/bin:$HOME/.config/composer/vendor/bin:$PATH"
+command -v laravel
 ```
 
 Setelah installer tersedia, buat scaffold di direktori sementara agar dokumentasi yang sudah ada tidak tertimpa:

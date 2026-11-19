@@ -51,6 +51,10 @@ GRANT USAGE ON SCHEMA sinau_issuer_poc TO sinau_context_issuer_poc;
 GRANT REFERENCES ON TABLE public.tenants
     TO sinau_context_owner;
 
+GRANT USAGE ON SCHEMA sinau_crypto TO sinau_context_owner;
+GRANT EXECUTE ON FUNCTION sinau_crypto.digest(bytea, pg_catalog.text)
+    TO sinau_context_owner;
+
 BEGIN;
 
 SET LOCAL ROLE sinau_context_owner;

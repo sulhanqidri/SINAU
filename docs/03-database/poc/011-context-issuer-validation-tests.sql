@@ -154,6 +154,32 @@ BEGIN
     END IF;
     RAISE NOTICE 'PASS ISS-09: expired unit membership rejected';
 
+    -- ISS-10: suspended tenant membership is denied.
+    SELECT pg_catalog.count(*) INTO v_count
+    FROM sinau_issuer_poc.validate_context_request(
+        'SINAU-POC-SUSPENDED-MEMBER-SESSION-NOT-A-REAL-CREDENTIAL',
+        '00000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000001'
+    );
+
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'FAIL ISS-10: suspended tenant membership was accepted';
+    END IF;
+    RAISE NOTICE 'PASS ISS-10: suspended tenant membership rejected';
+
+    -- ISS-11: expired tenant membership is denied.
+    SELECT pg_catalog.count(*) INTO v_count
+    FROM sinau_issuer_poc.validate_context_request(
+        'SINAU-POC-EXPIRED-TENANT-MEMBER-SESSION-NOT-A-REAL-CREDENTIAL',
+        '00000000-0000-0000-0000-000000000001',
+        '10000000-0000-0000-0000-000000000001'
+    );
+
+    IF v_count <> 0 THEN
+        RAISE EXCEPTION 'FAIL ISS-11: expired tenant membership was accepted';
+    END IF;
+    RAISE NOTICE 'PASS ISS-11: expired tenant membership rejected';
+
     -- ISS-10: a foreign unit ID cannot be paired with tenant A.
     SELECT pg_catalog.count(*) INTO v_count
     FROM sinau_issuer_poc.validate_context_request(
@@ -225,7 +251,22 @@ $issuer_tests$;
 SET LOCAL ROLE sinau_rls_test;
 
 DO $privilege_tests$
+DECLARE
+    v_argument_names pg_catalog.text[];
 BEGIN
+    -- The validator derives actor_id from the session bearer; no actor_id
+    -- parameter is present that a caller could forge.
+    SELECT p.proargnames
+      INTO v_argument_names
+      FROM pg_catalog.pg_proc AS p
+     WHERE p.oid =
+        'sinau_issuer_poc.validate_context_request(text,uuid,uuid)'::pg_catalog.regprocedure;
+
+    IF v_argument_names IS DISTINCT FROM
+       ARRAY['p_session_token', 'p_tenant_id', 'p_unit_id']::pg_catalog.text[] THEN
+        RAISE EXCEPTION 'FAIL: issuer validator argument contract changed';
+    END IF;
+
     IF pg_catalog.has_function_privilege(
         'sinau_rls_test',
         'sinau_issuer_poc.validate_context_request(text,uuid,uuid)',

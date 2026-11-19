@@ -219,7 +219,7 @@ SET LOCAL ROLE sinau_rls_test;
 DO $privilege_tests$
 BEGIN
     IF pg_catalog.has_function_privilege(
-        pg_catalog.current_user,
+        'sinau_rls_test',
         'sinau_issuer_poc.validate_context_request(text,uuid,uuid)',
         'EXECUTE'
     ) THEN
@@ -227,7 +227,7 @@ BEGIN
     END IF;
 
     IF pg_catalog.has_table_privilege(
-        pg_catalog.current_user,
+        'sinau_rls_test',
         'sinau_issuer_poc.poc_tenant_memberships',
         'SELECT'
     ) THEN
@@ -235,7 +235,7 @@ BEGIN
     END IF;
 
     IF pg_catalog.has_table_privilege(
-        pg_catalog.current_user,
+        'sinau_rls_test',
         'sinau_private.context_keys',
         'SELECT'
     ) THEN
@@ -243,7 +243,7 @@ BEGIN
     END IF;
 
     IF pg_catalog.has_table_privilege(
-        pg_catalog.current_user,
+        'sinau_rls_test',
         'sinau_issuer_poc.poc_tenant_memberships',
         'INSERT,UPDATE,DELETE'
     ) THEN

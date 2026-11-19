@@ -266,15 +266,31 @@ SET LOCAL ROLE sinau_rls_test;
 DO $privilege_tests$
 DECLARE
     v_argument_names pg_catalog.text[];
+    v_validator_oid pg_catalog.oid;
+    v_memberships_relation_oid pg_catalog.oid;
+    v_keys_relation_oid pg_catalog.oid;
 BEGIN
+    -- Inspect the function through system catalogs. Resolve its OID without
+    -- casting a qualified name to regprocedure, which would require USAGE
+    -- on the private schema that this query role intentionally does not have.
+    SELECT p.oid, p.proargnames[1:3]
+      INTO v_validator_oid, v_argument_names
+      FROM pg_catalog.pg_proc AS p
+      JOIN pg_catalog.pg_namespace AS n
+        ON n.oid = p.pronamespace
+     WHERE n.nspname = 'sinau_issuer_poc'
+       AND p.proname = 'validate_context_request'
+       AND p.pronargs = 3
+       AND p.proargtypes[0] = 'pg_catalog.text'::pg_catalog.regtype::pg_catalog.oid
+       AND p.proargtypes[1] = 'pg_catalog.uuid'::pg_catalog.regtype::pg_catalog.oid
+       AND p.proargtypes[2] = 'pg_catalog.uuid'::pg_catalog.regtype::pg_catalog.oid;
+
+    IF v_validator_oid IS NULL THEN
+        RAISE EXCEPTION 'FAIL: issuer validator catalog entry not found';
+    END IF;
+
     -- The validator derives actor_id from the session bearer; no actor_id
     -- parameter is present that a caller could forge.
-    SELECT p.proargnames[1:3]
-      INTO v_argument_names
-      FROM pg_catalog.pg_proc AS p
-     WHERE p.oid =
-        'sinau_issuer_poc.validate_context_request(text,uuid,uuid)'::pg_catalog.regprocedure;
-
     IF v_argument_names IS DISTINCT FROM
        ARRAY['p_session_token', 'p_tenant_id', 'p_unit_id']::pg_catalog.text[] THEN
         RAISE EXCEPTION 'FAIL: issuer validator argument contract changed';
@@ -282,15 +298,42 @@ BEGIN
 
     IF pg_catalog.has_function_privilege(
         'sinau_rls_test',
-        'sinau_issuer_poc.validate_context_request(text,uuid,uuid)',
+        v_validator_oid,
         'EXECUTE'
     ) THEN
         RAISE EXCEPTION 'FAIL: RLS query role can execute the issuer validator';
     END IF;
 
+    -- Resolve relation OIDs from catalogs so the tests do not need schema USAGE.
+    SELECT c.oid
+      INTO v_memberships_relation_oid
+      FROM pg_catalog.pg_class AS c
+      JOIN pg_catalog.pg_namespace AS n
+        ON n.oid = c.relnamespace
+     WHERE n.nspname = 'sinau_issuer_poc'
+       AND c.relname = 'poc_tenant_memberships'
+       AND c.relkind IN ('r', 'p');
+
+    IF v_memberships_relation_oid IS NULL THEN
+        RAISE EXCEPTION 'FAIL: membership fixture relation not found';
+    END IF;
+
+    SELECT c.oid
+      INTO v_keys_relation_oid
+      FROM pg_catalog.pg_class AS c
+      JOIN pg_catalog.pg_namespace AS n
+        ON n.oid = c.relnamespace
+     WHERE n.nspname = 'sinau_private'
+       AND c.relname = 'context_keys'
+       AND c.relkind IN ('r', 'p');
+
+    IF v_keys_relation_oid IS NULL THEN
+        RAISE EXCEPTION 'FAIL: context key-store relation not found';
+    END IF;
+
     IF pg_catalog.has_table_privilege(
         'sinau_rls_test',
-        'sinau_issuer_poc.poc_tenant_memberships',
+        v_memberships_relation_oid,
         'SELECT'
     ) THEN
         RAISE EXCEPTION 'FAIL: RLS query role can read membership fixtures';
@@ -298,7 +341,7 @@ BEGIN
 
     IF pg_catalog.has_table_privilege(
         'sinau_rls_test',
-        'sinau_private.context_keys',
+        v_keys_relation_oid,
         'SELECT'
     ) THEN
         RAISE EXCEPTION 'FAIL: RLS query role can read the key store';
@@ -306,7 +349,7 @@ BEGIN
 
     IF pg_catalog.has_table_privilege(
         'sinau_rls_test',
-        'sinau_issuer_poc.poc_tenant_memberships',
+        v_memberships_relation_oid,
         'INSERT,UPDATE,DELETE'
     ) THEN
         RAISE EXCEPTION 'FAIL: RLS query role can mutate membership fixtures';

@@ -1149,3 +1149,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next user action: apply the absolute workspace path to the local scaffold workflow, verify it, then sync checkout `~/SINAU` and repeat the dry-run with the updated workflow. The previous dry-run list was all new files with explicit exclusions; no actual rsync has been run.
 - Before actual copy, change `.env.example` to PostgreSQL `DB_CONNECTION=pgsql`, `DB_DATABASE=sinau_app_poc`, `DB_HOST=127.0.0.1`, port 5432, username placeholder and password placeholder; CI job-level env overrides must still force SQLite. Set `SESSION_DRIVER=database`, `SESSION_CONNECTION=pgsql` if the generated config supports it (otherwise same default connection); do not create DB/role or run migration yet.
 
+
+### Second scaffold rsync dry-run reviewed — 2026-11-19
+- User synchronized the local SINAU checkout to `a0850fb` via fast-forward and repeated the rsync dry-run after local CI workflow path hardening. Dry-run completed successfully with DRY RUN, proposing root manifests, Laravel app/config/database/public/resources/routes/storage/tests and a new `.github/workflows/tests.yml`; no file was actually copied.
+- Existing GitHub repo tree at previous read-only inspection contained no Laravel app folders or Composer/npm files, and existing `.github/workflows/postgresql-poc.yml` does not collide with new `tests.yml`. `--ignore-existing` keeps existing README and project docs.
+- Exclusions remained effective for `.env`, `.env.*.local`, `.env.backup`, `.env.production`, `vendor/`, `node_modules/`, `public/build/`, `public/hot`, storage logs/runtime content, `bootstrap/cache/*.php`, and `database/database.sqlite`.
+- Before actual merge, adjust `.env.example` from SQLite to PostgreSQL application PoC values: DB_CONNECTION=pgsql, DB_HOST=127.0.0.1, DB_PORT=5432, DB_DATABASE=sinau_app_poc, username placeholder and blank/placeholder password. Verify `config/session.php` uses database session and supports SESSION_CONNECTION; inspect whether migration creates `sessions`, `cache`, and `jobs` tables. CI must continue overriding DB_CONNECTION and DB_DATABASE to SQLite with an absolute workspace path.
+- No actual rsync performed, no app dependencies installed, and no migration. Production, `sinau_design_poc`, SQLRadius and MikroTik untouched.
+

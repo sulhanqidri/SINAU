@@ -164,7 +164,7 @@ Baseline yang diusulkan:
 | Membership validator | Narrow SECURITY DEFINER function dengan fixed search_path dan tanpa direct table grants | Sudah diuji sintetis; kontrak produksi belum final |
 | Runtime roles | Owner/migration/issuer/query dipisah; role switching dalam satu transaksi diuji sebelum dipakai | Role switching issuer/query dan XID continuity lulus pada satu direct PostgreSQL session; pooler/app runtime belum diuji |
 | Signing algorithm | HMAC PoC; evaluasi asymmetric/KMS sebelum produksi | Belum final |
-| Connection pooling | Satu koneksi + satu top-level transaction dari XID sampai protected SQL | Direct-session XID/role continuity lulus; COMMIT/ROLLBACK cleanup script 013 disiapkan; pooler belum diuji |
+| Connection pooling | Satu koneksi + satu top-level transaction dari XID sampai protected SQL | Direct-session XID/role continuity serta COMMIT/ROLLBACK context cleanup lulus; pooler belum diuji |
 | In-flight revocation | New transactions denied; policy untuk transaksi yang sudah berjalan | Menunggu keputusan keamanan/produk |
 | Tenant/unit lifecycle matrix | Validator harus mengikuti matrix yang disahkan | Belum final |
 
@@ -201,6 +201,6 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 1. Product Owner/security menyetujui pilihan auth web/API, session lifecycle, revocation semantics, dan key custody.
 2. Finalisasi role matrix dan kontrak principal/session dalam ADR terpisah atau revisi ADR ini.
 3. Selesai: `012-test-issuer-query-role-switch.sql` lulus pada direct PostgreSQL session; issuer → query → issuer mempertahankan XID 890 dan ROLLBACK membersihkan transaction-local probe. Bukti belum mencakup real signed-token issuance atau pooler.
-4. Siap diuji: `docs/03-database/poc/013-test-context-and-role-cleanup.sql` telah dibuat untuk membuktikan `app.context_token` dan `SET LOCAL ROLE` dibersihkan setelah COMMIT maupun ROLLBACK; jalankan pada `sinau_design_poc` dan pastikan transaksi baru tetap fail-closed tanpa token.
-5. Setelah direct-session cleanup test lulus, tambahkan simulasi connection pooling/connection reuse serta exception/rollback tests pada topology yang dipilih.
+4. Selesai: `013-test-context-and-role-cleanup.sql` lulus; COMMIT dan ROLLBACK membersihkan `app.context_token` serta `SET LOCAL ROLE`, dan transaksi baru pada koneksi yang sama tetap fail-closed tanpa token.
+5. Tambahkan controlled SQL-error/aborted-transaction rollback test pada satu direct session, lalu uji connection pooling/connection reuse serta exception handling pada topology yang dipilih.
 6. Setelah application stack disetujui dan bootstrap Stage E dimulai, implementasikan adapter Laravel yang memenuhi kontrak ini tanpa menyalin fixture sintetis ke schema produksi.

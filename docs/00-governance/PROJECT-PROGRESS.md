@@ -980,3 +980,12 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next user action: stage 014 under `/run` with owner postgres/mode 0600, run inside an interactive psql session on `sinau_design_poc` after `SET SESSION AUTHORIZATION sinau_poc`. Do not run it against production.
 - No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, app migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.
 
+
+### Aborted transaction recovery PoC passed — 2026-11-19
+- Executed `docs/03-database/poc/014-test-aborted-transaction-recovery.sql` on PostgreSQL 18.7 in an interactive psql session against `sinau_design_poc`, after setting session authorization to `sinau_poc`.
+- The controlled `SELECT 1 / 0` raised the expected `division by zero` error (SQLSTATE `22012`), and the psql script detected it as the expected condition. After ROLLBACK, session/current role returned to `sinau_poc` and the transaction-local `app.context_token` was empty.
+- The same direct PostgreSQL connection then started a fresh transaction as `sinau_rls_test`; no verified context was present and zero academic rows were visible. Final notice: `ABORTED TRANSACTION RECOVERY TESTS PASSED — SAME CONNECTION REUSED`.
+- This verifies recovery after an aborted SQL transaction on one direct psql connection. It does not verify a Laravel/PDO exception handler, PgBouncer, network disconnect, cancellation, or a production connection pool.
+- Next: perform a read-only environment check for an installed/configured PgBouncer or other pooler, without reading credentials or changing services. Do not create a pooler or alter the PostgreSQL topology before the deployment choice is approved.
+- No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, application migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.
+

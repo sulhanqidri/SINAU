@@ -278,5 +278,7 @@ Expected notices:
 
 The script ends with ROLLBACK. Exit psql with `\\q` after it reports `ROLE SWITCH / XID CONTINUITY TESTS PASSED — TRANSACTION ROLLED BACK`.
 
+**Execution status — verified 2026-11-19:** Script 012 passed on PostgreSQL 18.7 against `sinau_design_poc`. The output showed issuer → query → issuer role transitions with the same top-level XID (890); issuer/query privileges were constrained as expected; ROLLBACK restored session authorization to `sinau_poc` and cleared the transaction-local probe. Final notice: `ROLE SWITCH / XID CONTINUITY TESTS PASSED — TRANSACTION ROLLED BACK`.
+
 **Limit:** this verifies role changes and transaction-local state on one direct PostgreSQL session. It is not a PgBouncer/Laravel connection-pool test, does not allocate or sign a real context token, and does not approve production role names or privileges. Run only against `sinau_design_poc`.
 

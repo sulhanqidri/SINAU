@@ -282,3 +282,34 @@ The script ends with ROLLBACK. Exit psql with `\\q` after it reports `ROLE SWITC
 
 **Limit:** this verifies role changes and transaction-local state on one direct PostgreSQL session. It is not a PgBouncer/Laravel connection-pool test, does not allocate or sign a real context token, and does not approve production role names or privileges. Run only against `sinau_design_poc`.
 
+
+## 12. Transaction-local context and role cleanup
+
+This experiment checks context and `SET LOCAL ROLE` cleanup across both COMMIT and ROLLBACK on the same PostgreSQL connection. It uses invalid synthetic marker strings only; no valid bearer token, key bytes, or application rows are created or modified.
+
+Prerequisites: scripts 005 (verifier/key store), 007 (verified-context accessor), and 010 (synthetic membership fixtures) are installed in `sinau_design_poc`.
+
+Stage `013-test-context-and-role-cleanup.sql` under `/run` with owner postgres/mode 0600, then open psql as administrator:
+
+```bash
+sudo -u postgres psql -X -d sinau_design_poc -v ON_ERROR_STOP=1 -P pager=off
+```
+
+At the psql prompt:
+
+```sql
+SET SESSION AUTHORIZATION sinau_poc;
+\\i /run/sinau-poc-013.sql
+```
+
+The assertions cover:
+- Invalid marker in a COMMIT transaction produces no verified context and exposes zero academic rows.
+- After COMMIT, transaction-local `app.context_token` is empty and `SET LOCAL ROLE` has restored `sinau_poc`.
+- Invalid marker in a ROLLBACK transaction produces no verified context and exposes zero academic rows.
+- After ROLLBACK, `app.context_token` is empty and the session returns to `sinau_poc`.
+- A new transaction on the same connection, without a token, has zero verified context and sees zero academic rows.
+
+The script performs no persistent DDL and no application-row writes. It finishes with ROLLBACK and should report `CONTEXT AND ROLE CLEANUP TESTS PASSED — COMMIT/ROLLBACK COMPLETE`.
+
+**Limit:** this is a direct PostgreSQL session lifecycle test. It does not verify PgBouncer, Laravel/PDO pooling, persistent connections, asynchronous workers, cancellation, or production token issuance. Run only against `sinau_design_poc`.
+

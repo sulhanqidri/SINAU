@@ -954,3 +954,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next: test transaction-local `app.context_token` and `SET LOCAL ROLE` cleanup after both COMMIT and ROLLBACK on the same psql connection; then test a fresh transaction with no token remains fail-closed. Pooler tests require the selected deployment topology and remain a later gate.
 - No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, production credentials, application migrations, or application code were changed. PR #1 remains Draft/open/unmerged.
 
+
+### Transaction-local cleanup PoC prepared — 2026-11-19
+- Added `docs/03-database/poc/013-test-context-and-role-cleanup.sql` (initial commit `449dffc5800353cfca58de0a33a9a561c96bd774`; final reviewed blob `ee6e46022e3f057fc2d4057d2a06a8a17a57fa1f`). It tests invalid synthetic `app.context_token` markers under the RLS query role, fail-closed visibility, and cleanup of `app.context_token` plus `SET LOCAL ROLE` after both COMMIT and ROLLBACK; it also checks a fresh transaction on the same connection has no context and sees zero academic rows. It creates no persistent DDL and performs no application-row writes.
+- Static review confirmed the database/session guards, COMMIT/ROLLBACK cleanup checks, fresh-transaction fail-closed assertion, and final transaction rollback. The script has **not yet been executed** on the server.
+- Updated `docs/03-database/poc/README.md` (commit `53a2e1cc4a2c791f8d81fb82e835159375ecd4bb`) and ADR-007 (commit `0688bb7aa390ad144fc2ca530ba8c7f6bed08521`) with the next runbook/gate.
+- Next user action: stage 013 under `/run` with owner postgres/mode 0600, then run it in an interactive psql session against `sinau_design_poc` after `SET SESSION AUTHORIZATION sinau_poc`. Do not run it against production.
+- No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, application migration, production role, or new server credential was touched. PR #1 remains Draft/open/unmerged.
+

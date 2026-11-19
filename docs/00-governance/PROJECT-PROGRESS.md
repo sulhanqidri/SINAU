@@ -1118,3 +1118,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Root scaffold `.gitignore` does not currently list `database/database.sqlite`; add `/database/database.sqlite` before merge. The temporary file is 0 bytes, and must not be copied/committed.
 - Next: backup-first cleanup of orphan `PasskeyItem.vue` + only the `Passkey` type, add SQLite ignore rule, rerun JS/grep checks, then proceed to rsync dry-run. No actual scaffold merge or DB migration yet.
 
+
+### Final Passkeys frontend residue removed and SQLite ignored — 2026-11-19
+- User successfully removed orphan `resources/js/components/PasskeyItem.vue` and only the unused `Passkey` type from `resources/js/types/auth.ts`. Remaining shared exports `User`, `Auth`, and `TwoFactorConfigContent` were preserved. Grep for `PasskeyItem|PasskeyRegister|PasskeyVerify|types/auth.*Passkey|Passkey =` across Vue/TS returned no matches.
+- Added `/database/database.sqlite` to scaffold root `.gitignore`; the temporary SQLite database remains empty and excluded. `composer validate --no-check-publish` reports `./composer.json is valid`.
+- Full scaffold Passkey cleanup status: package routes suppressed with `Passkeys::ignoreRoutes()`, starter-kit discovery route removed, Wayfinder regenerated, no passkey route/action helpers remain, app model/controller/frontend passkey implementations removed; PHP `laravel/passkeys` remains as transitive Fortify dependency; Fortify's dormant passkey configuration remains in config but no feature is enabled. TOTP retained with nine routes verified.
+- Next: synchronize `~/SINAU` to current branch head, run `rsync --dry-run` only with explicit exclusions for `.env`, vendor, node_modules, runtime cache/log artifacts, and SQLite while preserving nested Laravel `.gitignore` placeholders; review complete dry-run output for collisions/additions. Do not perform actual rsync until list is reviewed.
+- No dependency installs, app migrations, or scaffold merge have happened. Dedicated app database `sinau_app_poc` not created.
+

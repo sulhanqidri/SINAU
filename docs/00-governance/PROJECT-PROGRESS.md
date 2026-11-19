@@ -860,3 +860,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - All work remains documentation/static test-harness preparation for `sinau_design_poc`. No production database `sinau`, `sinau_app`, SQLRadius, or MikroTik has been touched. PR #1 remains Draft/open/unmerged.
 - Next user-assisted sequence: apply no new schema changes; start fresh transaction/token; run 008 in the same psql session; ROLLBACK; run 009 in the same psql session; ROLLBACK and exit; clean token files; record actual results. Follow with actual pooler/worker reuse and query-plan/performance tests before production architecture decisions.
 
+### Signed-context RLS functional checkpoint — 2026-11-19 (functional assertions passed)
+- User executed `docs/03-database/poc/008-test-signed-context-rls.sql` on PostgreSQL 18.7 inside the same open psql session/transaction bound to XID `861`, with `session_user=sinau_poc` and `current_user=sinau_rls_test`.
+- Import into `pg_temp.poc_signed_context_input` succeeded (`COPY 1`). Script 008 completed with all six notices: valid token reveals only tenant A/unit A1; spoofing legacy tenant/unit GUCs does not change signed scope; empty/malformed token fails closed; same-tenant/same-unit INSERT accepted; cross-tenant INSERT rejected by RLS WITH CHECK; cross-unit INSERT rejected by RLS WITH CHECK.
+- Final script output: `SIGNED CONTEXT RLS FUNCTIONAL ASSERTIONS PASSED`. No error was reported.
+- **Transaction cleanup pending at handoff:** the user has not yet shown the outer transaction rollback. Do not mark data cleanup complete until `ROLLBACK;` is executed. The same psql session is needed for the follow-up `009-test-context-reset.sql` check after rollback.
+- After 009 passes, roll back its verification transaction, exit psql, remove the signer and postgres token files under `/run`, and confirm `poc-k1` remains ACTIVE. The 240-second token must not be reused after the transaction ends or expires.
+- This functional pass demonstrates the intended signed-token policy behavior for the tested rows/operations only. It does not prove actual application membership validation, pooler/worker integration, role-escalation resistance, support access boundaries, or production readiness. No RLS policy changed in this test step; only the already-installed policies in `sinau_design_poc` were exercised.
+- No application DB `sinau`, role `sinau_app`, SQLRadius, or MikroTik was touched. PR #1 remains Draft/open/unmerged.
+- Next: run `ROLLBACK;` in the still-open XID 861 session; stage and run `009-test-context-reset.sql` in that same psql connection; rollback again; clean token files; verify key and final session state.
+

@@ -250,3 +250,33 @@ The test file changes to `sinau_context_issuer_poc` to call the narrow validatio
 - The role grant from `sinau_poc` to `sinau_context_issuer_poc` is test convenience only. Production runtime roles must be separately provisioned and must not inherit owner/admin privileges.
 - This test does not touch or model application database `sinau`, role `sinau_app`, SQLRadius, or MikroTik. Do not treat a passing fixture test as production authentication/authorization approval.
 
+
+## 11. Same-connection issuer/query role switch and XID continuity
+
+This is the next isolated database experiment derived from [ADR-007](../../09-decisions/ADR-007-TRUSTED-CONTEXT-ISSUER.md). It does not create persistent objects or modify application rows. It checks whether the PoC session can switch from the issuer executor role to the RLS query role and back while retaining one top-level XID and transaction-local state.
+
+Prerequisites: scripts 005 (token verifier/key store), 007 (verified-context accessor), and 010 (synthetic membership validator) have been installed successfully in `sinau_design_poc`.
+
+Stage `012-test-issuer-query-role-switch.sql` under `/run` with owner postgres and mode 0600, then open an interactive psql session:
+
+```bash
+sudo -u postgres psql -X -d sinau_design_poc -v ON_ERROR_STOP=1 -P pager=off
+```
+
+At the psql prompt:
+
+```sql
+SET SESSION AUTHORIZATION sinau_poc;
+\\i /run/sinau-poc-012.sql
+```
+
+Expected notices:
+- Issuer role is active, retains the original XID, has EXECUTE on the narrow validator, and has no direct membership-table SELECT.
+- Query role retains the same XID and transaction-local probe, can execute the verified-context accessor, but cannot execute the membership validator or read membership/key tables.
+- Switching back to issuer role retains the same top-level XID.
+- ROLLBACK restores the original session role and clears the transaction-local probe.
+
+The script ends with ROLLBACK. Exit psql with `\\q` after it reports `ROLE SWITCH / XID CONTINUITY TESTS PASSED — TRANSACTION ROLLED BACK`.
+
+**Limit:** this verifies role changes and transaction-local state on one direct PostgreSQL session. It is not a PgBouncer/Laravel connection-pool test, does not allocate or sign a real context token, and does not approve production role names or privileges. Run only against `sinau_design_poc`.
+

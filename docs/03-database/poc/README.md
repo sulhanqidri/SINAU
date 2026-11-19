@@ -199,3 +199,47 @@ The next executable experiment must create isolated synthetic fixtures (preferab
 
 Do not use the current sinau_poc owner role as a production issuer role. The production design must use a least-privilege backend/query role, a separately protected signing key, a server-side authenticated principal, and the same transaction connection/XID through context issuance and protected queries. The final authentication framework and application stack have not yet been approved, so the next step is a database-only synthetic membership issuer PoC plus an implementation-neutral backend contract, not production application code.
 
+## 10. Synthetic membership validation PoC
+
+The current PoC does not contain production identity/membership tables. The following scripts add **synthetic-only** fixtures in the private schema `sinau_issuer_poc`:
+
+- `010-context-issuer-fixtures.sql` creates synthetic identities, hashed synthetic authentication sessions, tenant memberships, unit memberships, a private synthetic unit catalog, and separate feature-entitlement fixtures. It creates a NOLOGIN role `sinau_context_issuer_poc`, granted to `sinau_poc` only to simulate role switching in this experiment.
+- The SECURITY DEFINER function `sinau_issuer_poc.validate_context_request(session_token, tenant_id, unit_id)` resolves the actor from a hashed active session and validates account, session, tenant membership, unit membership, effective dates, and tenant/unit pairing. It accepts no actor_id argument and returns zero rows for denied requests.
+- `has_feature_entitlement(tenant_id, feature_code)` is a separate entitlement check. A valid membership context does not imply that a feature is entitled.
+- `011-context-issuer-validation-tests.sql` tests active access, no unit grant, revoked tenant membership, tenant-only context, disabled identity, revoked/expired session, not-yet-valid membership, expired unit membership, unit/tenant mismatch, separate entitlement behavior, and least-privilege restrictions.
+
+The unit catalog is duplicated only as synthetic fixture metadata in the private PoC schema. The validator deliberately does **not** query `public.education_units` before a signed context is installed because that table is FORCE-RLS protected. This avoids creating a SECURITY DEFINER bypass path around the operational RLS policy.
+
+### Install fixtures
+
+Download both scripts from the same repository branch/commit used for the PoC and stage them under `/run` with owner postgres/mode 0600. Run setup only as PostgreSQL administrator and only against `sinau_design_poc`:
+
+```bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d sinau_design_poc -f 010-context-issuer-fixtures.sql
+```
+
+### Run membership validation tests
+
+Open an interactive psql session as administrator:
+
+```bash
+sudo -u postgres psql -X -d sinau_design_poc -v ON_ERROR_STOP=1 -P pager=off
+```
+
+At the psql prompt, simulate the PoC application login and run the tests:
+
+```sql
+SET SESSION AUTHORIZATION sinau_poc;
+\\i /run/011-context-issuer-validation-tests.sql
+\\q
+```
+
+The test file changes to `sinau_context_issuer_poc` to call the narrow validation functions, then changes to `sinau_rls_test` to prove that the query role cannot call the issuer, read membership fixtures or key material, or mutate membership fixtures. Its test transaction ends with ROLLBACK.
+
+**Critical limitations:**
+- The session strings inside 010/011 are public synthetic fixtures, not real credentials. Do not reuse these strings for any application login or session.
+- The validator is a membership-validation gate, not a token signer. It does not authenticate a real browser session, validate role/permission delegation or resource-level relationships, implement tenant/unit lifecycle rules, or sign a database context token.
+- The private synthetic unit catalog is not a production source of truth. Real application integration must resolve unit ownership through the approved domain model and the trusted backend transaction flow.
+- The role grant from `sinau_poc` to `sinau_context_issuer_poc` is test convenience only. Production runtime roles must be separately provisioned and must not inherit owner/admin privileges.
+- This test does not touch or model application database `sinau`, role `sinau_app`, SQLRadius, or MikroTik. Do not treat a passing fixture test as production authentication/authorization approval.
+

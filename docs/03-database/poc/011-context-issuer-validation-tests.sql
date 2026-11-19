@@ -24,18 +24,22 @@ SET LOCAL ROLE sinau_context_issuer_poc;
 DO $issuer_tests$
 DECLARE
     v_count pg_catalog.int8;
-    v_actor pg_catalog.uuid;
+    v_actor_matches pg_catalog.int8;
 BEGIN
     -- ISS-01: active identity + session + tenant membership + unit membership.
-    SELECT pg_catalog.count(*), pg_catalog.min(r.actor_id)
-      INTO v_count, v_actor
+    SELECT
+        pg_catalog.count(*),
+        pg_catalog.count(*) FILTER (
+            WHERE r.actor_id = '91000000-0000-0000-0000-000000000001'
+        )
+      INTO v_count, v_actor_matches
       FROM sinau_issuer_poc.validate_context_request(
           'SINAU-POC-ACTIVE-SESSION-A-NOT-A-REAL-CREDENTIAL',
           '00000000-0000-0000-0000-000000000001',
           '10000000-0000-0000-0000-000000000001'
       ) AS r;
 
-    IF v_count <> 1 OR v_actor <> '91000000-0000-0000-0000-000000000001' THEN
+    IF v_count <> 1 OR v_actor_matches <> 1 THEN
         RAISE EXCEPTION 'FAIL ISS-01: active membership should authorize unit context';
     END IF;
     RAISE NOTICE 'PASS ISS-01: active user/session/tenant/unit membership accepted';
@@ -68,15 +72,19 @@ BEGIN
 
     -- ISS-04: tenant-level context is possible with active tenant membership;
     -- the null unit claim does not grant a unit.
-    SELECT pg_catalog.count(*), pg_catalog.min(r.actor_id)
-      INTO v_count, v_actor
+    SELECT
+        pg_catalog.count(*),
+        pg_catalog.count(*) FILTER (
+            WHERE r.actor_id = '91000000-0000-0000-0000-000000000001'
+        )
+      INTO v_count, v_actor_matches
       FROM sinau_issuer_poc.validate_context_request(
           'SINAU-POC-ACTIVE-SESSION-A-NOT-A-REAL-CREDENTIAL',
           '00000000-0000-0000-0000-000000000001',
           NULL
       ) AS r;
 
-    IF v_count <> 1 OR v_actor <> '91000000-0000-0000-0000-000000000001' THEN
+    IF v_count <> 1 OR v_actor_matches <> 1 THEN
         RAISE EXCEPTION 'FAIL ISS-04: active tenant membership should allow tenant-only context';
     END IF;
     RAISE NOTICE 'PASS ISS-04: tenant-level context accepted with unit_id NULL';

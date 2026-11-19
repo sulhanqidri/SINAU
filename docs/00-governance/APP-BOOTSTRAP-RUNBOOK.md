@@ -146,7 +146,7 @@ Sebelum commit:
 - pastikan .env tidak berada dalam Git index;
 - pastikan vendor/ dan node_modules/ diabaikan;
 - periksa .env.example agar tidak berisi secret;
-- ubah koneksi contoh menjadi PostgreSQL (DB_CONNECTION=pgsql) dan nama DB PoC aplikasi yang disetujui, bukan sinau_design_poc;
+- ubah koneksi contoh menjadi PostgreSQL (`DB_CONNECTION=pgsql`, `DB_HOST=127.0.0.1`, `DB_PORT=5432`, `DB_DATABASE=sinau_app_poc`) dan gunakan `SESSION_CONNECTION=pgsql`; nilai username/password tetap placeholder sampai role aplikasi dibuat;
 - pastikan session database connection menggunakan koneksi PostgreSQL aplikasi yang sama;
 - nonaktifkan Teams dan pastikan action registrasi hanya membuat global user sesuai ADR-008.
 
@@ -159,6 +159,7 @@ env:
   APP_ENV: testing
   DB_CONNECTION: sqlite
   DB_DATABASE: ${{ github.workspace }}/database/database.sqlite
+  SESSION_CONNECTION: sqlite
 ```
 
 Di langkah sebelum `composer setup`, buat file database sementara:
@@ -168,7 +169,7 @@ Di langkah sebelum `composer setup`, buat file database sementara:
   run: touch "$DB_DATABASE"
 ```
 
-Setup PHP harus menyediakan ekstensi `pdo_sqlite` dan `sqlite3`; tetap sediakan `pdo_pgsql` untuk mendeteksi kompatibilitas runtime target PostgreSQL. Gunakan Node 24.22.3 agar CI sejalan dengan runtime host. Variabel environment pada job harus tetap mengalahkan nilai `.env.example` yang nanti diubah menjadi PostgreSQL; jangan menambahkan credential database produksi ke Actions.
+Setup PHP harus menyediakan ekstensi `pdo_sqlite` dan `sqlite3`; tetap sediakan `pdo_pgsql` untuk mendeteksi kompatibilitas runtime target PostgreSQL. Gunakan Node 24.22.3 agar CI sejalan dengan runtime host. Variabel environment pada job harus tetap mengalahkan nilai `.env.example` yang nanti diubah menjadi PostgreSQL; khususnya `SESSION_CONNECTION=sqlite` agar session test memakai file SQLite runner, bukan koneksi PostgreSQL contoh. Jangan menambahkan credential database produksi ke Actions.
 
 Vite+ 1.4.0 secara resmi menerima Node `^22.18.0 || ^24.11.0 || >=26.0.0`; Node 22 tidak otomatis tidak kompatibel, tetapi Node 24.22.3 dipilih di workflow agar versi CI sama dengan host. `npm install` dari script `composer setup` mengikuti `.npmrc` yang memiliki `ignore-scripts=true`; jangan melonggarkan kebijakan ini tanpa review. Setelah build dependency pertama dilakukan, commit lockfile npm agar instalasi CI dapat dibuat reproducible.
 

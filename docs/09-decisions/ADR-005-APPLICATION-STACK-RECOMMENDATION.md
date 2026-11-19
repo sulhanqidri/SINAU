@@ -1,56 +1,82 @@
-# ADR-005: Rekomendasi Stack Aplikasi
+# ADR-005: Stack Aplikasi SINAU
 
-- **Status:** Proposed — stack aplikasi menunggu PoC dan persetujuan pemilik produk; pilihan database ditetapkan terpisah pada ADR-006.
-- **Tanggal:** 2026-11-18
-- **Area:** Backend, frontend, runtime, framework
-- **Terkait:** SYSTEM-ARCHITECTURE.md, TECHNOLOGY-OPTIONS.md, IMPLEMENTATION-PLAN.md, ADR-006
+- **Status:** Accepted untuk bootstrap aplikasi web awal — keputusan ini tidak mengizinkan migration domain/production deployment.
+- **Tanggal keputusan:** 2026-11-19
+- **Area:** Backend, frontend, runtime, framework, deployment awal
+- **Disetujui pemilik produk:** persetujuan untuk melanjutkan bootstrap setelah rekomendasi stack disampaikan.
+- **Terkait:** SYSTEM-ARCHITECTURE.md, IMPLEMENTATION-PLAN.md, ADR-006, ADR-007, ADR-008.
 
 ## Konteks
 
-SINAU membutuhkan fondasi yang dapat dipelihara sebagai modular monolith, mendukung UI web responsif, API ter-versioning, antrean pekerjaan, autentikasi, pengujian otomatis, dan isolasi tenant/unit. Stack harus dipilih berdasarkan kompatibilitas, keamanan, kemampuan tim, biaya operasional, serta hasil PoC — bukan hanya popularitas framework.
+SINAU membutuhkan fondasi modular monolith yang dapat dipelihara, UI web responsif, autentikasi server-side, API ter-versioning di fase berikutnya, antrean pekerjaan, test automation, dan tenant/unit isolation. Resource infrastruktur terbatas; bootstrap harus memakai server PostgreSQL yang tersedia dan tidak menambah VPS atau service wajib.
 
-## Rekomendasi stack
+## Keputusan stack untuk bootstrap
 
-| Lapisan | Rekomendasi untuk PoC | Status |
+| Lapisan | Keputusan | Batas |
 |---|---|---|
-| Backend | Laravel 13 | Kandidat utama |
-| Runtime | PHP 8.4 dan 8.5 diuji; pilih satu versi yang didukung penuh oleh dependency | Belum final |
-| Frontend | Vue 3 + Inertia | Kandidat utama |
-| Styling | Tailwind CSS dengan design tokens SINAU | Kandidat utama |
-| API | REST dengan versioning eksplisit | Arah desain |
-| Authentication | Session untuk web; evaluasi Sanctum untuk API/client pihak pertama | Belum final |
+| Backend | Laravel 13 | Modular monolith; bukan microservices |
+| Runtime | PHP 8.4 sebagai baseline bootstrap | Laravel 13 mendukung PHP 8.3–8.5; host harus lulus preflight extensions dan dependency |
+| Frontend | Official Laravel Vue starter kit | Vue 3 Composition API + TypeScript |
+| SPA/navigation | Inertia 3 | Same-origin server session; bukan SPA API terpisah |
+| Styling | Tailwind CSS 4 + shadcn-vue | Design tokens SINAU akan ditambahkan setelah shell siap |
+| Authentication web | Laravel Fortify melalui official starter kit | Detail session dan onboarding di ADR-008 |
 | Database | PostgreSQL 18 | **Accepted — ADR-006** |
-| Queue/cache | Redis bila dibutuhkan; jangan menjadikannya prasyarat untuk seluruh proses MVP sebelum beban diukur | Belum final |
-| File | Private S3-compatible object storage melalui abstraction | Belum final |
-| CI | GitHub Actions untuk test, lint, static analysis, dan security checks | Kandidat utama |
+| Database connection | Koneksi PostgreSQL langsung | Tidak memasang PgBouncer/PgCat/Odyssey pada tahap ini |
+| Queue/cache | Database-backed terlebih dahulu bila diperlukan | Redis bukan prasyarat bootstrap |
+| Session store | Laravel database session | Tidak membutuhkan Redis; session table global/non-tenant |
+| File | Local private storage sebagai baseline awal | Object storage S3-compatible ditunda sampai kebutuhan/host ditetapkan |
+| API | REST versioned sebagai arah arsitektur | API authentication/Sanctum belum diaktifkan pada bootstrap web |
+| CI | GitHub Actions | Composer checks, frontend build, tests, static/security checks bertahap |
 
-Laravel 13 menjadi kandidat karena jadwal rilis dan masa dukungan resminya masih sesuai untuk proyek baru pada tanggal ADR ini. Laravel 13 mendukung PHP 8.3–8.5; versi runtime yang dipilih tetap harus diuji terhadap seluruh dependency dan image deployment. [Referensi: Laravel Release Notes](https://laravel.com/docs/releases).
+Laravel 13 saat ini mendukung PHP 8.3–8.5. Baseline proyek memilih PHP 8.4 agar runtime awal tunggal dan dependency dapat dipatok secara konsisten; server harus diperiksa sebelum instalasi. [Laravel Release Notes](https://laravel.com/framework/docs/13.x/releases).
 
-Pemilihan PostgreSQL 18 sebagai database utama telah disetujui pemilik produk dan dicatat pada [ADR-006](ADR-006-POSTGRESQL-DATABASE.md). Validasi skema, isolasi tenant, performa, dan operasional PostgreSQL tetap wajib dilakukan melalui PoC sebelum migration domain produksi.
+Official Vue starter kit menyediakan Vue 3 Composition API, TypeScript, Inertia, Tailwind, dan shadcn-vue. Starter kits menggunakan Laravel Fortify untuk alur autentikasi. SINAU menggunakan starter kit Vue dengan Laravel built-in authentication; tidak memilih WorkOS pada bootstrap. [Laravel Starter Kits](https://laravel.com/framework/docs/13.x/starter-kits).
 
-## Alasan rekomendasi
+## Keputusan implementasi awal
 
-1. Laravel + Vue + Inertia memungkinkan tim membangun pengalaman web interaktif tanpa memecah backend dan frontend menjadi dua deployment sejak awal.
-2. Modular monolith tetap dapat memisahkan domain, application service, policy, dan infrastruktur secara disiplin.
-3. PostgreSQL 18 dipilih untuk fondasi integritas relasional, transaksi, query laporan, indexing, partitioning, serta opsi RLS sebagai defense-in-depth.
-4. Stack tidak boleh mengurangi kontrol keamanan: semua request, job, file, export, dan query tetap membawa serta memvalidasi scope tenant/unit.
+1. Gunakan official Laravel Vue starter kit, tanpa fitur Teams. Teams bawaan tidak menggantikan model Tenant + Education Unit SINAU.
+2. Pertahankan global `users` terpisah dari tenant/unit membership. Action registrasi hanya membuat global identity; tenant/unit dan membership dibuat oleh onboarding flow setelah email terverifikasi.
+3. Gunakan Fortify/session untuk web. Tidak ada API bearer token atau Personal Access Token pada bootstrap awal.
+4. Ikuti ADR-008 untuk cookie/session lifecycle, registration boundary, email verification, login rate limit, dan 2FA.
+5. Gunakan database PostgreSQL terpisah untuk application PoC setelah dibuat secara eksplisit. Jangan memakai `sinau_design_poc` sebagai database aplikasi; DB tersebut khusus script uji RLS/context.
+6. Tidak ada service Redis atau pooler baru. Koneksi langsung ke PostgreSQL pada host yang tersedia untuk fase awal.
+7. Jangan mengubah atau menggunakan deployment/repository SQLRadius sebagai tempat aplikasi SINAU. Repository dan direktori aplikasi harus terpisah.
+8. Jangan menambahkan domain migration siswa/akademik sebelum database design/PoC, ownership matrix, permission, dan test harness disetujui.
+
+## Alasan
+
+- Laravel + Inertia + Vue memungkinkan backend dan UI berada dalam satu modular monolith tanpa menambah deployment API/frontend terpisah.
+- Official starter kit menyediakan auth scaffolding yang dapat disesuaikan dan mengurangi boilerplate.
+- PostgreSQL 18 sudah dipilih melalui ADR-006 dan PoC database/RLS telah menyediakan baseline teknis.
+- Session/queue/cache database menghindari service tambahan pada kapasitas infrastruktur sekarang.
+- Tenant/unit scope tetap berada pada domain SINAU, bukan dipetakan ke Teams starter kit.
+- Pengembangan dilakukan pada direktori/repository SINAU yang terpisah; tidak menyentuh SQLRadius.
 
 ## Batas keputusan
 
-ADR ini tidak mengesahkan versi patch dependency, library RBAC, queue backend, provider object storage, atau desain deployment. Keputusan tersebut memerlukan PoC dan/atau ADR tersendiri.
+ADR ini menyetujui stack untuk bootstrap web awal, bukan semua pilihan produksi. Hal berikut tetap terbuka:
+- patch version Laravel/PHP dan dependency lock yang akan dihasilkan oleh installer pada hari bootstrap;
+- API/mobile authentication dan Sanctum;
+- queue/cache backend jangka panjang dan kebutuhan Redis;
+- pooler dan connection topology jika ada pengukuran kebutuhan kapasitas;
+- S3-compatible storage provider;
+- deployment/reverse proxy/observability/backup;
+- RBAC library dan permission catalog final;
+- final schema identity/membership dan production migration gates.
 
-Tidak ada migration aplikasi yang boleh dibuat berdasarkan rekomendasi stack ini sebelum PoC PostgreSQL dan gerbang database pada ADR-006 terpenuhi.
+## Kriteria penerimaan bootstrap
 
-## Kriteria penerimaan PoC stack
+- Laravel 13 application scaffold terbuat dari official Vue starter kit.
+- PHP runtime memenuhi requirements dan extension PostgreSQL tersedia.
+- Composer dependency install dan npm production build berhasil.
+- Login, logout, password reset, email verification, CSRF, session rotation, rate limit, dan 2FA flow dapat dites.
+- Public registration hanya membuat global user; tidak memberikan tenant, unit, role, atau platform privilege.
+- Database aplikasi terpisah dari `sinau_design_poc` dan dari database SQLRadius.
+- Tidak ada `.env`, APP_KEY, password, session secret, signing key, atau credential yang masuk Git.
+- CI berjalan dan application smoke tests lulus.
+- PoC dapat dijalankan pada resource host yang tersedia tanpa menambah server/pooler/Redis.
 
-- Aplikasi dapat dibangun dan dijalankan dengan versi runtime yang didukung.
-- Authentication, session, CSRF, validation, dan authorization dapat diuji.
-- Vue/Inertia mendukung kebutuhan form, tabel, navigasi, dan tampilan responsif.
-- Test suite berjalan konsisten di CI.
-- Tidak ada dependency kritis yang tidak terpelihara atau tidak kompatibel.
-- Deployment, konfigurasi secret, logging, dan health check dapat direproduksi.
-- PoC dapat dijalankan tanpa menyentuh repository atau deployment SQLRadius.
+## Keputusan database
 
-## Keputusan akhir stack
+PostgreSQL 18 sebagai database utama tetap Accepted melalui [ADR-006](ADR-006-POSTGRESQL-DATABASE.md). Skema application bootstrap hanya mencakup kebutuhan framework/auth. Migration domain SINAU tetap menunggu gerbang PoC, authorization, backup/restore, dan persetujuan pemilik produk.
 
-Setelah hasil PoC ditinjau, pemilik produk menyetujui atau mengubah rekomendasi stack aplikasi. Perubahan status menjadi Accepted harus disertai versi runtime/framework yang dipatok dan alasan keputusan.

@@ -189,3 +189,13 @@ The script begins a new transaction, applies `SET LOCAL ROLE sinau_rls_test`, an
 
 This proves local GUC reset across a transaction boundary on the same connection. It is a useful connection-reuse check, but it is not a substitute for testing the actual application pooler or worker lifecycle.
 
+## 9. Trusted backend issuer boundary
+
+Before replacing the synthetic fixed-claim signer with an issuer, review [Trusted Backend Context Issuer Design](../../05-security/TRUSTED-CONTEXT-ISSUER-DESIGN.md).
+
+The current database PoC schema has no physical users, authentication sessions, tenant memberships, unit memberships, role assignments, or subscription/entitlement tables. ADR-003 defines those as conceptual entities, but they are not present in 001-schema.sql. Therefore the existing signer cannot validate real identity or membership, and no issuer implementation may infer those records from the synthetic RLS fixtures.
+
+The next executable experiment must create isolated synthetic fixtures (preferably in a dedicated private PoC schema) for global account state, authentication session state, tenant membership, unit membership, and scope lifecycle. It must keep entitlement separate and test it as a distinct feature gate. Fixture writes and test grants must be restricted to an administrator/fixture owner; the request/query role must not be able to create or mutate memberships, sessions, roles, or entitlement state.
+
+Do not use the current sinau_poc owner role as a production issuer role. The production design must use a least-privilege backend/query role, a separately protected signing key, a server-side authenticated principal, and the same transaction connection/XID through context issuance and protected queries. The final authentication framework and application stack have not yet been approved, so the next step is a database-only synthetic membership issuer PoC plus an implementation-neutral backend contract, not production application code.
+

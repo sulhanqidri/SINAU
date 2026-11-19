@@ -962,3 +962,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next user action: stage 013 under `/run` with owner postgres/mode 0600, then run it in an interactive psql session against `sinau_design_poc` after `SET SESSION AUTHORIZATION sinau_poc`. Do not run it against production.
 - No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, application migration, production role, or new server credential was touched. PR #1 remains Draft/open/unmerged.
 
+
+### Transaction-local cleanup PoC passed — 2026-11-19
+- Executed `docs/03-database/poc/013-test-context-and-role-cleanup.sql` on PostgreSQL 18.7 in one interactive session against `sinau_design_poc`, with session authorization `sinau_poc`.
+- COMMIT path passed: the deliberately invalid synthetic `app.context_token` did not verify and exposed zero rows from `public.academic_years`; after COMMIT, PostgreSQL confirmed `app.context_token` was empty and `SET LOCAL ROLE` had restored `sinau_poc`.
+- ROLLBACK path passed: the invalid marker exposed zero academic rows; after ROLLBACK, `app.context_token` was empty and session/current role returned to `sinau_poc`.
+- A fresh transaction on that same connection, without a token, had zero verified context and zero visible academic rows. Final notice: `CONTEXT AND ROLE CLEANUP TESTS PASSED — COMMIT/ROLLBACK COMPLETE`.
+- This proves direct-session transaction-local GUC and role cleanup across COMMIT/ROLLBACK plus same-connection reuse. It does not prove behavior under PgBouncer, Laravel/PDO, persistent application connections, worker cancellation, or real request exceptions.
+- Next: add a controlled SQL-error/aborted-transaction test that requires rollback and then checks a fresh transaction on the same connection. Pooler integration remains pending until the deployment pooler topology is selected.
+- No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, application migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.
+

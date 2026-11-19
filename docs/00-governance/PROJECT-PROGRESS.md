@@ -1126,3 +1126,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next: synchronize `~/SINAU` to current branch head, run `rsync --dry-run` only with explicit exclusions for `.env`, vendor, node_modules, runtime cache/log artifacts, and SQLite while preserving nested Laravel `.gitignore` placeholders; review complete dry-run output for collisions/additions. Do not perform actual rsync until list is reviewed.
 - No dependency installs, app migrations, or scaffold merge have happened. Dedicated app database `sinau_app_poc` not created.
 
+
+### First scaffold rsync dry-run reviewed — 2026-11-19
+- User fast-forwarded local `~/SINAU` to commit `cca2f4e97c4b80693ddc338e9051b4f0f7af86e1`; working tree output was clean.
+- `rsync -avni --ignore-existing` dry-run from `~/sinau-laravel-bootstrap/` to `~/SINAU/` completed with DRY RUN, proposing only additions. No `.env`, `vendor/`, `node_modules/`, `public/build/`, `bootstrap/cache/*.php`, storage logs/runtime cache, or `database/database.sqlite` appeared. It proposes app shell files, manifests, Vue source, route/test files, `.env.example`, root `.gitignore`, `.github/dependabot.yml`, and `.github/workflows/tests.yml`.
+- Read-only GitHub tree inspection at branch head confirms no Laravel app paths currently exist at repo root (`app`, `bootstrap`, `config`, `database`, `public`, `resources`, `routes`, `tests`, Composer/npm manifests absent). Existing `.github/workflows/` contains only `postgresql-poc.yml`; dry-run's `tests.yml` is a distinct addition. No expected app-path collisions detected at that remote head.
+- Before real rsync, still inspect new `tests.yml` and `dependabot.yml` to ensure CI does not run migrations against an unintended database and check `.env.example` secret-like keys by printing only EMPTY/PLACEHOLDER/PRESENT status, not values. Also inspect package scripts/workflow for npm/pnpm assumptions. Then can approve selective merge, keeping `.env`, runtime, caches, and SQLite excluded.
+- No actual rsync performed yet; dry-run has not modified files. No dependency install or migration.
+

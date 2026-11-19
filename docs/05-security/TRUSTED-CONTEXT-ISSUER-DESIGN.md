@@ -166,13 +166,13 @@ The fixture must be synthetic, must not copy real people, and must not alter the
 
 The database-only synthetic membership-validation experiment is prepared in:
 
-- `docs/03-database/poc/010-context-issuer-fixtures.sql` (latest relevant commit `4a5c0a2245169029bce31d552395e8fed69573b6`; current blob `d4aec6229c721678caeadb8d2950c2567cb2183f`). It creates private synthetic identities, hashed session fixtures, tenant memberships, unit memberships, an active/inactive private unit catalog, and separate feature entitlements. It also creates a NOLOGIN issuer-test role and a narrow SECURITY DEFINER validator. The validator accepts a synthetic session bearer and requested tenant/unit; it resolves actor identity from the stored hash and has no caller-supplied actor_id parameter.
-- `docs/03-database/poc/011-context-issuer-validation-tests.sql` (latest relevant commit `c0bf21985f777042d4a22e58f24af5dceb4a9e6d`; current blob `1572f39c86d2d3826746a630b0e4bac64272c516`). It tests active access, revoked unit grant, revoked tenant membership, tenant-only context, disabled global identity, revoked/expired session, future/suspended/expired tenant membership, expired unit membership, inactive unit, tenant/unit mismatch, entitlement separation, and least-privilege restrictions for the RLS query role.
+- `docs/03-database/poc/010-context-issuer-fixtures.sql` (type qualification fix commit `b51f2227187482c623664f14dfd09ad2ac8db042`; verified blob `c415e7a2a1a56722d1b371f99c1585669f38ef4f`). It creates private synthetic identities, hashed session fixtures, tenant memberships, unit memberships, an active/inactive private unit catalog, and separate feature entitlements. It also creates a NOLOGIN issuer-test role and a narrow SECURITY DEFINER validator. The validator accepts a synthetic session bearer and requested tenant/unit; it resolves actor identity from the stored hash and has no caller-supplied actor_id parameter. The corrected script was executed successfully in `sinau_design_poc`.
+- `docs/03-database/poc/011-context-issuer-validation-tests.sql` (private-schema privilege-test fix commit `4c6ced509d65a84c345b47eab8bb9e67a5b0c6a4`; verified blob `f31c3a8ec405e0ea82bc8bdb24a8c9f9a80bbb65`). It tests active access, revoked unit grant, revoked tenant membership, tenant-only context, disabled global identity, revoked/expired session, future/suspended/expired tenant membership, expired unit membership, inactive unit, tenant/unit mismatch, entitlement separation, and least-privilege restrictions for the RLS query role. The corrected file was executed successfully; all ISS-01—ISS-14 tests and the final query-role privilege test passed, then the test transaction rolled back.
 - The role grant from `sinau_poc` to `sinau_context_issuer_poc` is only a test convenience for role switching. It is not a production role design.
 - The unit catalog is private synthetic fixture metadata rather than a query against `public.education_units`. That table is FORCE-RLS protected; the validator must not bypass its policy before a signed context is installed.
 - Session strings in the fixture/test files are fixed, public synthetic values; they are not real user credentials and must never be reused for application login.
 
-**These scripts are committed but NOT yet executed on the server.** The validator is a membership-validation gate, not a token signer. It does not authenticate a real browser session, validate final permission/delegation/resource relationship rules, apply the final tenant/unit lifecycle policy, or create an RLS context token. The actual application issuer remains unimplemented pending the approved authentication stack and least-privilege runtime connection design.
+**Execution status (2026-11-19):** Both corrected scripts were executed against `sinau_design_poc` only. Script 010 installed the synthetic fixtures and reported the validator as owned by `sinau_context_owner`, `SECURITY DEFINER`, VOLATILE, PARALLEL UNSAFE, with fixed `search_path=pg_catalog, pg_temp`; issuer EXECUTE is granted while PUBLIC/query-role execution and direct fixture/key-table access are denied. Script 011 passed ISS-01 through ISS-14, including fail-closed handling for unknown/empty session credentials, and passed the final privilege check proving `sinau_rls_test` cannot execute the validator, read membership/key fixtures, or mutate memberships. The script ended with `ROLLBACK` and `CONTEXT ISSUER VALIDATION TESTS PASSED`. This is verified synthetic database membership-validation only. The validator is not a token signer; it does not authenticate a real browser session, validate final permission/delegation/resource relationship rules, apply the final tenant/unit lifecycle policy, or create an RLS context token. The actual application issuer remains unimplemented pending the approved authentication stack and least-privilege runtime connection design.
 
 ### Least-privilege requirements
 
@@ -200,26 +200,26 @@ The database-only synthetic membership-validation experiment is prepared in:
 | SQL role bypass | Separate non-owner/no-BYPASSRLS runtime role | Role/catalog privilege tests |
 | Membership revoked mid-transaction | Explicit in-flight policy or authorization epoch | Concurrent revoke/use test |
 
-## 10. Executable PoC acceptance matrix
+## 10. Additional acceptance matrix for a real backend issuer
 
-The membership issuer PoC must not be marked complete until these cases have actual PostgreSQL/backend output:
+The database-only synthetic membership fixture tests in `011-context-issuer-validation-tests.sql` have passed, but they are not an end-to-end application issuer. The matrix below is a separate set of acceptance requirements for the eventual real backend integration; none of these application-level cases is established by the synthetic fixture result alone. The real backend issuer must not be marked complete until these cases have actual PostgreSQL/backend output:
 
 | ID | Scenario | Expected |
 |---|---|---|
-| ISS-01 | Active user + active tenant membership + active unit membership | Unit token issued |
-| ISS-02 | Active tenant membership but no unit membership | Unit token denied |
-| ISS-03 | Tenant membership suspended/revoked/expired/not-yet-valid | Denied |
-| ISS-04 | Unit membership revoked/expired/not-yet-valid | Denied |
-| ISS-05 | Global user disabled/locked | Denied |
-| ISS-06 | Authentication session expired/revoked | Denied |
-| ISS-07 | Unit belongs to another tenant | Denied without revealing foreign tenant information |
-| ISS-08 | Tenant-level request with active tenant membership and unit null | Tenant-only context issued, subject to permission |
-| ISS-09 | Caller supplies forged actor ID distinct from authenticated principal | Supplied actor ID ignored; actual principal used |
-| ISS-10 | Feature entitlement missing/expired | Relevant feature operation denied separately; context alone does not grant the feature |
-| ISS-11 | Membership revoked after prior transaction | New transaction cannot obtain context |
-| ISS-12 | Token is copied to another top-level XID | Database verifier rejects it |
-| ISS-13 | Request role attempts to read signing key or mutate membership | Permission denied |
-| ISS-14 | Context transaction rolls back and connection is reused | Context absent in next transaction |
+| APP-ISS-01 | Active user + active tenant membership + active unit membership | Unit token issued |
+| APP-ISS-02 | Active tenant membership but no unit membership | Unit token denied |
+| APP-ISS-03 | Tenant membership suspended/revoked/expired/not-yet-valid | Denied |
+| APP-ISS-04 | Unit membership revoked/expired/not-yet-valid | Denied |
+| APP-ISS-05 | Global user disabled/locked | Denied |
+| APP-ISS-06 | Authentication session expired/revoked | Denied |
+| APP-ISS-07 | Unit belongs to another tenant | Denied without revealing foreign tenant information |
+| APP-ISS-08 | Tenant-level request with active tenant membership and unit null | Tenant-only context issued, subject to permission |
+| APP-ISS-09 | Caller supplies forged actor ID distinct from authenticated principal | Supplied actor ID ignored; actual principal used |
+| APP-ISS-10 | Feature entitlement missing/expired | Relevant feature operation denied separately; context alone does not grant the feature |
+| APP-ISS-11 | Membership revoked after prior transaction | New transaction cannot obtain context |
+| APP-ISS-12 | Token is copied to another top-level XID | Database verifier rejects it |
+| APP-ISS-13 | Request role attempts to read signing key or mutate membership | Permission denied |
+| APP-ISS-14 | Context transaction rolls back and connection is reused | Context absent in next transaction |
 
 ## 11. Decisions still required before production
 

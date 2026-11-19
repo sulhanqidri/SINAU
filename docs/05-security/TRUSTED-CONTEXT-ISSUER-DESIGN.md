@@ -160,6 +160,19 @@ Before an executable membership issuer PoC is built, create isolated synthetic f
 
 The fixture must be synthetic, must not copy real people, and must not alter the accepted product schema or production database.
 
+
+
+### Current synthetic PoC fixture implementation
+
+The next database-only step is prepared in:
+
+- `docs/03-database/poc/010-context-issuer-fixtures.sql`: creates private synthetic identity, hashed session, tenant membership, unit membership, private unit-catalog, and feature-entitlement fixtures; a NOLOGIN issuer-test role; and a SECURITY DEFINER membership validator that accepts an opaque session bearer plus requested tenant/unit, resolves the actor from the stored hash, and returns zero rows for denial.
+- `docs/03-database/poc/011-context-issuer-validation-tests.sql`: tests active membership, missing/revoked unit grant, revoked tenant membership, tenant-only scope, disabled account, revoked/expired session, future tenant membership, expired unit membership, tenant/unit mismatch, separate feature entitlement, and query-role privilege restrictions.
+
+The validator deliberately reads a private synthetic unit catalog rather than public.education_units. The latter is FORCE-RLS protected; querying it from a SECURITY DEFINER function before context installation could create an accidental RLS bypass or false denial. The private unit catalog is test-only and is not a production data model.
+
+**These scripts are committed but not yet executed.** The function validates a synthetic session and membership; it does not sign a context token or authenticate a real browser session. The actual application backend signer remains unimplemented pending the final application/authentication stack and least-privilege database connection design.
+
 ### Least-privilege requirements
 
 - The web/application database role must not own protected tables, be superuser, have BYPASSRLS, or inherit an administrative role.

@@ -172,7 +172,8 @@ Ikuti ADR-008:
 - jangan menambahkan tenant_id/unit_id pada users;
 - jangan aktifkan Laravel Teams;
 - gunakan database session, cookie HttpOnly + SameSite=Lax, Secure pada HTTPS;
-- login rate limit, CSRF, logout/session invalidation, dan 2FA opsional harus diuji;
+- login rate limit, CSRF, logout/session invalidation, dan flow TOTP 2FA opsional harus diuji;
+- jangan aktifkan Passkeys pada bootstrap awal; keputusan passkey dan recovery tetap terbuka di ADR-008 sampai ada desain dan pengujian tersendiri;
 - API bearer token/Sanctum tidak diaktifkan pada bootstrap web;
 - context RLS token tidak pernah dikirim ke browser.
 

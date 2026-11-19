@@ -200,6 +200,6 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 
 1. Product Owner/security menyetujui pilihan auth web/API, session lifecycle, revocation semantics, dan key custody.
 2. Finalisasi role matrix dan kontrak principal/session dalam ADR terpisah atau revisi ADR ini.
-3. Jalankan PoC koneksi satu-transaction dengan role issuer/query berbeda dan pergantian role yang tetap mempertahankan XID yang sama.
+3. Jalankan `docs/03-database/poc/012-test-issuer-query-role-switch.sql` pada `sinau_design_poc` untuk menguji role issuer executor → query role → issuer executor pada satu koneksi dan satu top-level XID. Skrip sudah disiapkan, tetapi belum dieksekusi.
 4. Tambahkan simulasi connection pooling/connection reuse serta exception/rollback tests.
 5. Setelah application stack disetujui dan bootstrap Stage E dimulai, implementasikan adapter Laravel yang memenuhi kontrak ini tanpa menyalin fixture sintetis ke schema produksi.

@@ -44,9 +44,10 @@ REVOKE ALL ON SCHEMA sinau_issuer_poc FROM sinau_poc;
 REVOKE ALL ON SCHEMA sinau_issuer_poc FROM sinau_rls_test;
 GRANT USAGE ON SCHEMA sinau_issuer_poc TO sinau_context_issuer_poc;
 
--- The SECURITY DEFINER validator needs to confirm unit/tenant ownership.
-GRANT SELECT, REFERENCES ON TABLE public.education_units
-    TO sinau_context_owner;
+-- Only REFERENCES on the global tenant registry is needed for fixture FKs.
+-- Unit membership uses a private synthetic unit catalog because the real
+-- public.education_units table is FORCE-RLS protected and must not be queried
+-- before the request context has been installed.
 GRANT REFERENCES ON TABLE public.tenants
     TO sinau_context_owner;
 
@@ -90,6 +91,15 @@ CREATE TABLE IF NOT EXISTS sinau_issuer_poc.poc_tenant_memberships (
     CHECK (valid_until IS NULL OR valid_until > valid_from)
 );
 
+CREATE TABLE IF NOT EXISTS sinau_issuer_poc.poc_units (
+    tenant_id pg_catalog.uuid NOT NULL
+        REFERENCES public.tenants(id),
+    unit_id pg_catalog.uuid NOT NULL,
+    unit_status pg_catalog.text NOT NULL
+        CHECK (unit_status IN ('active', 'inactive', 'closed')),
+    PRIMARY KEY (tenant_id, unit_id)
+);
+
 CREATE TABLE IF NOT EXISTS sinau_issuer_poc.poc_unit_memberships (
     actor_id pg_catalog.uuid NOT NULL,
     tenant_id pg_catalog.uuid NOT NULL,
@@ -103,7 +113,7 @@ CREATE TABLE IF NOT EXISTS sinau_issuer_poc.poc_unit_memberships (
     FOREIGN KEY (actor_id, tenant_id)
         REFERENCES sinau_issuer_poc.poc_tenant_memberships(actor_id, tenant_id),
     FOREIGN KEY (tenant_id, unit_id)
-        REFERENCES public.education_units(tenant_id, id),
+        REFERENCES sinau_issuer_poc.poc_units(tenant_id, unit_id),
     CHECK (valid_until IS NULL OR valid_until > valid_from)
 );
 
@@ -262,6 +272,27 @@ SET membership_status = EXCLUDED.membership_status,
     valid_until = EXCLUDED.valid_until,
     revoked_at = EXCLUDED.revoked_at;
 
+INSERT INTO sinau_issuer_poc.poc_units
+    (tenant_id, unit_id, unit_status)
+VALUES
+(
+    '00000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    'active'
+),
+(
+    '00000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    'active'
+),
+(
+    '00000000-0000-0000-0000-000000000002',
+    '20000000-0000-0000-0000-000000000001',
+    'active'
+)
+ON CONFLICT (tenant_id, unit_id) DO UPDATE
+SET unit_status = EXCLUDED.unit_status;
+
 INSERT INTO sinau_issuer_poc.poc_unit_memberships
     (actor_id, tenant_id, unit_id, membership_status, valid_from, valid_until, revoked_at)
 VALUES
@@ -418,9 +449,10 @@ BEGIN
     IF p_unit_id IS NOT NULL THEN
         IF NOT EXISTS (
             SELECT 1
-            FROM public.education_units AS eu
-            WHERE eu.tenant_id = p_tenant_id
-              AND eu.id = p_unit_id
+            FROM sinau_issuer_poc.poc_units AS pu
+            WHERE pu.tenant_id = p_tenant_id
+              AND pu.unit_id = p_unit_id
+              AND pu.unit_status = 'active'
         ) THEN
             RETURN;
         END IF;

@@ -972,3 +972,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next: add a controlled SQL-error/aborted-transaction test that requires rollback and then checks a fresh transaction on the same connection. Pooler integration remains pending until the deployment pooler topology is selected.
 - No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, application migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.
 
+
+### Aborted transaction recovery PoC prepared — 2026-11-19
+- Added `docs/03-database/poc/014-test-aborted-transaction-recovery.sql` (commit `073bbccd5131bc9068858c671ba51f79324d2cfd`; reviewed blob `3aac957df0a804cf062946db9ff7dea80c579c6d`). It installs an invalid transaction-local context marker, switches to the query role, deliberately triggers division-by-zero (SQLSTATE 22012), checks that psql observed the expected error, rolls back the aborted transaction, verifies context/role cleanup, and reuses the same connection for a fresh fail-closed transaction. It creates no persistent DDL and performs no application-row writes.
+- Added its runbook to `docs/03-database/poc/README.md` (commit `fa635a1cfd259e805e858cd791f29f90334d05a5`) and moved ADR-007's next gate to test 014 (commit `10118c77ce9a41d81aced7b5de8cf735299dd6c5`).
+- Static review confirms database/session guards, explicit SQLSTATE 22012 detection, rollback after the aborted statement, same-connection reuse, and final cleanup checks. Script 014 has **not yet been executed** on the server. The expected division-by-zero error is deliberate; the pass condition is that psql detects it and the rest of the script completes.
+- Next user action: stage 014 under `/run` with owner postgres/mode 0600, run inside an interactive psql session on `sinau_design_poc` after `SET SESSION AUTHORIZATION sinau_poc`. Do not run it against production.
+- No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, app migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.
+

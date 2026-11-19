@@ -130,6 +130,7 @@ rsync -a --ignore-existing \
   --exclude='vendor/' \
   --exclude='node_modules/' \
   --exclude='storage/logs/*' \
+  --exclude='database/database.sqlite' \
   --exclude='storage/framework/cache/*' \
   --exclude='storage/framework/sessions/*' \
   --exclude='storage/framework/views/*' \
@@ -149,7 +150,7 @@ Sebelum commit:
 
 ## 6. Instal dependency dan verifikasi lokal
 
-Jalankan setelah file scaffold digabung dan konfigurasi database PoC aplikasi tersedia:
+Jalankan setelah file scaffold digabung dan konfigurasi database PoC aplikasi tersedia. **Jangan menjalankan `composer run setup`** pada tahap bootstrap ini: script tersebut menjalankan `php artisan migrate --force` dan `npm install` sekaligus. Gunakan langkah terpisah dan eksplisit agar migration hanya dapat dijalankan setelah database `sinau_app_poc` dan role aplikasi disiapkan serta diverifikasi.
 
 ```bash
 cd "$HOME/SINAU" || exit 1

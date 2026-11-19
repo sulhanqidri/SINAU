@@ -184,6 +184,7 @@ ADR-008 belum menerima Passkeys sebagai fitur bootstrap. Setelah scaffold dibuat
 
 - Hapus hanya deklarasi `Features::passkeys([...])` dari `config/fortify.php`; pertahankan registration, reset password, email verification, dan TOTP.
 - Panggil `Laravel\\Passkeys\\Passkeys::ignoreRoutes()` pada `AppServiceProvider::register()`, supaya provider paket tidak mendaftarkan endpoint Passkeys saat boot.
+- Hapus juga blok starter-kit bertanda `@chisel-passkeys` di `routes/settings.php` (route `/.well-known/passkey-endpoints`); ini adalah dokumen discovery W3C yang mengiklankan dukungan Passkeys dan bukan endpoint login paket.
 - Hapus interface/trait Passkeys dari model User, rate limiter Passkeys, props/query Passkeys pada SecurityController, dan komponen Passkeys dari halaman Login, Confirm Password, serta Security.
 - Hapus migration Passkeys yang dihasilkan starter kit karena fitur belum dipakai, dan regenerasi Wayfinder setelah endpoint dimatikan.
 - Hapus dependency frontend `@laravel/passkeys` hanya setelah seluruh import Vue-nya dihilangkan. Jangan hapus dependency PHP `laravel/passkeys`: Laravel Fortify versi yang digunakan mewajibkannya sebagai dependency transitive.

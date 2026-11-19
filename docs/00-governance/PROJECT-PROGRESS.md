@@ -939,3 +939,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next: review ADR-007 with Product Owner/security; then build a database-only PoC for role switching issuer executor → query role on one connection and one top-level XID, including rollback/exception/connection reuse and pooler behavior. Do not write Laravel signer code until stack/auth decisions and Stage E bootstrap are approved.
 - No application code, production migration, production DB role, or new server credential was created. All database work remains restricted to `sinau_design_poc`; do not touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
 
+
+### Same-transaction role-switch PoC prepared — 2026-11-19
+- Added `docs/03-database/poc/012-test-issuer-query-role-switch.sql` (commit `788f230c6cce375e39c0b42c526027ca065f6e78`; verified blob `f9d430518e12264408d5be51ba46917b5f7d77fe`). It is guarded to `sinau_design_poc` and session/current user `sinau_poc`; it performs no persistent DDL or application-row writes. It tests switching issuer executor → RLS query → issuer executor in one explicit transaction while retaining the same top-level XID and transaction-local probe, then ROLLBACK and checks cleanup.
+- Documented the runbook in `docs/03-database/poc/README.md` (commit `8c1f7c3515b480fda8803205cf32f01290e97e2a`) and added it as the next gate in ADR-007 (commit `058b44de299f7dd0c764fafbc65281829c0d6618`). The SQL has been checked statically but **has not been executed**; do not record it as passed until actual PostgreSQL output is supplied.
+- Next user action: stage script 012 under `/run` with owner postgres/mode 0600, open psql against `sinau_design_poc`, `SET SESSION AUTHORIZATION sinau_poc`, and run the script in that session. This is still a direct-session role/XID test, not a real Laravel/PgBouncer pooler test.
+- No application code, production migration, production DB role, or server credential was created. Do not touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
+

@@ -96,7 +96,6 @@ SELECT pg_catalog.set_config(
     true
 ) IS NOT NULL AS transaction_local_context_installed;
 
-SET LOCAL ROLE sinau_context_issuer_poc;
 SET LOCAL ROLE sinau_rls_test;
 
 DO $rollback_path_test$

@@ -996,3 +996,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Inventory conclusion: no local PgBouncer/PgCat/Odyssey installation or common 6432/6433 listener was detected. No package was installed, no service/configuration was changed, and PostgreSQL topology remains unchanged.
 - Next: do not install a pooler on this server just for the PoC. Once the owner selects an application deployment topology, build a disposable/lab PgBouncer transaction-pooling test (or test the actual approved managed pooler) and verify one explicit transaction pins XID allocation, issuer validation, role switching, token installation, and protected SQL to one backend connection. Include commit/rollback, aborted transaction, and connection reuse.
 - No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, app migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.
+
+### Resource constraint — pooler deferred, no new server required — 2026-11-19
+- Owner confirmed there is no spare resource for a separate test server. No new server is required for the SINAU PoC or the next application-bootstrap planning step; all existing database tests have used the current PostgreSQL server and isolated database `sinau_design_poc`.
+- Decision for the current phase: do not provision another server and do not install PgBouncer/PgCat/Odyssey on the existing host. Continue with direct PostgreSQL connections and same-connection explicit transactions. This is a resource-constrained working recommendation, not a final performance/capacity decision.
+- Updated ADR-007 to defer connection pooling until real workload/capacity measurements justify it and the owner approves. Pooler testing is optional/later, not a blocker for proceeding with authentication and application design.
+- No package/service/configuration was changed. Production database `sinau`, role `sinau_app`, SQLRadius, and MikroTik remain untouched. PR #1 remains Draft/open/unmerged.
+

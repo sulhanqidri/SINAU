@@ -1096,3 +1096,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - User's local `routes/settings.php` does not contain the `@chisel-passkeys` marker comments expected by the initial safe-delete script; that script aborted and made no change. The discovery route remains at line 29 and generated Wayfinder still has `resources/js/routes/well-known/index.ts`.
 - Next: remove exactly the one route definition bounded by `Route::get('.well-known/passkey-endpoints'` and `})->name('well-known.passkeys');`, after asserting each boundary occurs exactly once; then lint, clear route cache, verify discovery route is absent and all nine TOTP routes persist, and only then regenerate Wayfinder.
 
+
+### Passkeys discovery endpoint removed and TOTP routes reverified — 2026-11-19
+- User successfully removed the route definition `/.well-known/passkey-endpoints` from temporary scaffold `routes/settings.php` using exact path/name boundary checks. A backup was created under `/tmp/sinau-settings-route-20261119-135416.php`.
+- `php -l routes/settings.php` passed; `php artisan route:clear` succeeded. `php artisan route:list --path=passkey` reports no matching routes. Regenerated Wayfinder successfully and grep across `routes` and `resources/js` found no `well-known.passkeys` or `well-known/passkey-endpoints` references.
+- `php artisan route:list --name=two-factor` still shows all nine expected TOTP routes. Previous PHP syntax checks passed; `User` continues to implement `TwoFactorAuthenticatable`, and Fortify config retains `Features::twoFactorAuthentication()`.
+- Passkeys route suppression via `Passkeys::ignoreRoutes()` is active in `AppServiceProvider::register()`. PHP `laravel/passkeys` package remains as required Fortify dependency; frontend package was removed from `package.json`, and Passkeys UI/controller/model references were cleaned earlier. Further broad residual-source grep should be run before the scaffold merge.
+- No PostgreSQL migrations, dependency installation, or scaffold merge have occurred. `sinau_app_poc` remains uncreated. Next step: run full residual Passkeys grep, verify frontend/build manifests and gitignore, then do rsync dry-run before a real selective copy.
+

@@ -1111,3 +1111,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next: inspect `PasskeyItem.vue`, the full `types/auth.ts`, and all imports of `@/types/auth` / `PasskeyItem`; remove orphan component and only the unused Passkey type (preserve any other shared types). Add `/database/database.sqlite` to root `.gitignore` before merge. Runbook updated accordingly in commit `ddd4c006d999224c3039d131ef0d04e648e01e4f`.
 - Do not run composer update/install, npm/pnpm install, setup script, or migrations until package-manager policy and database separation are approved. Then produce rsync dry-run only.
 
+
+### Orphan Passkey UI and auth type cleanup identified — 2026-11-19
+- User's latest source inspection confirms `resources/js/types/auth.ts` exports `User`, `Auth`, `Passkey`, and `TwoFactorConfigContent`. Only `Auth` is imported elsewhere (`resources/js/types/global.d.ts`); `Passkey` is referenced only by the orphan `resources/js/components/PasskeyItem.vue`. The component is not imported elsewhere after the prior page cleanup. Remove that component and only the `Passkey` type block; preserve the other auth types.
+- Fortify default config contains dormant passkeys keys (`limiters.passkeys` and a `passkeys` settings array), while no `Features::passkeys()` declaration exists. Leave these defaults intact for now; active routes are suppressed via `Passkeys::ignoreRoutes()` and the feature is not enabled. Do not remove the transitive PHP package.
+- Root scaffold `.gitignore` does not currently list `database/database.sqlite`; add `/database/database.sqlite` before merge. The temporary file is 0 bytes, and must not be copied/committed.
+- Next: backup-first cleanup of orphan `PasskeyItem.vue` + only the `Passkey` type, add SQLite ignore rule, rerun JS/grep checks, then proceed to rsync dry-run. No actual scaffold merge or DB migration yet.
+

@@ -178,7 +178,20 @@ Ikuti ADR-008:
 - API bearer token/Sanctum tidak diaktifkan pada bootstrap web;
 - context RLS token tidak pernah dikirim ke browser.
 
-## 8. Gerbang selesai bootstrap
+## 8. Fitur Passkeys ditunda pada bootstrap awal
+
+ADR-008 belum menerima Passkeys sebagai fitur bootstrap. Setelah scaffold dibuat, nonaktifkan seluruh integrasi aplikasi, bukan hanya menghapus deklarasi fitur Fortify:
+
+- Hapus hanya deklarasi `Features::passkeys([...])` dari `config/fortify.php`; pertahankan registration, reset password, email verification, dan TOTP.
+- Panggil `Laravel\\Passkeys\\Passkeys::ignoreRoutes()` pada `AppServiceProvider::register()`, supaya provider paket tidak mendaftarkan endpoint Passkeys saat boot.
+- Hapus interface/trait Passkeys dari model User, rate limiter Passkeys, props/query Passkeys pada SecurityController, dan komponen Passkeys dari halaman Login, Confirm Password, serta Security.
+- Hapus migration Passkeys yang dihasilkan starter kit karena fitur belum dipakai, dan regenerasi Wayfinder setelah endpoint dimatikan.
+- Hapus dependency frontend `@laravel/passkeys` hanya setelah seluruh import Vue-nya dihilangkan. Jangan hapus dependency PHP `laravel/passkeys`: Laravel Fortify versi yang digunakan mewajibkannya sebagai dependency transitive.
+- Pastikan tidak ada route dengan path/nama Passkeys yang terdaftar, sementara route dan komponen TOTP tetap tersedia.
+
+Jangan menjalankan migration saat membersihkan scaffold. Database aplikasi masih belum dibuat.
+
+## 10. Gerbang selesai bootstrap
 
 Bootstrap dinyatakan lulus hanya bila:
 1. scaffold Laravel 13/Vue starter kit berhasil dibuat;

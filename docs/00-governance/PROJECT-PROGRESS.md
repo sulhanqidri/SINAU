@@ -1183,3 +1183,9 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - PHP syntax check passed for all PHP files under app/bootstrap/config/database/routes/tests. Composer manifest validates and package.json parses. Git status shows expected new scaffold paths remain untracked.
 - Grep found only the intentional Passkeys::ignoreRoutes() import/call in AppServiceProvider and dormant Fortify limiter/config defaults. Earlier scaffold validation removed passkey routes/UI/model concerns; the package remains as Fortify transitive dependency. No route:list yet because vendor has not been installed.
 - No Composer/npm dependency install, no migration, no database/role provisioning, and no commit/push of scaffold files. PR remains draft/open/unmerged.
+
+### Dependency-install preflight passed — 2026-11-19
+- Host preflight for the SINAU checkout reports 15 GiB free disk on an 18 GiB filesystem, inode usage 6%, 7.2 GiB available memory, 1 GiB swap unused, and 8 CPUs. No existing Composer/npm cache size was reported.
+- Composer requirements: PHP ^8.3 and Laravel ^13.17. Composer scripts include `setup` which runs migrations and npm build; do not invoke `composer setup` on the host. `post-autoload-dump` runs `artisan package:discover`; a safe first install can use `composer install --no-scripts` and call package discovery explicitly afterward, with no migration.
+- Frontend uses npm scripts `vp build`, `vp check`, `vue-tsc --noEmit`; 14 runtime and 9 dev dependencies. No package-lock exists. `.npmrc` reports `ignore-scripts=true`; retain this setting and use explicit `npm install --ignore-scripts --no-audit --no-fund`, followed by explicit build only after dependency review.
+- Node/npm are v24.22.3/11.19.1. Git working tree contains the intended untracked Laravel scaffold. Dependency install not started; no migration/database provisioning.

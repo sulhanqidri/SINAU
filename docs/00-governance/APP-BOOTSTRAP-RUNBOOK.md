@@ -94,20 +94,25 @@ export PATH="$HOME/.composer/vendor/bin:$HOME/.config/composer/vendor/bin:$PATH"
 command -v laravel
 ```
 
-Setelah installer tersedia, buat scaffold di direktori sementara agar dokumentasi yang sudah ada tidak tertimpa:
+Setelah installer tersedia, buat scaffold di direktori sementara. Gunakan opsi eksplisit agar tidak muncul pertanyaan yang ambigu:
 
 ```bash
-laravel new "$HOME/sinau-laravel-bootstrap"
+laravel new "$HOME/sinau-laravel-bootstrap" \
+  --vue \
+  --pest \
+  --no-boost \
+  --no-node
 ```
 
-Pilih jawaban berikut pada prompt:
-- Starter kit: Yes
-- Frontend: Vue
-- Authentication: Laravel built-in authentication (bukan WorkOS)
-- Teams: No
-- Database saat wizard: jangan arahkan ke sinau_design_poc; pilih PostgreSQL bila wizard meminta database. Jangan jalankan migration aplikasi sebelum database sinau_app_poc dibuat khusus untuk app.
+Arti opsi:
+- `--vue`: official Vue starter kit, dengan built-in Laravel authentication karena WorkOS tidak dipilih.
+- `--pest`: gunakan Pest.
+- `--no-boost`: jangan menambah package Laravel Boost pada host terbatas.
+- `--no-node`: jangan menjalankan npm otomatis sebelum scaffold direview.
+- Jangan gunakan `--teams`, `--workos`, atau `--no-authentication`.
 
-Official Vue starter kit mencakup Vue 3/Composition API, TypeScript, Inertia, Tailwind dan shadcn-vue; starter kit memakai Fortify untuk authentication. SINAU tidak mengaktifkan Laravel Teams karena domain tenant/unit berbeda.
+Untuk starter kit, Laravel installer memakai SQLite sementara secara default dan hook starter kit menjalankan migration framework pada file SQLite di dalam scaffold. Itu hanya database sementara untuk menghasilkan shell; bukan database aplikasi SINAU. Setelah scaffold digabung, buang file SQLite dari tracked source bila ikut masuk, dan jangan gunakan database itu untuk data SINAU. Database aplikasi tetap PostgreSQL terpisah `sinau_app_poc`, yang belum dibuat. Konfigurasi PostgreSQL dan migration hanya dilakukan setelah role/database PoC aplikasi disiapkan secara eksplisit.
+
 
 ## 5. Gabungkan scaffold ke checkout SINAU
 

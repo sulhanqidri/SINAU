@@ -17,6 +17,7 @@ SINAU membutuhkan fondasi modular monolith yang dapat dipelihara, UI web respons
 | Backend | Laravel 13 | Modular monolith; bukan microservices |
 | Runtime | PHP 8.4 sebagai baseline bootstrap | Laravel 13 mendukung PHP 8.3–8.5; host harus lulus preflight extensions dan dependency |
 | Frontend | Official Laravel Vue starter kit | Vue 3 Composition API + TypeScript |
+| JavaScript runtime | Node.js 24.22.3 LTS via NVM per-user | Tidak memasang Node/npm global atau service; memenuhi Vite+ Node 24.11+ |
 | SPA/navigation | Inertia 3 | Same-origin server session; bukan SPA API terpisah |
 | Styling | Tailwind CSS 4 + shadcn-vue | Design tokens SINAU akan ditambahkan setelah shell siap |
 | Authentication web | Laravel Fortify melalui official starter kit | Detail session dan onboarding di ADR-008 |
@@ -28,7 +29,7 @@ SINAU membutuhkan fondasi modular monolith yang dapat dipelihara, UI web respons
 | API | REST versioned sebagai arah arsitektur | API authentication/Sanctum belum diaktifkan pada bootstrap web |
 | CI | GitHub Actions | Composer checks, frontend build, tests, static/security checks bertahap |
 
-Laravel 13 saat ini mendukung PHP 8.3–8.5. Baseline proyek memilih PHP 8.4 agar runtime awal tunggal dan dependency dapat dipatok secara konsisten; server harus diperiksa sebelum instalasi. [Laravel Release Notes](https://laravel.com/framework/docs/13.x/releases).
+Laravel 13 saat ini mendukung PHP 8.3–8.5. Baseline proyek memilih PHP 8.4 agar runtime awal tunggal dan dependency dapat dipatok secara konsisten; server harus diperiksa sebelum instalasi. Untuk toolchain frontend, gunakan Node.js 24.22.3 LTS pada user aplikasi melalui NVM; Node 24.11+ memenuhi rentang yang didukung Vite+ 1.x. Node/npm tidak dipasang sebagai paket global atau service sistem. [Node.js Releases](https://nodejs.org/en/about/previous-releases); [Vite+ 1.4 release](https://github.com/voidzero-dev/vite-plus/releases/tag/v1.4.0). [Laravel Release Notes](https://laravel.com/framework/docs/13.x/releases).
 
 Official Vue starter kit menyediakan Vue 3 Composition API, TypeScript, Inertia, Tailwind, dan shadcn-vue. Starter kits menggunakan Laravel Fortify untuk alur autentikasi. SINAU menggunakan starter kit Vue dengan Laravel built-in authentication; tidak memilih WorkOS pada bootstrap. [Laravel Starter Kits](https://laravel.com/framework/docs/13.x/starter-kits).
 

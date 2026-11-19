@@ -1076,3 +1076,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Keep `TwoFactorAuthenticatable` model trait and Fortify `Features::twoFactorAuthentication()`; remove only passkey interface/trait, passkey limiter, controller props/query, Vue imports/components, passkeys migration, and stale generated helpers if no route remains.
 - Before applying edits, inspect `app/Providers/AppServiceProvider.php`, `bootstrap/providers.php`, `composer why laravel/passkeys`, all Passkey component imports, and the passkeys migration content. No local files changed by this diagnosis.
 
+
+### Safe Passkeys disable procedure documented — 2026-11-19
+- User's dependency inspection confirms `laravel/fortify v1.43.0` requires `laravel/passkeys ^0.3.0`; retain PHP package as transitive dependency. Do not remove it from Composer.
+- `Passkeys::ignoreRoutes()` is available on package facade/class and prevents the PasskeysServiceProvider from loading package routes; calling it in `AppServiceProvider::register()` makes the flag false before provider boot.
+- Planned cleanup retains TOTP: `TwoFactorAuthenticatable`, `Features::twoFactorAuthentication()`, TOTP routes/views. Remove Passkeys User interface/trait, app rate limiter, SecurityController passkey props/query, Vue imports/components, package migration, generated Wayfinder route/action helpers, and JS dependency `@laravel/passkeys` after imports are removed. No DB migration has been run; deleting the unused passkey migration is safe in this uninitialized scaffold.
+- Updated runbook with these steps and verification requirements in commit `85aae91f76edf39c5a58a9013572a68247a7fd73`.
+- Next local task: apply the asserted backup-first patch to the temporary scaffold, regenerate Wayfinder, verify `route:list` has no Passkeys routes while TOTP remains, and grep app/frontend source for dangling references. No actual patch has yet been applied to user files as of this record.
+

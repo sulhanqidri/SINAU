@@ -180,7 +180,7 @@ BEGIN
     END IF;
     RAISE NOTICE 'PASS ISS-11: expired tenant membership rejected';
 
-    -- ISS-10: a foreign unit ID cannot be paired with tenant A.
+    -- ISS-12: a foreign unit ID cannot be paired with tenant A.
     SELECT pg_catalog.count(*) INTO v_count
     FROM sinau_issuer_poc.validate_context_request(
         'SINAU-POC-ACTIVE-SESSION-A-NOT-A-REAL-CREDENTIAL',
@@ -189,23 +189,23 @@ BEGIN
     );
 
     IF v_count <> 0 THEN
-        RAISE EXCEPTION 'FAIL ISS-10: unit belonging to another tenant was accepted';
+        RAISE EXCEPTION 'FAIL ISS-12: unit belonging to another tenant was accepted';
     END IF;
-    RAISE NOTICE 'PASS ISS-10: tenant/unit relationship mismatch rejected';
+    RAISE NOTICE 'PASS ISS-12: tenant/unit relationship mismatch rejected';
 
-    -- ISS-11: context validity is separate from feature entitlement.
+    -- ISS-13: context validity is separate from feature entitlement.
     IF NOT sinau_issuer_poc.has_feature_entitlement(
         '00000000-0000-0000-0000-000000000001',
         'poc.feature.active'
     ) THEN
-        RAISE EXCEPTION 'FAIL ISS-11: active synthetic entitlement should be true';
+        RAISE EXCEPTION 'FAIL ISS-13: active synthetic entitlement should be true';
     END IF;
 
     IF sinau_issuer_poc.has_feature_entitlement(
         '00000000-0000-0000-0000-000000000001',
         'poc.feature.expired'
     ) THEN
-        RAISE EXCEPTION 'FAIL ISS-11: expired synthetic entitlement should be false';
+        RAISE EXCEPTION 'FAIL ISS-13: expired synthetic entitlement should be false';
     END IF;
 
     SELECT pg_catalog.count(*) INTO v_count
@@ -216,9 +216,9 @@ BEGIN
     );
 
     IF v_count <> 1 THEN
-        RAISE EXCEPTION 'FAIL ISS-11: membership context was incorrectly coupled to feature entitlement';
+        RAISE EXCEPTION 'FAIL ISS-13: membership context was incorrectly coupled to feature entitlement';
     END IF;
-    RAISE NOTICE 'PASS ISS-11: feature entitlement is evaluated separately from membership context';
+    RAISE NOTICE 'PASS ISS-13: feature entitlement is evaluated separately from membership context';
 
     -- Unknown and empty session credentials fail closed.
     SELECT pg_catalog.count(*) INTO v_count

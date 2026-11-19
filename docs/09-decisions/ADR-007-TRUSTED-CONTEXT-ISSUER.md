@@ -164,7 +164,7 @@ Baseline yang diusulkan:
 | Membership validator | Narrow SECURITY DEFINER function dengan fixed search_path dan tanpa direct table grants | Sudah diuji sintetis; kontrak produksi belum final |
 | Runtime roles | Owner/migration/issuer/query dipisah; role switching dalam satu transaksi diuji sebelum dipakai | Role switching issuer/query dan XID continuity lulus pada satu direct PostgreSQL session; pooler/app runtime belum diuji |
 | Signing algorithm | HMAC PoC; evaluasi asymmetric/KMS sebelum produksi | Belum final |
-| Connection pooling | Satu koneksi + satu top-level transaction dari XID sampai protected SQL | Role/XID continuity dan context cleanup lulus; aborted-transaction recovery test 014 disiapkan, pooler belum diuji |
+| Connection pooling | Satu koneksi + satu top-level transaction dari XID sampai protected SQL | Role/XID continuity, COMMIT/ROLLBACK cleanup, dan aborted-transaction recovery lulus pada direct psql; pooler belum diinventarisasi/diuji |
 | In-flight revocation | New transactions denied; policy untuk transaksi yang sudah berjalan | Menunggu keputusan keamanan/produk |
 | Tenant/unit lifecycle matrix | Validator harus mengikuti matrix yang disahkan | Belum final |
 
@@ -202,5 +202,5 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 2. Finalisasi role matrix dan kontrak principal/session dalam ADR terpisah atau revisi ADR ini.
 3. Selesai: `012-test-issuer-query-role-switch.sql` lulus pada direct PostgreSQL session; issuer → query → issuer mempertahankan XID 890 dan ROLLBACK membersihkan transaction-local probe. Bukti belum mencakup real signed-token issuance atau pooler.
 4. Selesai: `013-test-context-and-role-cleanup.sql` lulus; COMMIT dan ROLLBACK membersihkan `app.context_token` serta `SET LOCAL ROLE`, dan transaksi baru pada koneksi yang sama tetap fail-closed tanpa token.
-5. Siap diuji: `docs/03-database/poc/014-test-aborted-transaction-recovery.sql` memicu SQLSTATE 22012 yang disengaja, memverifikasi ROLLBACK, lalu menguji koneksi yang sama pada transaksi baru. Setelah lulus, uji connection pooling/connection reuse serta exception handling pada topology yang dipilih.
+5. Selesai: `014-test-aborted-transaction-recovery.sql` lulus; SQLSTATE 22012 terdeteksi, ROLLBACK memulihkan role/context, dan koneksi yang sama tetap fail-closed pada transaksi baru. Berikutnya lakukan inventaris read-only terhadap PgBouncer/pooler yang tersedia; baru setelah topology pooler dipilih, desain tes koneksi pool.
 6. Setelah application stack disetujui dan bootstrap Stage E dimulai, implementasikan adapter Laravel yang memenuhi kontrak ini tanpa menyalin fixture sintetis ke schema produksi.

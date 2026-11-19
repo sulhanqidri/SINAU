@@ -1052,3 +1052,12 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - The change is currently in the temporary scaffold only. Backup was created at `/tmp/sinau-fortify.php.before-passkeys-change`. Do not copy `.env`, APP_KEY, empty temporary SQLite DB, `vendor/`, or runtime files into Git.
 - Next: update local SINAU checkout via fetch + fast-forward only (remote branch now has subsequent governance commits), inspect `.gitignore`, `composer.json`, `package.json`, and key root directories in temporary scaffold, then plan a selective merge. No app migrations to PostgreSQL have been run.
 
+
+### Scaffold manifest and checkout review — 2026-11-19
+- User's local checkout `~/SINAU` fast-forwarded cleanly from `4b2ee0f` to `a4ed3f9`; current working tree was clean after update.
+- Scaffold inventory reviewed from user output. `composer.json`: PHP `^8.3`, Laravel Framework `^13.17`, Inertia Laravel `^3.0`, Fortify `^1.37.2`, Wayfinder `^0.1.14`, Pest 5. `package.json`: Vue `^3.5.13`, Inertia Vue 3, Tailwind 4, TypeScript, Vite+ 1.4. Host PHP 8.4.27 and Node 24.22.3 meet the declared runtime baselines.
+- `.gitignore` ignores `.env`, vendor, node_modules, public/build and other local tooling, but the temporary `database/database.sqlite` file is not explicitly excluded in the displayed root ignore file. Runbook rsync now explicitly excludes it. Do not copy `.env`, APP_KEY, vendor/, node_modules/, generated frontend bundles, or runtime logs.
+- `package.json` still declares `@laravel/passkeys` even though the Fortify passkeys feature was removed from `config/fortify.php`. Inspect actual code references before removing dependency. `pnpm-workspace.yaml` and `.npmrc` exist, no package lockfile appeared in root file listing; inspect package manager settings before choosing npm install.
+- `composer.json` contains a `setup` script that runs `artisan migrate --force` and npm install/build; do not run `composer run setup`. Runbook updated to make this explicit and exclude `database/database.sqlite` (commit `98835f0b81ec1cecc96c8712d7b42782b167aecf`).
+- Next: inspect `.npmrc`, `pnpm-workspace.yaml`, package-lock/pnpm lock status, `@laravel/passkeys` references, scaffold directory structure and embedded .gitignore files. Then selectively copy the scaffold to `~/SINAU` with a dry-run first, preserving existing docs and excluding all secrets/runtime artifacts.
+

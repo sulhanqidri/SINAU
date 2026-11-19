@@ -311,5 +311,7 @@ The assertions cover:
 
 The script performs no persistent DDL and no application-row writes. It finishes with ROLLBACK and should report `CONTEXT AND ROLE CLEANUP TESTS PASSED — COMMIT/ROLLBACK COMPLETE`.
 
+**Execution status — verified 2026-11-19:** Script 013 passed on PostgreSQL 18.7 in one interactive session. COMMIT and ROLLBACK both cleared the invalid transaction-local context marker and restored session/current role to `sinau_poc`; a fresh transaction on the same connection had no verified context and saw zero academic rows. Final notice: `CONTEXT AND ROLE CLEANUP TESTS PASSED — COMMIT/ROLLBACK COMPLETE`.
+
 **Limit:** this is a direct PostgreSQL session lifecycle test. It does not verify PgBouncer, Laravel/PDO pooling, persistent connections, asynchronous workers, cancellation, or production token issuance. Run only against `sinau_design_poc`.
 

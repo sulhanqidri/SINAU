@@ -1038,3 +1038,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next: inspect the exact Laravel log exception and Fortify feature block; then review scaffold files and `.gitignore` before selectively merging source into `~/SINAU`. Keep `.env`, generated APP_KEY, vendor, node_modules, and temporary SQLite artifacts out of Git.
 - No app schema was migrated to PostgreSQL. No change to SQLRadius, MikroTik, production `sinau`/`sinau_app`. PR #1 must remain Draft/open/unmerged.
 
+
+### Laravel scaffold diagnostic details — 2026-11-19
+- The uploaded terminal output confirms Laravel log exception `could not find driver` for the SQLite connection to `database/database.sqlite`; PDO SQLite extensions are absent. This is the exact migration failure. The SQLite file is empty (0 bytes); no PostgreSQL migration was run.
+- Fortify config has registration, reset-passwords, email verification, TOTP two-factor authentication (with confirmation), and Passkeys. Re-read ADR-008: it explicitly accepts optional TOTP 2FA for bootstrap; do not remove the TOTP feature. Passkeys remains an open design decision in ADR-008 and should be disabled in initial bootstrap pending a separate design/review.
+- Updated `APP-BOOTSTRAP-RUNBOOK.md` to clarify TOTP 2FA is optional and should be tested, while Passkeys stays disabled until separately designed. Runbook change commit `d0e8613ab8b3044751792e1053429bed2798796b`.
+- Next local action: remove only the `Features::passkeys([...]),` entry from `config/fortify.php`, preserve `Features::twoFactorAuthentication([...])`, `Features::emailVerification()`, registration, and password reset. Then verify PHP syntax and the resulting feature block. Do not edit `.env` or reveal APP_KEY.
+- `.env` exists and contains a generated application key; it must remain private and untracked. `.env.example`, `.gitignore`, Composer/package manifests and source files require review before selective merge into SINAU.
+

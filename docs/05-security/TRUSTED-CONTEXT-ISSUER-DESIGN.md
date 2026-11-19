@@ -164,14 +164,15 @@ The fixture must be synthetic, must not copy real people, and must not alter the
 
 ### Current synthetic PoC fixture implementation
 
-The next database-only step is prepared in:
+The database-only synthetic membership-validation experiment is prepared in:
 
-- `docs/03-database/poc/010-context-issuer-fixtures.sql`: creates private synthetic identity, hashed session, tenant membership, unit membership, private unit-catalog, and feature-entitlement fixtures; a NOLOGIN issuer-test role; and a SECURITY DEFINER membership validator that accepts an opaque session bearer plus requested tenant/unit, resolves the actor from the stored hash, and returns zero rows for denial.
-- `docs/03-database/poc/011-context-issuer-validation-tests.sql`: tests active membership, missing/revoked unit grant, revoked tenant membership, tenant-only scope, disabled account, revoked/expired session, future tenant membership, expired unit membership, tenant/unit mismatch, separate feature entitlement, and query-role privilege restrictions.
+- `docs/03-database/poc/010-context-issuer-fixtures.sql` (latest relevant commit `4a5c0a2245169029bce31d552395e8fed69573b6`; current blob `d4aec6229c721678caeadb8d2950c2567cb2183f`). It creates private synthetic identities, hashed session fixtures, tenant memberships, unit memberships, an active/inactive private unit catalog, and separate feature entitlements. It also creates a NOLOGIN issuer-test role and a narrow SECURITY DEFINER validator. The validator accepts a synthetic session bearer and requested tenant/unit; it resolves actor identity from the stored hash and has no caller-supplied actor_id parameter.
+- `docs/03-database/poc/011-context-issuer-validation-tests.sql` (latest relevant commit `c0bf21985f777042d4a22e58f24af5dceb4a9e6d`; current blob `1572f39c86d2d3826746a630b0e4bac64272c516`). It tests active access, revoked unit grant, revoked tenant membership, tenant-only context, disabled global identity, revoked/expired session, future/suspended/expired tenant membership, expired unit membership, inactive unit, tenant/unit mismatch, entitlement separation, and least-privilege restrictions for the RLS query role.
+- The role grant from `sinau_poc` to `sinau_context_issuer_poc` is only a test convenience for role switching. It is not a production role design.
+- The unit catalog is private synthetic fixture metadata rather than a query against `public.education_units`. That table is FORCE-RLS protected; the validator must not bypass its policy before a signed context is installed.
+- Session strings in the fixture/test files are fixed, public synthetic values; they are not real user credentials and must never be reused for application login.
 
-The validator deliberately reads a private synthetic unit catalog rather than public.education_units. The latter is FORCE-RLS protected; querying it from a SECURITY DEFINER function before context installation could create an accidental RLS bypass or false denial. The private unit catalog is test-only and is not a production data model.
-
-**These scripts are committed but not yet executed.** The function validates a synthetic session and membership; it does not sign a context token or authenticate a real browser session. The actual application backend signer remains unimplemented pending the final application/authentication stack and least-privilege database connection design.
+**These scripts are committed but NOT yet executed on the server.** The validator is a membership-validation gate, not a token signer. It does not authenticate a real browser session, validate final permission/delegation/resource relationship rules, apply the final tenant/unit lifecycle policy, or create an RLS context token. The actual application issuer remains unimplemented pending the approved authentication stack and least-privilege runtime connection design.
 
 ### Least-privilege requirements
 

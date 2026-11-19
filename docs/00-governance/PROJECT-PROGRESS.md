@@ -874,4 +874,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - The signer-side token file `/run/sinau-poc-token-signer/context-hmac-v1.token` still existed (owner sinauadmin, mode 0600, 262 bytes); the PostgreSQL copy did not exist. The token was bound to the ended XID 861 and must be discarded. Cleanup of the remaining signer token was requested but not yet confirmed.
 - The 009 reset test has NOT been run. Because the original XID 861 psql session is no longer present, the context-reset check must be repeated with a fresh same-session sequence: create a new token/XID, run 008, ROLLBACK in that same psql connection, run 009 in that same connection, ROLLBACK again, then exit and clean tmpfs token files.
 - Do not reuse XID 861 or its token. Do not create a new `sinau_poc` session for 009 without first completing the 008/ROLLBACK sequence in that same connection.
+### Signed-context RLS functional checkpoint — 2026-11-19 (XID 867 rerun passed)
+- User repeated `008-test-signed-context-rls.sql` in a clean PostgreSQL 18.7 psql transaction bound to XID `867`, session authorization `sinau_poc`, and effective role `sinau_rls_test`.
+- Import of the one signed token succeeded (`COPY 1`). Script 008 again passed all six assertions: valid token reveals tenant A/unit A1; spoofed legacy tenant/unit GUCs do not change signed scope; empty and malformed tokens fail closed; same-scope INSERT succeeds; cross-tenant and cross-unit INSERTs are rejected by RLS WITH CHECK.
+- The script emitted `SIGNED CONTEXT RLS FUNCTIONAL ASSERTIONS PASSED` with no error. This is a second successful run, independently using fresh XID 867.
+- **Pending in the active psql session:** the outer XID 867 transaction is still open. User must execute `ROLLBACK;` before running `009-test-context-reset.sql` in the same psql connection. Do not COMMIT.
+- After the 009 assertions pass, ROLLBACK its verification transaction, exit psql, remove both token copies from /run, and verify the PoC key is ACTIVE. Do not reuse the token after its transaction ends.
+- This confirms the scripted RLS behavior for the tested PoC scope but does not prove application membership validation, actual pooler/worker reuse, or production authorization readiness. No production database, `sinau_app`, SQLRadius, or MikroTik was touched. PR #1 remains Draft/open/unmerged.
 

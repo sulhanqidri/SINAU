@@ -1171,3 +1171,8 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - User updated `.github/workflows/tests.yml` job environment with `SESSION_CONNECTION: sqlite` alongside `DB_CONNECTION: sqlite` and absolute workspace `DB_DATABASE`; `touch "$DB_DATABASE"` remains in the workflow. This keeps CI session storage isolated from the future application DB.
 - Validation output: Composer manifest valid; package.json parses; grep confirms PostgreSQL/session values and CI overrides. Built-in migrations include sessions, cache, jobs, job_batches, failed_jobs; cache_locks is present in cache migration. Migration inspection was read-only.
 - Local `~/SINAU` fast-forwarded to `35a14a1`. No scaffold files have been rsynced; no dependency install, PostgreSQL database/role creation, or migration was run. No production, design PoC, SQLRadius or MikroTik changes.
+
+### Laravel scaffold copied into local repository — 2026-11-19
+- User ran the approved rsync actual copy from `$HOME/sinau-laravel-bootstrap/` to `$HOME/SINAU/` using `--ignore-existing`, all previously reviewed safety exclusions, and `--itemize-changes`.
+- Rsync completed successfully; output reports 336 new files copied. `git status --short` shows expected untracked Laravel scaffold paths including `.env.example`, Composer manifests, CI workflow, app/config/database/public/resources/routes/storage/tests.
+- Post-copy checks passed: `.env` absent, `database/database.sqlite` absent, `vendor/` absent, `node_modules/` absent. No migration or Composer/npm install performed. Files remain local untracked; not committed or pushed. PR #1 remains draft/open/unmerged.

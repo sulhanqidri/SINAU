@@ -140,7 +140,9 @@ INSERT INTO sinau_issuer_poc.poc_identities (actor_id, account_status) VALUES
 ('91000000-0000-0000-0000-000000000001', 'active'),
 ('92000000-0000-0000-0000-000000000001', 'disabled'),
 ('93000000-0000-0000-0000-000000000001', 'active'),
-('94000000-0000-0000-0000-000000000001', 'active')
+('94000000-0000-0000-0000-000000000001', 'active'),
+('95000000-0000-0000-0000-000000000001', 'active'),
+('96000000-0000-0000-0000-000000000001', 'active')
 ON CONFLICT (actor_id) DO UPDATE
 SET account_status = EXCLUDED.account_status;
 
@@ -218,6 +220,30 @@ VALUES
     pg_catalog.clock_timestamp() + INTERVAL '1 day',
     NULL,
     'mfa'
+),
+(
+    sinau_crypto.digest(
+        pg_catalog.convert_to('SINAU-POC-SUSPENDED-MEMBER-SESSION-NOT-A-REAL-CREDENTIAL', 'UTF8'),
+        'sha256'
+    ),
+    '95000000-0000-0000-0000-000000000001',
+    'active',
+    pg_catalog.clock_timestamp() - INTERVAL '5 minutes',
+    pg_catalog.clock_timestamp() + INTERVAL '1 day',
+    NULL,
+    'mfa'
+),
+(
+    sinau_crypto.digest(
+        pg_catalog.convert_to('SINAU-POC-EXPIRED-TENANT-MEMBER-SESSION-NOT-A-REAL-CREDENTIAL', 'UTF8'),
+        'sha256'
+    ),
+    '96000000-0000-0000-0000-000000000001',
+    'active',
+    pg_catalog.clock_timestamp() - INTERVAL '5 minutes',
+    pg_catalog.clock_timestamp() + INTERVAL '1 day',
+    NULL,
+    'mfa'
 )
 ON CONFLICT (session_hash) DO UPDATE
 SET actor_id = EXCLUDED.actor_id,
@@ -268,6 +294,22 @@ VALUES
     'active',
     pg_catalog.clock_timestamp() - INTERVAL '30 days',
     NULL,
+    NULL
+),
+(
+    '95000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    'suspended',
+    pg_catalog.clock_timestamp() - INTERVAL '30 days',
+    NULL,
+    NULL
+),
+(
+    '96000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    'expired',
+    pg_catalog.clock_timestamp() - INTERVAL '30 days',
+    pg_catalog.clock_timestamp() - INTERVAL '1 day',
     NULL
 )
 ON CONFLICT (actor_id, tenant_id) DO UPDATE
@@ -352,6 +394,24 @@ VALUES
     'expired',
     pg_catalog.clock_timestamp() - INTERVAL '30 days',
     pg_catalog.clock_timestamp() - INTERVAL '1 day',
+    NULL
+),
+(
+    '95000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    'active',
+    pg_catalog.clock_timestamp() - INTERVAL '30 days',
+    NULL,
+    NULL
+),
+(
+    '96000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    'active',
+    pg_catalog.clock_timestamp() - INTERVAL '30 days',
+    NULL,
     NULL
 )
 ON CONFLICT (actor_id, tenant_id, unit_id) DO UPDATE

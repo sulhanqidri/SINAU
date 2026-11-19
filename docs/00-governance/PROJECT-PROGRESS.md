@@ -1176,3 +1176,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - User ran the approved rsync actual copy from `$HOME/sinau-laravel-bootstrap/` to `$HOME/SINAU/` using `--ignore-existing`, all previously reviewed safety exclusions, and `--itemize-changes`.
 - Rsync completed successfully; output reports 336 new files copied. `git status --short` shows expected untracked Laravel scaffold paths including `.env.example`, Composer manifests, CI workflow, app/config/database/public/resources/routes/storage/tests.
 - Post-copy checks passed: `.env` absent, `database/database.sqlite` absent, `vendor/` absent, `node_modules/` absent. No migration or Composer/npm install performed. Files remain local untracked; not committed or pushed. PR #1 remains draft/open/unmerged.
+
+### Post-copy Laravel scaffold audit passed — 2026-11-19
+- User pulled documentation through commit `68cbc47` and audited the copied Laravel scaffold in `~/SINAU`. Sensitive/runtime checks passed: no `.env`, no `database/database.sqlite`, no `vendor`, no `node_modules`; `.gitignore` ignores `.env`, vendor, node_modules, and temporary SQLite database.
+- `.env.example` confirms SINAU PostgreSQL app DB defaults and DB-backed session settings; CI workflow confirms disposable SQLite overrides for DB_CONNECTION, absolute DB_DATABASE, and SESSION_CONNECTION, with Node 24.22.3.
+- PHP syntax check passed for all PHP files under app/bootstrap/config/database/routes/tests. Composer manifest validates and package.json parses. Git status shows expected new scaffold paths remain untracked.
+- Grep found only the intentional Passkeys::ignoreRoutes() import/call in AppServiceProvider and dormant Fortify limiter/config defaults. Earlier scaffold validation removed passkey routes/UI/model concerns; the package remains as Fortify transitive dependency. No route:list yet because vendor has not been installed.
+- No Composer/npm dependency install, no migration, no database/role provisioning, and no commit/push of scaffold files. PR remains draft/open/unmerged.

@@ -158,14 +158,14 @@ Workflow GitHub Actions dari starter kit menjalankan `composer setup`, yang menj
 env:
   APP_ENV: testing
   DB_CONNECTION: sqlite
-  DB_DATABASE: database/database.sqlite
+  DB_DATABASE: ${{ github.workspace }}/database/database.sqlite
 ```
 
 Di langkah sebelum `composer setup`, buat file database sementara:
 
 ```yaml
 - name: Prepare isolated SQLite database
-  run: touch database/database.sqlite
+  run: touch "$DB_DATABASE"
 ```
 
 Setup PHP harus menyediakan ekstensi `pdo_sqlite` dan `sqlite3`; tetap sediakan `pdo_pgsql` untuk mendeteksi kompatibilitas runtime target PostgreSQL. Gunakan Node 24.22.3 agar CI sejalan dengan runtime host. Variabel environment pada job harus tetap mengalahkan nilai `.env.example` yang nanti diubah menjadi PostgreSQL; jangan menambahkan credential database produksi ke Actions.

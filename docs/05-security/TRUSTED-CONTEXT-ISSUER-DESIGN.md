@@ -3,7 +3,11 @@
 **Status:** proposed technical design for the isolated PostgreSQL PoC; not a production implementation or approval.  
 **Date:** 2026-11-19  
 **Scope:** backend authentication-to-database-context boundary for tenant/unit RLS.  
-**Related:** ADR-003, ADR-004, BP-PLT-05, TENANT-ISOLATION-TEST-PLAN.md, and PostgreSQL PoC scripts 007–009.
+**Related:** ADR-003, ADR-004, ADR-007, BP-PLT-05, TENANT-ISOLATION-TEST-PLAN.md, and PostgreSQL PoC scripts 007–011.
+
+## 0. Implementation decision record
+
+The implementation-neutral session, database-role, same-connection XID, transaction-local context, and connection-pool contract is tracked in [ADR-007](../09-decisions/ADR-007-TRUSTED-CONTEXT-ISSUER.md). ADR-007 is Proposed; this design document does not override the unresolved authentication, key-custody, role-switching, or in-flight revocation decisions.
 
 ## 1. Purpose
 

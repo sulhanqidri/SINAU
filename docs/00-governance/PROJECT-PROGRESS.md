@@ -1084,3 +1084,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Updated runbook with these steps and verification requirements in commit `85aae91f76edf39c5a58a9013572a68247a7fd73`.
 - Next local task: apply the asserted backup-first patch to the temporary scaffold, regenerate Wayfinder, verify `route:list` has no Passkeys routes while TOTP remains, and grep app/frontend source for dangling references. No actual patch has yet been applied to user files as of this record.
 
+
+### Residual W3C Passkeys discovery route identified — 2026-11-19
+- After the application Passkeys source cleanup, `php artisan route:list --path=passkey` showed one remaining route: `GET /.well-known/passkey-endpoints`, sourced from `routes/settings.php:29`. Nine `two-factor` routes remained present.
+- Verified the official `laravel/vue-starter-kit` `routes/settings.php`: this route sits inside the `/* @chisel-passkeys */ ... /* @end-chisel-passkeys */` block and advertises `security.edit` as enroll/manage URLs. It should be removed while Passkeys are deferred. The URL is defined by the W3C Passkey Endpoints Working Draft as a discovery document for passkey support and management URLs; removing it avoids advertising a feature that is not enabled.
+- Updated `APP-BOOTSTRAP-RUNBOOK.md` to require removing the `@chisel-passkeys` block in addition to suppressing package routes (commit `26321f9d30fe0f4ec72b138fa957dad4c9d3dea0`).
+- Next local action: remove exactly the marked `@chisel-passkeys` block from `routes/settings.php`, regenerate Wayfinder, verify `route:list --path=passkey` is empty and `route:list --name=two-factor` still shows the expected endpoints. Then update local checkout before subsequent work. No database migrations or PostgreSQL changes.
+

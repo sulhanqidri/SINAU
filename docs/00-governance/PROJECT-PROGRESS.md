@@ -1069,3 +1069,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - The Fortify feature array no longer registers Passkeys, but generated starter code has passkey-specific routes/components/models still present. Before treating passkeys as disabled, inspect provider route registration, the User model, migrations, controllers, components, generated route helpers, and composer/npm dependencies. Keep TOTP (`TwoFactorAuthenticatable` and `Features::twoFactorAuthentication`) intact.
 - No scaffold merge, npm/pnpm install, or PostgreSQL migration has occurred. Runbook must preserve explicit SQLite exclusion and prohibit `composer run setup` at this stage.
 
+
+### Fortify and Passkeys package relationship verified — 2026-11-19
+- Detailed source review shows `laravel/passkeys` is a required dependency of current Laravel Fortify 1.x (`laravel/fortify` requires `laravel/passkeys ^0.3.0`), so keep the PHP package as a transitive dependency; do not try to remove it from Composer while Fortify remains. The frontend npm package `@laravel/passkeys` can be reviewed separately after all Vue imports/components are removed.
+- `Laravel\Passkeys\PasskeysServiceProvider` registers the package routes only when `Passkeys::shouldRegisterRoutes()` returns true. `Passkeys::ignoreRoutes()` sets this flag false. To prevent all package endpoints while retaining Fortify/TOTP, call `Passkeys::ignoreRoutes()` during application provider registration (before providers boot), then regenerate Wayfinder files after the route table is verified.
+- Keep `TwoFactorAuthenticatable` model trait and Fortify `Features::twoFactorAuthentication()`; remove only passkey interface/trait, passkey limiter, controller props/query, Vue imports/components, passkeys migration, and stale generated helpers if no route remains.
+- Before applying edits, inspect `app/Providers/AppServiceProvider.php`, `bootstrap/providers.php`, `composer why laravel/passkeys`, all Passkey component imports, and the passkeys migration content. No local files changed by this diagnosis.
+

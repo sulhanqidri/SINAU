@@ -236,6 +236,13 @@ SET SESSION AUTHORIZATION sinau_poc;
 
 The test file changes to `sinau_context_issuer_poc` to call the narrow validation functions, then changes to `sinau_rls_test` to prove that the query role cannot call the issuer, read membership fixtures or key material, or mutate membership fixtures. Its test transaction ends with ROLLBACK.
 
+### Execution status — verified 2026-11-19
+
+- Script 010 was executed successfully against `sinau_design_poc`. Its initial run exposed a PostgreSQL type-name typo (`pg_catalog.boolean`); the source was corrected to `pg_catalog.bool` in commit `b51f2227187482c623664f14dfd09ad2ac8db042`, then rerun successfully. The metadata report confirmed `sinau_context_owner` ownership, `SECURITY DEFINER`, VOLATILE, PARALLEL UNSAFE, fixed search path, and the expected least-privilege ACLs.
+- The corrected script 011 was executed in an interactive psql session as `sinau_poc`. ISS-01 through ISS-14 all passed. Its first run found an issue in the privilege-test code because resolving a private-schema function through `regprocedure` required schema USAGE. The test was corrected in commit `4c6ced509d65a84c345b47eab8bb9e67a5b0c6a4` to inspect catalog OIDs without requiring private-schema USAGE.
+- The corrected final privilege test passed: `sinau_rls_test` cannot execute the issuer validator, read the membership fixtures or key store, or mutate membership fixtures. The script ended with `ROLLBACK` and `CONTEXT ISSUER VALIDATION TESTS PASSED — TRANSACTION ROLLED BACK`.
+- This verifies only synthetic database membership validation and test-role boundaries. It does not implement or approve a real web authentication integration, application-level role/permission/resource relationship checks, or a signed context issuer.
+
 **Critical limitations:**
 - The session strings inside 010/011 are public synthetic fixtures, not real credentials. Do not reuse these strings for any application login or session.
 - The validator is a membership-validation gate, not a token signer. It does not authenticate a real browser session, validate role/permission delegation or resource-level relationships, implement tenant/unit lifecycle rules, or sign a database context token.

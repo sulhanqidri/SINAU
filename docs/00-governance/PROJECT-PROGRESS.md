@@ -990,9 +990,9 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, application migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.
 
 
-### Read-only pooler inventory started — 2026-11-19
-- Server check output: `pgbouncer` binary not found; `pgcat` and `odyssey` binaries not found; `systemctl is-active pgbouncer.service` returned `inactive`; no matching pooler service unit was listed.
-- The command intended to inspect listeners on ports 6432/6433 was truncated during paste; no valid `ss` output was captured. Therefore the inventory is partial and does not yet establish that no other process is listening on those ports.
-- Next: run the standalone read-only command `sudo ss -lntp | grep -E ':(6432|6433)\\b' || echo "Tidak ditemukan listener pada port 6432/6433."` and report its exact output. Do not install/configure PgBouncer or change PostgreSQL services/topology yet.
-- No pooler packages were installed and no service/configuration was changed. PR #1 remains Draft/open/unmerged; production database `sinau`, role `sinau_app`, SQLRadius, and MikroTik remain untouched.
-
+### Read-only pooler inventory completed — 2026-11-19
+- Read-only command inventory found no `pgbouncer`, `pgcat`, or `odyssey` binary; `pgbouncer.service` reported `inactive`; and no matching pooler service unit was listed.
+- Follow-up listener check `sudo ss -lntp | grep -E ':(6432|6433)\\b'` returned no output. Therefore no listener was observed on ports 6432 or 6433 at the time of the check. This does not exclude a pooler on a nonstandard port, a remote pooler, or a process hidden by namespace/network boundaries.
+- Inventory conclusion: no local PgBouncer/PgCat/Odyssey installation or common 6432/6433 listener was detected. No package was installed, no service/configuration was changed, and PostgreSQL topology remains unchanged.
+- Next: do not install a pooler on this server just for the PoC. Once the owner selects an application deployment topology, build a disposable/lab PgBouncer transaction-pooling test (or test the actual approved managed pooler) and verify one explicit transaction pins XID allocation, issuer validation, role switching, token installation, and protected SQL to one backend connection. Include commit/rollback, aborted transaction, and connection reuse.
+- No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, app migration, production role, or server credential was touched. PR #1 remains Draft/open/unmerged.

@@ -562,7 +562,7 @@ CREATE OR REPLACE FUNCTION sinau_issuer_poc.has_feature_entitlement(
     p_tenant_id pg_catalog.uuid,
     p_feature_code pg_catalog.text
 )
-RETURNS pg_catalog.boolean
+RETURNS pg_catalog.bool
 LANGUAGE sql
 VOLATILE
 PARALLEL UNSAFE

@@ -51,10 +51,13 @@ SINAU adalah platform SaaS multi-tenant untuk mengelola operasional pendidikan d
 - [ADR Onboarding dan Entitlement Unit](docs/09-decisions/ADR-004-ONBOARDING-VERIFICATION-AND-UNIT-ENTITLEMENTS.md)
 - [ADR Rekomendasi Stack Aplikasi](docs/09-decisions/ADR-005-APPLICATION-STACK-RECOMMENDATION.md)
 - [ADR Pemilihan PostgreSQL](docs/09-decisions/ADR-006-POSTGRESQL-DATABASE.md)
+- [ADR Trusted Context Issuer](docs/09-decisions/ADR-007-TRUSTED-CONTEXT-ISSUER.md)
+- [ADR Authentication dan Session](docs/09-decisions/ADR-008-AUTHENTICATION-AND-SESSION.md)
+- [Panduan Bootstrap Aplikasi](docs/00-governance/APP-BOOTSTRAP-RUNBOOK.md)
 - [Catatan Keputusan Arsitektur](docs/09-decisions/DECISION-LOG.md)
 
 ## Status proyek
-**Tahap: perencanaan dan validasi fondasi.** PostgreSQL 18 telah dipilih. Master blueprint, katalog blueprint, dan peta proses bisnis telah memiliki baseline draft; validasi proses, spesifikasi modul, stack aplikasi, serta skema database produksi belum disahkan untuk implementasi. Lihat [Project Progress Tracker](docs/00-governance/PROJECT-PROGRESS.md) untuk status terperinci.
+**Tahap: bootstrap shell aplikasi.** PostgreSQL 18 dan stack bootstrap web (Laravel 13 + PHP 8.4 + Vue 3/Inertia 3 + Tailwind 4) telah disetujui. Baseline autentikasi web Fortify/session juga sudah dicatat. Scaffold aplikasi belum dibuat: langkah pertama adalah preflight read-only host, lalu generate official Vue starter kit pada checkout SINAU terpisah. Migration domain dan modul akademik tetap menunggu gerbang PoC database/authorization. Lihat [Project Progress Tracker](docs/00-governance/PROJECT-PROGRESS.md).
 
 ## Kontribusi dan perubahan
 Baca [CONTRIBUTING.md](CONTRIBUTING.md) dan aturan di folder `docs/00-governance/` sebelum membuat perubahan.

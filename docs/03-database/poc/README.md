@@ -344,5 +344,7 @@ Expected behavior:
 
 Expected final notice: `ABORTED TRANSACTION RECOVERY TESTS PASSED — SAME CONNECTION REUSED`.
 
+**Execution status — verified 2026-11-19:** Script 014 passed on PostgreSQL 18.7. The deliberate `division by zero` error was observed as SQLSTATE `22012`; ROLLBACK cleared the transaction-local context and restored `sinau_poc`; a fresh transaction on the same connection then remained fail-closed with zero academic rows. Final notice: `ABORTED TRANSACTION RECOVERY TESTS PASSED — SAME CONNECTION REUSED`.
+
 **Limit:** this simulates a SQL statement error and manual transaction rollback on a direct psql connection. It is not a Laravel exception-handler, PDO pool, PgBouncer, network disconnect, cancellation, or production connection-pool test. Run only against `sinau_design_poc`.
 

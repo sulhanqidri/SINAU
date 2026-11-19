@@ -1029,3 +1029,12 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next user action: clone branch `feature/phase-0-requirements-blueprint` into `$HOME/SINAU` (preflight confirmed the path did not exist), install Laravel installer per-user using Composer, add Composer's global bin directory to PATH, and verify `laravel --version`. Then create scaffold in `$HOME/sinau-laravel-bootstrap`.
 - Application scaffold has not yet been generated. No `sinau_app_poc` DB/role exists, and no app migrations were run against PostgreSQL. Production `sinau`/`sinau_app`, SQLRadius, and MikroTik remain untouched. PR #1 remains Draft/open/unmerged.
 
+
+### Laravel Vue starter scaffold generated — 2026-11-19
+- User successfully cloned the SINAU branch into `/home/sinauadmin/SINAU`; installed Composer-global Laravel Installer v5.33.0. The installer created the separate temporary scaffold at `/home/sinauadmin/sinau-laravel-bootstrap`.
+- Composer lint, Wayfinder generation, and Pest setup completed. Laravel installer reported its database migration step failed.
+- User's read-only checks show `DB_CONNECTION=sqlite`, `pdo_sqlite=MISSING`, `sqlite3=MISSING`, `pdo_pgsql=AVAILABLE`, and an empty `database/database.sqlite` file. This explains why SQLite migration cannot run. Do not install new services or redirect this scaffold at `sinau_design_poc` or production. Defer app DB migration until the dedicated PostgreSQL application PoC database `sinau_app_poc` and least-privilege role are reviewed and created.
+- The user config currently contains Fortify declarations for registration, email verification, two-factor authentication, and passkeys. Review the exact config before deciding whether to disable the latter two; do not silently change authentication features.
+- Next: inspect the exact Laravel log exception and Fortify feature block; then review scaffold files and `.gitignore` before selectively merging source into `~/SINAU`. Keep `.env`, generated APP_KEY, vendor, node_modules, and temporary SQLite artifacts out of Git.
+- No app schema was migrated to PostgreSQL. No change to SQLRadius, MikroTik, production `sinau`/`sinau_app`. PR #1 must remain Draft/open/unmerged.
+

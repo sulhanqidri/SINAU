@@ -53,3 +53,23 @@ Gunakan identifier yang sengaja mudah dipetakan pada fixture test agar percobaan
 - Tenant context tidak dapat dipalsukan dari client.
 - Job/file/cache/export terbukti scope-safe.
 - Test suite dapat dijalankan ulang secara deterministik.
+
+## Trusted backend context issuer
+
+Detailed design: [TRUSTED-CONTEXT-ISSUER-DESIGN.md](TRUSTED-CONTEXT-ISSUER-DESIGN.md).
+
+Before a user can receive a database context token, the backend must derive the actor from its authenticated server-side principal and validate the requested scope. A request-supplied actor ID is never identity proof.
+
+Minimum issuer validation:
+1. Global account and authenticated session are active and not revoked/expired.
+2. Active tenant membership exists and is within its effective period.
+3. For unit-scoped context, the unit belongs to the selected tenant and a separate active unit membership exists within its effective period. Tenant membership alone is not sufficient.
+4. Tenant/unit lifecycle policy permits the requested operation.
+5. Application authorization checks the required role/permission, delegation ceiling, and resource-level relationship.
+6. Entitlement is checked separately for operations governed by plan/feature/quota; it is not implied by membership or a valid RLS context token.
+7. A new token is signed for the same database transaction/XID that will run the protected query; it is never cached across transactions or connections.
+
+Issuer-specific minimum scenarios are ISS-01 through ISS-14 in TRUSTED-CONTEXT-ISSUER-DESIGN.md. These require an isolated synthetic fixture and must not be implemented by changing the production schema.
+
+Important distinction: RLS verifies the signed scope and protects row boundaries. It does not, by itself, prove that the authenticated user has a permission to perform a business action or a relationship to a specific student/class/record.
+

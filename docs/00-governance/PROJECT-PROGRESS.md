@@ -946,3 +946,11 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next user action: stage script 012 under `/run` with owner postgres/mode 0600, open psql against `sinau_design_poc`, `SET SESSION AUTHORIZATION sinau_poc`, and run the script in that session. This is still a direct-session role/XID test, not a real Laravel/PgBouncer pooler test.
 - No application code, production migration, production DB role, or server credential was created. Do not touch `sinau`, `sinau_app`, SQLRadius, or MikroTik. PR #1 remains Draft/open/unmerged.
 
+
+### Same-transaction role-switch PoC passed — 2026-11-19
+- Executed `docs/03-database/poc/012-test-issuer-query-role-switch.sql` on PostgreSQL 18.7 with session authorization `sinau_poc`, database guard `sinau_design_poc`. It passed issuer → query → issuer role transitions within one explicit transaction. The allocated top-level XID remained `890` across both role switches; the issuer could execute the narrow validator but not read memberships directly; the query role could execute the RLS accessor but could not execute the issuer validator or read membership/key tables.
+- The script ended with `ROLLBACK`; PostgreSQL confirmed session authorization/current role returned to `sinau_poc` and transaction-local probe state was cleared. Final notice: `ROLE SWITCH / XID CONTINUITY TESTS PASSED — TRANSACTION ROLLED BACK`.
+- This proves role-switch and XID continuity on one direct PostgreSQL connection. It is not evidence for PgBouncer/Laravel pool behavior, actual signed-token issuance within this role-switch flow, or production privileges.
+- Next: test transaction-local `app.context_token` and `SET LOCAL ROLE` cleanup after both COMMIT and ROLLBACK on the same psql connection; then test a fresh transaction with no token remains fail-closed. Pooler tests require the selected deployment topology and remain a later gate.
+- No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, production credentials, application migrations, or application code were changed. PR #1 remains Draft/open/unmerged.
+

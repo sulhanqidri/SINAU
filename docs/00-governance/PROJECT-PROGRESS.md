@@ -1142,3 +1142,10 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Workflow's use of npm matches its `composer setup` script, but there is no package lockfile in the scaffold. Commit `package-lock.json` after first verified npm install/build to pin frontend dependencies; retain `.npmrc ignore-scripts=true` pending review rather than disabling it.
 - Updated runbook with CI-specific isolated SQLite migration rules and Node compatibility note in commit `054341605d364b77f857798bbccecdd72342a002`. No actual rsync yet; no dependency install or local migration.
 
+
+### CI isolation patch applied and validated — 2026-11-19
+- User applied CI changes to `~/sinau-laravel-bootstrap/.github/workflows/tests.yml`: job env forces APP_ENV=testing, DB_CONNECTION=sqlite, DB_DATABASE=database/database.sqlite; PHP extension setup includes pdo_pgsql, pdo_sqlite, sqlite3; Node is 24.22.3; creates SQLite file before composer setup. `composer validate --no-check-publish`, package JSON parse, and `.gitignore` SQLite exclusion all passed.
+- Verified Laravel 13 `SQLiteConnector::parseDatabasePath()` resolves an existing relative file from the job working directory or falls back to `base_path()`. For additional robustness, updated the runbook (commit `19ef99a7cf437c920dbe1384ff5abe08e3eb9b9f`) to recommend absolute `${{ github.workspace }}/database/database.sqlite` in job env and `touch "$DB_DATABASE"`.
+- Next user action: apply the absolute workspace path to the local scaffold workflow, verify it, then sync checkout `~/SINAU` and repeat the dry-run with the updated workflow. The previous dry-run list was all new files with explicit exclusions; no actual rsync has been run.
+- Before actual copy, change `.env.example` to PostgreSQL `DB_CONNECTION=pgsql`, `DB_DATABASE=sinau_app_poc`, `DB_HOST=127.0.0.1`, port 5432, username placeholder and password placeholder; CI job-level env overrides must still force SQLite. Set `SESSION_DRIVER=database`, `SESSION_CONNECTION=pgsql` if the generated config supports it (otherwise same default connection); do not create DB/role or run migration yet.
+

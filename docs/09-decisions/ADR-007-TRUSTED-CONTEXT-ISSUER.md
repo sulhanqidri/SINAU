@@ -162,7 +162,7 @@ Baseline yang diusulkan:
 | Session store dan revocation | Server-side record dengan lifecycle/revocation yang bisa diuji | Belum final |
 | Principal contract | Middleware-created immutable principal; actor tidak boleh berasal dari request | Invarian yang diusulkan |
 | Membership validator | Narrow SECURITY DEFINER function dengan fixed search_path dan tanpa direct table grants | Sudah diuji sintetis; kontrak produksi belum final |
-| Runtime roles | Owner/migration/issuer/query dipisah; role switching dalam satu transaksi diuji sebelum dipakai | Belum diuji integrasi |
+| Runtime roles | Owner/migration/issuer/query dipisah; role switching dalam satu transaksi diuji sebelum dipakai | Role switching issuer/query dan XID continuity lulus pada satu direct PostgreSQL session; pooler/app runtime belum diuji |
 | Signing algorithm | HMAC PoC; evaluasi asymmetric/KMS sebelum produksi | Belum final |
 | Connection pooling | Satu koneksi + satu top-level transaction dari XID sampai protected SQL | Invarian teknis; pooler belum diuji |
 | In-flight revocation | New transactions denied; policy untuk transaksi yang sudah berjalan | Menunggu keputusan keamanan/produk |
@@ -200,6 +200,7 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 
 1. Product Owner/security menyetujui pilihan auth web/API, session lifecycle, revocation semantics, dan key custody.
 2. Finalisasi role matrix dan kontrak principal/session dalam ADR terpisah atau revisi ADR ini.
-3. Jalankan `docs/03-database/poc/012-test-issuer-query-role-switch.sql` pada `sinau_design_poc` untuk menguji role issuer executor → query role → issuer executor pada satu koneksi dan satu top-level XID. Skrip sudah disiapkan, tetapi belum dieksekusi.
-4. Tambahkan simulasi connection pooling/connection reuse serta exception/rollback tests.
-5. Setelah application stack disetujui dan bootstrap Stage E dimulai, implementasikan adapter Laravel yang memenuhi kontrak ini tanpa menyalin fixture sintetis ke schema produksi.
+3. Selesai: `012-test-issuer-query-role-switch.sql` lulus pada direct PostgreSQL session; issuer → query → issuer mempertahankan XID 890 dan ROLLBACK membersihkan transaction-local probe. Bukti belum mencakup real signed-token issuance atau pooler.
+4. Jalankan `docs/03-database/poc/013-test-context-and-role-cleanup.sql` pada `sinau_design_poc` untuk menguji bahwa `app.context_token` dan `SET LOCAL ROLE` dibersihkan setelah COMMIT maupun ROLLBACK, lalu transaksi baru tetap fail-closed tanpa token.
+5. Setelah direct-session cleanup test lulus, tambahkan simulasi connection pooling/connection reuse serta exception/rollback tests pada topology yang dipilih.
+6. Setelah application stack disetujui dan bootstrap Stage E dimulai, implementasikan adapter Laravel yang memenuhi kontrak ini tanpa menyalin fixture sintetis ke schema produksi.

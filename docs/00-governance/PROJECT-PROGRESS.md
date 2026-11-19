@@ -1046,3 +1046,9 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Next local action: remove only the `Features::passkeys([...]),` entry from `config/fortify.php`, preserve `Features::twoFactorAuthentication([...])`, `Features::emailVerification()`, registration, and password reset. Then verify PHP syntax and the resulting feature block. Do not edit `.env` or reveal APP_KEY.
 - `.env` exists and contains a generated application key; it must remain private and untracked. `.env.example`, `.gitignore`, Composer/package manifests and source files require review before selective merge into SINAU.
 
+
+### Fortify bootstrap feature set verified — 2026-11-19
+- User successfully removed only `Features::passkeys([...])` from the temporary Laravel scaffold `config/fortify.php`. `php -l config/fortify.php` passed. Verified remaining Fortify feature declarations: registration, password reset, email verification, and TOTP two-factor authentication. TOTP was preserved per accepted ADR-008; passkeys is deferred.
+- The change is currently in the temporary scaffold only. Backup was created at `/tmp/sinau-fortify.php.before-passkeys-change`. Do not copy `.env`, APP_KEY, empty temporary SQLite DB, `vendor/`, or runtime files into Git.
+- Next: update local SINAU checkout via fetch + fast-forward only (remote branch now has subsequent governance commits), inspect `.gitignore`, `composer.json`, `package.json`, and key root directories in temporary scaffold, then plan a selective merge. No app migrations to PostgreSQL have been run.
+

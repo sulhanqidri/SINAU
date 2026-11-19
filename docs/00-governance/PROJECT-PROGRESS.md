@@ -1165,3 +1165,9 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Updated runbook with the PostgreSQL example and explicit isolated session override for CI in commit `4aceff4bd11a474aa61edf93d8e8535fe5095fb9`.
 - No `.env.example` edit, actual rsync, dependency installation, PostgreSQL DB/role creation, or migration has been performed yet.
 
+
+### PostgreSQL example and CI session override validated locally — 2026-11-19
+- User applied PostgreSQL app defaults to the temporary Laravel scaffold `.env.example`: APP_NAME=SINAU, DB_CONNECTION=pgsql, DB_HOST=127.0.0.1, DB_PORT=5432, DB_DATABASE=sinau_app_poc, DB_USERNAME=sinau_app_poc_app (proposed placeholder role), DB_PASSWORD empty; SESSION_DRIVER=database, SESSION_CONNECTION=pgsql, SESSION_HTTP_ONLY=true, SESSION_SAME_SITE=lax, SESSION_LIFETIME=120, SESSION_ENCRYPT=false, SESSION_PATH=/, SESSION_DOMAIN=null.
+- User updated `.github/workflows/tests.yml` job environment with `SESSION_CONNECTION: sqlite` alongside `DB_CONNECTION: sqlite` and absolute workspace `DB_DATABASE`; `touch "$DB_DATABASE"` remains in the workflow. This keeps CI session storage isolated from the future application DB.
+- Validation output: Composer manifest valid; package.json parses; grep confirms PostgreSQL/session values and CI overrides. Built-in migrations include sessions, cache, jobs, job_batches, failed_jobs; cache_locks is present in cache migration. Migration inspection was read-only.
+- Local `~/SINAU` fast-forwarded to `35a14a1`. No scaffold files have been rsynced; no dependency install, PostgreSQL database/role creation, or migration was run. No production, design PoC, SQLRadius or MikroTik changes.

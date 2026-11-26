@@ -510,3 +510,235 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
 \`\`\`
 
 Expected diagnostic: the verifier function's installed body does not reference one or more live authorization-state tables, while the issuer validator does. This is reported as a **confirmed gap**, not as a passing authorization-revocation test. The follow-up is a separate rollback-only, two-connection test of account disable, session revoke, tenant-membership revoke, and unit-membership revoke under the approved \`READ COMMITTED\` semantics. No verifier implementation change is included in this audit script. ADR-007 remains Proposed.
+
+
+## 17. Two-connection authorization-revocation behavior test
+
+Script \`020-test-live-authorization-revocation.sql\` is the Session A controller for the next PoC gate. It opens one explicit \`READ COMMITTED\` transaction, allocates an XID, installs a short-lived signed token for the existing synthetic actor \`91000000-0000-0000-0000-000000000001\`, and confirms one \`academic_years\` row is visible for tenant A/unit A1. It then waits while Session B revokes one source authorization record and commits. Session A runs another protected SELECT using the **same XID and token**, reports whether the row remains visible, and rolls back.
+
+The matching Session B statements and restoration blocks are documented below. They change one synthetic PoC fixture row at a time and commit the temporary revoke so that Session A can observe a new READ COMMITTED statement snapshot. After Session A rolls back, the exact fixture row must be restored and committed before another scenario. This is not a single rollback-only test: the revocation needs a commit to become visible across connections. Only the known synthetic fixture records are changed, and every mutation has a checked one-row restoration step. Do not interrupt between revoke and restore.
+
+### Prepare the synthetic token signer
+
+\`019-sign-authorization-freshness-token.py\` signs the same PoC token contract as script 006, but uses the known active issuer fixture actor \`910...001\`. It does not invoke the issuer validator and is not an application issuer. This is intentional: the experiment isolates what the database verifier does with an already-issued actor/tenant/unit token after source authorization state changes. The token format contains no session identifier; therefore the session case can only test the actor's single active synthetic session and also exposes the need for an explicit session identifier or epoch if per-session revocation is required.
+
+Download and install the two test files from the pinned commit containing them. Install the signer as a user-owned executable under \`$HOME\`; it reads the existing PoC key from the current user's 0600 secret file. The SQL script is installed for PostgreSQL administrator execution.
+
+### Run one revocation scenario at a time
+
+1. Open terminal A and start Session A:
+
+\`\`\`bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/020-test-live-authorization-revocation.sql
+\`\`\`
+
+2. Session A prints its XID and waits. In terminal B, run the signer using that XID, then install the short-lived token where the PostgreSQL OS account can read it:
+
+\`\`\`bash
+python3 "$HOME/019-sign-authorization-freshness-token.py" XID_FROM_SESSION_A
+
+sudo install -o postgres -g postgres -m 600 \
+  /run/sinau-poc-token-signer/authfreshness-context.token \
+  /run/authfreshness-context.token
+\`\`\`
+
+3. Press Enter in terminal A. It imports the token without printing it, sets transaction-local context, and checks the baseline row count. When it waits for the revoke, run the matching Session B block from the fixture-revoke section, replacing nothing; the statements are fixed to actor \`910...001\`, tenant A, and unit A1.
+
+4. After Session B reports COMMIT, press Enter in terminal A. Record the \`FINDING REPRODUCED\` or \`PASS\` notice. Session A always ends with ROLLBACK.
+
+5. After Session A reports ROLLBACK, run the matching restoration block in terminal B and COMMIT it. Remove the two tmpfs token files:
+
+\`\`\`bash
+rm -f /run/authfreshness-context.token \
+  /run/sinau-poc-token-signer/authfreshness-context.token
+\`\`\`
+
+Repeat the complete sequence independently for account, session, tenant membership, and unit membership. Never continue to the next case unless the restore block reports exactly one row updated. A baseline failure or unexpected row count means stop; do not improvise another update.
+
+### Connection B — revoke and restore one synthetic fixture row
+
+Run each mutation **only after Session A has printed its XID and is waiting for the revoke**. Run the matching restore block only after Session A has printed its ROLLBACK. Every block checks that exactly one expected synthetic row was changed.
+
+**A. Disable the synthetic global identity**
+
+Revoke:
+\`\`\`sql
+BEGIN;
+DO $revoke$
+DECLARE n integer;
+BEGIN
+  UPDATE sinau_issuer_poc.poc_identities
+     SET account_status = 'disabled'
+   WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+     AND account_status = 'active';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected one active synthetic identity, updated %', n; END IF;
+END
+$revoke$;
+COMMIT;
+\`\`\`
+
+Restore:
+\`\`\`sql
+BEGIN;
+DO $restore$
+DECLARE n integer;
+BEGIN
+  UPDATE sinau_issuer_poc.poc_identities
+     SET account_status = 'active'
+   WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+     AND account_status = 'disabled';
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected one disabled synthetic identity, updated %', n; END IF;
+END
+$restore$;
+COMMIT;
+\`\`\`
+
+**B. Revoke the single active synthetic authentication session**
+
+Revoke:
+\`\`\`sql
+BEGIN;
+DO $revoke$
+DECLARE n integer;
+BEGIN
+  UPDATE sinau_issuer_poc.poc_auth_sessions
+     SET session_status = 'revoked',
+         revoked_at = pg_catalog.clock_timestamp()
+   WHERE session_hash = sinau_crypto.digest(
+           pg_catalog.convert_to('SINAU-POC-ACTIVE-SESSION-A-NOT-A-REAL-CREDENTIAL', 'UTF8'),
+           'sha256'
+         )
+     AND actor_id = '91000000-0000-0000-0000-000000000001'
+     AND session_status = 'active'
+     AND revoked_at IS NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected one active synthetic session, updated %', n; END IF;
+END
+$revoke$;
+COMMIT;
+\`\`\`
+
+Restore:
+\`\`\`sql
+BEGIN;
+DO $restore$
+DECLARE n integer;
+BEGIN
+  UPDATE sinau_issuer_poc.poc_auth_sessions
+     SET session_status = 'active',
+         revoked_at = NULL
+   WHERE session_hash = sinau_crypto.digest(
+           pg_catalog.convert_to('SINAU-POC-ACTIVE-SESSION-A-NOT-A-REAL-CREDENTIAL', 'UTF8'),
+           'sha256'
+         )
+     AND actor_id = '91000000-0000-0000-0000-000000000001'
+     AND session_status = 'revoked'
+     AND revoked_at IS NOT NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected one revoked synthetic session, updated %', n; END IF;
+END
+$restore$;
+COMMIT;
+\`\`\`
+
+**C. Revoke the synthetic tenant membership**
+
+Revoke:
+\`\`\`sql
+BEGIN;
+DO $revoke$
+DECLARE n integer;
+BEGIN
+  UPDATE sinau_issuer_poc.poc_tenant_memberships
+     SET membership_status = 'revoked',
+         revoked_at = pg_catalog.clock_timestamp()
+   WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+     AND tenant_id = '00000000-0000-0000-0000-000000000001'
+     AND membership_status = 'active'
+     AND revoked_at IS NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected one active synthetic tenant membership, updated %', n; END IF;
+END
+$revoke$;
+COMMIT;
+\`\`\`
+
+Restore:
+\`\`\`sql
+BEGIN;
+DO $restore$
+DECLARE n integer;
+BEGIN
+  UPDATE sinau_issuer_poc.poc_tenant_memberships
+     SET membership_status = 'active',
+         revoked_at = NULL
+   WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+     AND tenant_id = '00000000-0000-0000-0000-000000000001'
+     AND membership_status = 'revoked'
+     AND revoked_at IS NOT NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected one revoked synthetic tenant membership, updated %', n; END IF;
+END
+$restore$;
+COMMIT;
+\`\`\`
+
+**D. Revoke the synthetic unit membership**
+
+Revoke:
+\`\`\`sql
+BEGIN;
+DO $revoke$
+DECLARE n integer;
+BEGIN
+  UPDATE sinau_issuer_poc.poc_unit_memberships
+     SET membership_status = 'revoked',
+         revoked_at = pg_catalog.clock_timestamp()
+   WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+     AND tenant_id = '00000000-0000-0000-0000-000000000001'
+     AND unit_id = '10000000-0000-0000-0000-000000000001'
+     AND membership_status = 'active'
+     AND revoked_at IS NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected one active synthetic unit membership, updated %', n; END IF;
+END
+$revoke$;
+COMMIT;
+\`\`\`
+
+Restore:
+\`\`\`sql
+BEGIN;
+DO $restore$
+DECLARE n integer;
+BEGIN
+  UPDATE sinau_issuer_poc.poc_unit_memberships
+     SET membership_status = 'active',
+         revoked_at = NULL
+   WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+     AND tenant_id = '00000000-0000-0000-0000-000000000001'
+     AND unit_id = '10000000-0000-0000-0000-000000000001'
+     AND membership_status = 'revoked'
+     AND revoked_at IS NOT NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF n <> 1 THEN RAISE EXCEPTION 'Expected one revoked synthetic unit membership, updated %', n; END IF;
+END
+$restore$;
+COMMIT;
+\`\`\`
+
+For every scenario, the order is: start Session A; copy its XID; create token; let A pass baseline and wait; run the matching revoke block in B and COMMIT; press Enter in A and record its post-revocation notice; wait for A ROLLBACK; run the matching restore block in B and COMMIT; verify the fixture is active before the next scenario. Never run two revoke scenarios at the same time.
+
+
+### Interpretation and limits
+
+- \`FINDING REPRODUCED\` with one visible row means a protected statement begun after the revoke commit still accepted the token. That confirms the missing per-statement state check for that authorization source.
+- \`PASS\` with zero rows means that scenario was denied after revoke. It does not by itself prove all other revocation cases.
+- The token is bound to one XID and is re-used only inside Session A. Do not move it to another transaction or connection.
+- The session token does not carry a session ID. The current test fixture has one active session for actor 910...001; exact per-session revocation semantics require a session identifier or an authorization epoch in the eventual token contract.
+- This test is deliberately a PoC behavior experiment. It does not modify the verifier or RLS policies. It must only run against \`sinau_design_poc\`, never \`sinau\`, \`sinau_app\`, SQLRadius, or production services.
+- A \`FINDING REPRODUCED\` result is not an application exploit test. It is evidence that the current verifier does not enforce the chosen revocation semantics on a subsequent protected statement.

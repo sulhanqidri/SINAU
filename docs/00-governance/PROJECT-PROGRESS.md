@@ -1323,3 +1323,16 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Added \`018-audit-authorization-freshness.sql\`, a read-only catalog audit that checks installed verifier/accessor/issuer function metadata and definitions, lists RLS policies using the accessor, and compares verifier dependencies to the four synthetic authorization-state tables. It is designed for \`sinau_design_poc\` only, uses \`BEGIN READ ONLY\`, performs no DDL/DML, and ends with ROLLBACK.
 - Server execution of script 018 is pending. A subsequent two-connection, rollback-only revocation test is not yet prepared; it must be designed after the installed-function audit confirms the exact server state and test fixture/token contract.
 - No production database, role, service, SQLRadius, or MikroTik changes. ADR-007 remains Proposed.
+
+
+### Installed-function audit confirms missing per-statement authorization freshness — 2026-11-26
+
+- User executed script 018 against \`sinau_design_poc\` as PostgreSQL administrator. It began with \`BEGIN READ ONLY\` and ended with \`ROLLBACK\`; no DDL/DML was run.
+- Installed metadata confirmed \`verify_context_token()\` is SECURITY DEFINER with \`search_path=pg_catalog, pg_temp\`; \`current_verified_context()\` is SECURITY INVOKER and calls the verifier; \`validate_context_request()\` is SECURITY DEFINER with the same fixed search path.
+- The audit confirmed the installed verifier function body does not reference \`poc_identities\`, \`poc_auth_sessions\`, \`poc_tenant_memberships\`, or \`poc_unit_memberships\`.
+- The installed issuer validator does reference all four authorization source tables. This establishes that current tests validate state at context request/issuance time, but the later RLS verifier does not refresh that state.
+- All 14 listed public RLS policies call \`sinau_private.current_verified_context()\`. Therefore the missing verifier check is relevant to every listed RLS-protected table, not just the academic year fixture.
+- Added \`019-sign-authorization-freshness-token.py\` and \`020-test-live-authorization-revocation.sql\` for a controlled two-connection \`READ COMMITTED\` behavior test with existing synthetic actor \`910...001\`. The test will separately revoke account status, the actor's single active synthetic session, tenant membership, and unit membership, then restore each exact fixture row.
+- Revocation in connection B must COMMIT so connection A can observe it. The exact fixture row is restored and committed after Session A rolls back. This is not an all-rollback transaction; it is a bounded reversible PoC experiment on synthetic fixture rows only. Do not run another case before the previous restore succeeds.
+- The existing token format carries actor/tenant/unit/XID but no session identifier. The session test is limited to the actor's single active fixture session and records an additional design requirement for exact per-session revocation.
+- Server execution of scripts 019/020 and the four concurrency scenarios is pending. No verifier/function/policy code was changed. No production database, role, service, SQLRadius, or MikroTik changes. ADR-007 remains Proposed.

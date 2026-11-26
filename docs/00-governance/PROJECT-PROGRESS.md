@@ -1288,3 +1288,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - It asserts one valid participant row remains in each table inside the transaction, then ROLLBACKs. The script is only a GitHub artifact at this point; server execution is pending.
 - The earlier script 016 skipped both trigger invocations because the tables were empty. It rolled back successfully and did not persist fixture rows.
 - No production database, roles, services, SQLRadius, or MikroTik changes. ADR-007 remains Proposed.
+
+
+### Participant-trigger regression fixture strategy corrected to reuse existing parent rows — 2026-11-26
+
+- User ran the requested read-only inventory against \`sinau_design_poc\`. It returned 2 tenants, 3 education units, and 3 academic years; the seven target academic tables (\`class_groups\`, \`student_enrollments\`, \`student_class_placements\`, \`assessment_definitions\`, \`assessment_participants\`, \`attendance_sessions\`, and \`attendance_session_participants\`) each contained 0 rows.
+- A second read-only join confirmed the parent chain \`tenant-a / unit-a1 / academic_year 2026–2027\` with IDs \`00000000-0000-0000-0000-000000000001\`, \`10000000-0000-0000-0000-000000000001\`, and \`30000000-0000-0000-0000-000000000001\`.
+- The previous version of script 017 stopped at its all-ten-tables-empty preflight because the three parent tables were already seeded. It stopped before creating the temporary shadow or executing fixture DML; the test transaction rolled back.
+- Revised \`017-test-hardened-participant-triggers.sql\` to reuse the existing parent records and insert no new tenant, unit, or academic-year rows. It uses a dedicated fixture UUID namespace/student code, checks exact key collisions, locks the seven target tables during the rollback-only transaction, and continues to test valid INSERT/UPDATE plus four expected trigger rejections.
+- The revised script's server execution is pending. Do not mark the regression gate passed until both participant triggers report PASS and the final rollback marker appears.
+- No parent rows or other database data were changed by the read-only inspections. The revised test script has not yet been run. No production database, role, service, SQLRadius, or MikroTik changes. ADR-007 remains Proposed.

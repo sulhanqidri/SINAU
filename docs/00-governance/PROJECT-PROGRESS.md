@@ -1189,3 +1189,38 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Composer requirements: PHP ^8.3 and Laravel ^13.17. Composer scripts include `setup` which runs migrations and npm build; do not invoke `composer setup` on the host. `post-autoload-dump` runs `artisan package:discover`; a safe first install can use `composer install --no-scripts` and call package discovery explicitly afterward, with no migration.
 - Frontend uses npm scripts `vp build`, `vp check`, `vue-tsc --noEmit`; 14 runtime and 9 dev dependencies. No package-lock exists. `.npmrc` reports `ignore-scripts=true`; retain this setting and use explicit `npm install --ignore-scripts --no-audit --no-fund`, followed by explicit build only after dependency review.
 - Node/npm are v24.22.3/11.19.1. Git working tree contains the intended untracked Laravel scaffold. Dependency install not started; no migration/database provisioning.
+
+### Runtime signed-context PostgreSQL PoC checkpoint — 2026-11-21
+
+**Lingkup dan batas pengujian**
+- Pengujian memakai database khusus `sinau_design_poc`, fixture sintetis, dan runtime login `sinau_app_runtime_poc`.
+- Database `sinau`, role produksi `sinau_app`, SQLRadius, MikroTik, dan layanan produksi tidak diubah.
+- Runtime login PoC bukan superuser, bukan owner tabel, tidak memiliki `BYPASSRLS`, menggunakan `NOINHERIT`, dan dibatasi HBA ke database PoC melalui TCP localhost/SCRAM. Membership ke issuer/query role memerlukan role switch eksplisit.
+- Runtime tidak dapat membaca key table secara langsung. Hasil pemeriksaan juga menunjukkan runtime bukan anggota `sinau_context_owner`.
+
+**Bukti pengujian**
+- Laravel PDO runtime: 18 pemeriksaan berhasil. Koneksi PDO yang sama dipertahankan, issuer/query role dapat dipakai secara eksplisit, direct key/data access ditolak, context transaction-local dibersihkan pada commit/rollback, dan recovery setelah SQL error berhasil.
+- Signed-context runtime: 36 pemeriksaan berhasil. Termasuk validasi issuer, key file permission check tanpa menampilkan secret, signature/MAC, expiry, future issue time, TTL, audience, unknown key ID, malformed token, replay lintas XID, serta fail-closed RLS.
+- Revocation signing key pada `READ COMMITTED`: koneksi A dengan XID `913` awalnya menerima token dan melihat satu row fixture. Setelah revocation dari koneksi B, token ditolak dan RLS mengembalikan 0 row. Koneksi A kemudian rollback; key sintetis dipulihkan.
+- Isolasi dua transaksi runtime: 11 pemeriksaan berhasil. Koneksi A dan B memakai PDO terpisah dengan XID `920` dan `921`. Token masing-masing diterima pada transaksi asal, token silang ditolak, RLS mengembalikan 0 row saat token silang dipasang, dan konteks asli dapat dipulihkan sebelum rollback.
+- Uji `REPEATABLE READ`: koneksi A dengan XID `924` tetap menerima token dan melihat satu row fixture setelah melanjutkan transaksi. Audit independen sesudahnya menunjukkan `poc-k1` berstatus revoked dengan `revoked_at = 2026-11-21 10:07:52.081753+07`. Output mentah koneksi B (`UPDATE 1` dan `COMMIT`) tidak tercakup dalam transkrip; keterbatasan bukti ini dipertahankan. Key kemudian dipulihkan dan pemeriksaan akhir menunjukkan aktif.
+- Hasil tersebut adalah bukti PoC, bukan security acceptance produksi atau bukti integrasi penuh Laravel/Fortify.
+
+**Batasan yang belum selesai**
+- Belum ada integrasi trusted-context service dan middleware Laravel/Fortify end-to-end.
+- Verifier PoC belum memeriksa account/session/membership authorization state pada setiap protected SQL statement.
+- Ownership 14 tabel RLS PoC masih perlu diaudit; jangan mengubah ownership sebelum inventaris sequence, function, grant, policy, dan dependency lengkap.
+- Belum ada test stress/multi-process, real connection pooler, key custody produksi, atau immediate cancellation of in-flight statements.
+
+### Keputusan desain — ADR-007 revocation baseline disetujui — 2026-11-26
+
+- Product Owner memilih kebijakan revocation recommended sebagai baseline desain awal SINAU.
+- Seluruh protected transaction wajib menggunakan PostgreSQL `READ COMMITTED`.
+- Protected statement yang mulai setelah revocation berhasil di-commit wajib ditolak apabila context sudah tidak berwenang.
+- Statement yang sudah berjalan sebelum commit revocation boleh menyelesaikan eksekusinya; kebijakan tidak menjanjikan pembatalan paksa statement berjalan atau penarikan data yang sudah dibaca.
+- `REPEATABLE READ` dilarang untuk protected transaction. `SERIALIZABLE` bukan baseline dan memerlukan review terpisah.
+- Transaksi harus singkat, memiliki batas waktu terukur, tidak boleh idle, dan pemeriksaan revocation tidak boleh di-cache lintas protected statement. Angka timeout akan ditetapkan setelah desain runtime dan pengukuran.
+- Gap yang belum selesai: verifier PoC belum memeriksa account/session/membership authorization state pada setiap protected statement. Implementasi authorization version/epoch atau mekanisme fresh-state ekuivalen masih menjadi gate.
+- HMAC tetap untuk PoC; algoritma dan custody key produksi belum diputuskan.
+- ADR-007 tetap **Proposed**. Persetujuan kebijakan revocation bukan persetujuan signer atau deployment produksi.
+- Tidak ada database, schema, table, role, credential, migration, atau service produksi yang diubah. Database `sinau`, role `sinau_app`, SQLRadius, dan MikroTik tetap di luar ruang lingkup.

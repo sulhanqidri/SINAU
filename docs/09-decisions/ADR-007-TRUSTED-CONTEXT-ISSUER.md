@@ -1,7 +1,8 @@
 # ADR-007: Trusted Context Issuer, Session, dan Transaksi RLS
 
-- **Status:** Proposed — kontrak teknis untuk PoC berikutnya; belum menjadi persetujuan implementasi produksi.
+- **Status:** Proposed — baseline kebijakan revocation disetujui untuk desain awal; implementasi dan penerimaan produksi masih menunggu seluruh security gate.
 - **Tanggal:** 2026-11-19
+- **Terakhir diperbarui:** 2026-11-26
 - **Area:** Authentication, session, tenant/unit context, PostgreSQL RLS, connection lifecycle
 - **Terkait:** ADR-003, ADR-005, ADR-006, `TRUSTED-CONTEXT-ISSUER-DESIGN.md`, dan PostgreSQL PoC 005–011.
 
@@ -12,11 +13,25 @@ PoC PostgreSQL telah membuktikan dua bagian secara terpisah:
 1. Verifier PostgreSQL dapat memvalidasi token bertanda tangan yang terikat pada audience/database, masa berlaku, key ID aktif, dan top-level transaction XID. RLS memperoleh tenant/unit hanya dari klaim terverifikasi.
 2. Fixture issuer sintetis dapat menurunkan actor dari session bearer sintetis dan memeriksa status akun, session, tenant membership, unit membership, tanggal berlaku, pasangan tenant/unit, serta entitlement secara terpisah.
 
-Kedua hasil tersebut belum membuktikan alur aplikasi nyata. Repository belum memiliki aplikasi Laravel, middleware autentikasi, session store, role database runtime, connection pool, atau service yang menggabungkan principal autentikasi dengan transaksi PostgreSQL.
+Kedua hasil tersebut belum membuktikan alur trusted-context di aplikasi nyata. Repository telah memiliki Laravel scaffold dan baseline autentikasi web pada ADR-005/ADR-008, serta runtime role khusus PoC. Namun, trusted-context service, middleware/guard terintegrasi, pengelolaan transaksi request, pemeriksaan revocation account/session/membership per protected statement, dan key custody produksi belum diimplementasikan atau divalidasi end-to-end.
 
-ADR-003 sudah menetapkan baseline identitas global, tenant membership, unit membership, permission berscope, dan default deny. ADR-005 masih Proposed: Laravel 13 + Vue 3 + Inertia merupakan kandidat PoC; session direkomendasikan untuk web, sedangkan autentikasi API/client pihak pertama (termasuk evaluasi Sanctum) belum final.
+ADR-003 menetapkan baseline identitas global, tenant membership, unit membership, permission berscope, dan default deny. ADR-005 telah Accepted untuk initial web application bootstrap dengan Laravel 13, PHP 8.4, Vue 3 Composition API, TypeScript, Inertia 3, Tailwind 4, shadcn-vue, Fortify, dan PostgreSQL 18. ADR-008 telah Accepted untuk baseline autentikasi web menggunakan Fortify dan server-side database session. Autentikasi API/client, pilihan signing algorithm produksi, dan key custody tetap terbuka.
 
 ADR ini mendefinisikan kontrak yang harus dipenuhi dan pilihan yang masih perlu persetujuan sebelum signer aplikasi dibangun.
+
+
+### Bukti PoC lanjutan — runtime dan revocation
+
+Pengujian tambahan yang telah dilaporkan:
+
+- Laravel PDO runtime: 18 pemeriksaan berhasil. Runtime login terpisah, privilege boundary, role switching, koneksi PDO yang sama, transaksi, cleanup, dan fail-closed telah diperiksa.
+- Signed-context runtime: 36 pemeriksaan berhasil, termasuk validasi issuer, MAC, expiry, audience, XID, replay lintas transaksi, dan RLS.
+- Revocation signing key lintas koneksi pada `READ COMMITTED`: koneksi A melaporkan token ditolak setelah revocation dan jumlah row `academic_years` menjadi 0; XID A tetap. Key sintetis kemudian dipulihkan.
+- Dua transaksi PDO bersamaan: 11 pemeriksaan berhasil. XID A `920` dan XID B `921`; token silang ditolak dan RLS mengembalikan 0 row.
+- Uji `REPEATABLE READ`: koneksi A dengan XID `924` tetap menerima token dan melihat fixture setelah menunggu revocation. Audit independen sesudahnya menunjukkan key `poc-k1` revoked pada `2026-11-21 10:07:52.081753+07`. Output mentah koneksi B yang menunjukkan `UPDATE 1` dan `COMMIT` tidak tersedia dalam transkrip; keterbatasan bukti ini dicatat secara eksplisit.
+- Key sintetis `poc-k1` kemudian dipulihkan. Pemeriksaan akhir menunjukkan `is_revoked = false` dan `is_active = true`.
+
+Seluruh pengujian ini terbatas pada `sinau_design_poc`. Hasilnya merupakan bukti PoC, bukan penerimaan keamanan produksi atau bukti integrasi Laravel/Fortify.
 
 ## 2. Prinsip yang tidak boleh berubah
 
@@ -74,7 +89,7 @@ Seluruh aktivitas di bawah wajib memakai satu koneksi PostgreSQL yang dipin dari
 1. Middleware mengautentikasi request dan menghasilkan `AuthenticatedPrincipal`.
 2. Service membaca tenant/unit selector. Selector tidak diberi status trusted.
 3. Service membuka top-level transaction pada koneksi yang akan menjalankan protected SQL.
-4. Koneksi mengalokasikan dan menyimpan top-level XID dengan `pg_current_xact_id()`. XID tersebut hanya berlaku bagi transaksi itu.
+4. Sebagai perintah transaksi pertama sebelum query lain, koneksi menetapkan isolation level `READ COMMITTED` (`SET TRANSACTION ISOLATION LEVEL READ COMMITTED`). Setelah itu koneksi mengalokasikan dan menyimpan top-level XID dengan `pg_current_xact_id()`. XID tersebut hanya berlaku bagi transaksi itu.
 5. Dalam transaksi/koneksi yang sama, issuer meminta pemeriksaan identity/session/membership kepada validator database yang sempit. Validator tidak menerima caller-supplied `actor_id`; ia menurunkan actor dari referensi session tervalidasi.
 6. Aplikasi mengevaluasi permission, delegation, resource relationship, lifecycle, dan entitlement untuk operasi yang sedang dilakukan.
 7. Backend membuat token baru dengan nonce acak dan waktu terbit/expiry. Token harus terikat ke database audience dan XID transaksi itu. Token PoC maksimum 300 detik; batas produksi harus disetujui dan sebaiknya lebih pendek dari batas request/transaction.
@@ -146,26 +161,55 @@ Tidak ada role produksi yang dibuat oleh ADR ini. Role PoC `sinau_context_issuer
 
 ## 9. Revocation dan transaksi berjalan
 
-Baseline yang diusulkan:
-- transaksi baru tidak boleh menerima context setelah pencabutan account/session/membership telah committed;
-- transaksi berjalan memiliki batas waktu pendek dan token berumur pendek;
-- pencabutan harus membatalkan grant pada transaksi berikutnya serta session/cache terkait.
+### 9.1 Keputusan kebijakan yang disetujui — 2026-11-26
 
-**Belum diputuskan:** apakah transaksi yang sudah berjalan boleh selesai setelah membership dicabut, atau harus diputus segera. Jika perlu immediate revocation di tengah transaksi, verifier memerlukan authorization epoch/revocation check (atau kontrol database setara) dengan desain concurrency/locking dan pengujian race. PoC saat ini tidak membaca membership pada setiap evaluasi RLS sehingga tidak membuktikan immediate revocation.
+Product Owner menyetujui baseline kebijakan revocation berikut untuk desain awal SINAU:
+
+1. Seluruh protected transaction wajib menggunakan isolation level `READ COMMITTED`.
+2. Protected SQL statement yang mulai setelah perubahan revocation berhasil di-commit wajib ditolak apabila konteks tersebut sudah tidak berwenang.
+3. Statement yang sudah mulai berjalan sebelum commit revocation boleh menyelesaikan eksekusinya. Kebijakan ini tidak menjanjikan pembatalan paksa statement, rollback otomatis transaksi lain, atau penarikan data yang sudah dibaca.
+4. `REPEATABLE READ` dilarang untuk protected transaction karena snapshot lama dapat tetap melihat status key sebelum revocation.
+5. `SERIALIZABLE` bukan bagian baseline ini dan membutuhkan review serta persetujuan keamanan terpisah sebelum digunakan untuk protected transaction.
+6. Transaksi harus singkat, mempunyai batas waktu yang terukur, tidak dibiarkan idle, dan tidak mempertahankan context melewati request/job yang membentuk transaksi.
+7. Hasil pemeriksaan revocation tidak boleh di-cache lintas protected SQL statement.
+
+### 9.2 Semantik statement
+
+- Pada `READ COMMITTED`, setiap protected SQL statement memperoleh snapshot statement yang baru.
+- Verifier atau authorization guard harus memeriksa state revocation authoritative ketika setiap protected statement dievaluasi.
+- Statement yang sudah berjalan ketika revocation di-commit boleh selesai; protected statement berikutnya harus mengevaluasi ulang dan menolak konteks yang dicabut.
+- Token tetap terikat ke satu top-level transaction XID. `READ COMMITTED` tidak berarti token boleh digunakan pada transaksi atau koneksi lain.
+- Batas numerik maksimum durasi transaksi dan request harus ditetapkan pada konfigurasi/runtime runbook sebelum implementasi produksi. ADR ini belum menetapkan angka yang belum diukur.
+
+### 9.3 Cakupan bukti dan gap implementasi
+
+PoC telah membuktikan pemeriksaan revocation signing key melalui `revoked_at` pada verifier:
+
+- Pada `READ COMMITTED`, pengujian dua koneksi menunjukkan token ditolak setelah revocation dan RLS tidak lagi menampilkan fixture.
+- Pada pengujian `REPEATABLE READ`, koneksi dengan XID `924` tetap menerima token lama; audit independen sesudahnya menunjukkan key berstatus revoked. Karena snapshot lama tetap digunakan, perilaku ini menjadi alasan kebijakan `REPEATABLE READ` dilarang. Output mentah koneksi B tidak tersedia dalam transkrip yang diterima.
+- Pengujian tersebut tidak membuktikan bahwa statement yang sudah berjalan dapat dihentikan. Baseline justru mengizinkan statement yang sudah mulai berjalan menyelesaikan eksekusinya.
+
+**Gap penting sebelum implementasi produksi:**
+
+Issuer saat ini memvalidasi session dan membership saat context diterbitkan. Verifier PoC memeriksa signature, XID, expiry, audience, dan status signing key; verifier tersebut belum memeriksa status account, session, serta membership pada setiap evaluasi protected statement.
+
+Karena itu, kebijakan revocation yang disetujui belum sepenuhnya terimplementasi untuk account/session/membership. Sebelum produksi, desain harus menyediakan pemeriksaan state atau authorization version/epoch yang authoritative dan segar pada setiap protected statement, atau mekanisme ekuivalen yang memenuhi semantik di atas. Nilai epoch yang hanya disalin ke token tanpa pemeriksaan state terbaru tidak memenuhi persyaratan ini.
+
+Revocation account/session/membership tidak boleh dinyatakan lulus hanya berdasarkan pengujian revocation signing key. Mekanisme tersebut harus memiliki test lintas koneksi, statement boundary, concurrency/race, dan fail-closed tersendiri.
 
 ## 10. Opsi dan keputusan yang masih terbuka
 
 | Area | Baseline/rekomendasi sementara | Status |
 |---|---|---|
-| Web authentication | Server-side session sebagai arah ADR-005 | Belum final |
+| Web authentication | Fortify dan server-side database session mengikuti ADR-008 | Accepted untuk initial web bootstrap |
 | API/client authentication | Evaluasi Sanctum atau mekanisme lain sesuai client dan threat model | Belum final |
 | Session store dan revocation | Server-side record dengan lifecycle/revocation yang bisa diuji | Belum final |
 | Principal contract | Middleware-created immutable principal; actor tidak boleh berasal dari request | Invarian yang diusulkan |
 | Membership validator | Narrow SECURITY DEFINER function dengan fixed search_path dan tanpa direct table grants | Sudah diuji sintetis; kontrak produksi belum final |
-| Runtime roles | Owner/migration/issuer/query dipisah; role switching dalam satu transaksi diuji sebelum dipakai | Role switching issuer/query dan XID continuity lulus pada satu direct PostgreSQL session; pooler/app runtime belum diuji |
+| Runtime roles | Owner/migration/issuer/query dipisah; runtime login NOINHERIT dan role switching pada PDO/transaksi yang sama | Runtime PoC, privilege boundary, 18 PDO checks, dan 36 signed-context checks lulus; ownership tabel dan integrasi Laravel masih menjadi gate |
 | Signing algorithm | HMAC PoC; evaluasi asymmetric/KMS sebelum produksi | Belum final |
 | Connection pooling | Mulai dengan koneksi PostgreSQL langsung; PgBouncer/pooler opsional bila ada kebutuhan kapasitas terukur | Direct psql lifecycle tests lulus; pooler lokal tidak terdeteksi. Tidak perlu server tambahan atau instalasi pooler untuk melanjutkan PoC/bootstrap awal; integrasi pooler ditunda |
-| In-flight revocation | New transactions denied; policy untuk transaksi yang sudah berjalan | Menunggu keputusan keamanan/produk |
+| In-flight revocation | `READ COMMITTED`; protected statement baru setelah revocation commit ditolak; statement yang sudah berjalan boleh selesai; `REPEATABLE READ` dilarang | Kebijakan disetujui 2026-11-26; pemeriksaan session/account/membership per statement belum diimplementasikan |
 | Tenant/unit lifecycle matrix | Validator harus mengikuti matrix yang disahkan | Belum final |
 
 ## 11. Kriteria penerimaan sebelum implementasi signer aplikasi
@@ -186,6 +230,10 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 12. Concurrency test menetapkan hasil revoke vs request yang sudah berjalan.
 13. Logging, tracing, error handling, metrics, dan audit tidak membocorkan credential/token/secret.
 14. Test seluruh tenant/unit isolation, raw SQL, bulk, file, export, queue, scheduler, dan IDOR lulus.
+15. Protected transaction menegakkan `READ COMMITTED`; `REPEATABLE READ` tidak dapat digunakan untuk protected SQL.
+16. Revocation key, account, session, dan membership diuji terpisah. Protected statement baru setelah revocation commit ditolak; statement yang sudah berjalan boleh selesai.
+17. Pemeriksaan authorization version/state untuk account/session/membership dilakukan secara authoritative per protected statement, tanpa cache lintas statement.
+18. Batas durasi transaction/request, timeout, idle transaction, dan perilaku saat koneksi dibatalkan ditetapkan serta diuji.
 
 ## 12. Non-goals dan batas keselamatan
 
@@ -198,9 +246,12 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 
 ## 13. Langkah berikutnya
 
-1. Product Owner/security menyetujui pilihan auth web/API, session lifecycle, revocation semantics, dan key custody.
-2. Finalisasi role matrix dan kontrak principal/session dalam ADR terpisah atau revisi ADR ini.
-3. Selesai: `012-test-issuer-query-role-switch.sql` lulus pada direct PostgreSQL session; issuer → query → issuer mempertahankan XID 890 dan ROLLBACK membersihkan transaction-local probe. Bukti belum mencakup real signed-token issuance atau pooler.
-4. Selesai: `013-test-context-and-role-cleanup.sql` lulus; COMMIT dan ROLLBACK membersihkan `app.context_token` serta `SET LOCAL ROLE`, dan transaksi baru pada koneksi yang sama tetap fail-closed tanpa token.
-5. Selesai: `014-test-aborted-transaction-recovery.sql` lulus; SQLSTATE 22012 terdeteksi, ROLLBACK memulihkan role/context, dan koneksi yang sama tetap fail-closed pada transaksi baru. Inventaris read-only tidak menemukan binary PgBouncer/PgCat/Odyssey, unit service pooler, atau listener pada port 6432/6433. Dengan keterbatasan resource, jangan siapkan server baru dan jangan instal pooler. Lanjutkan PoC/bootstrap awal menggunakan koneksi PostgreSQL langsung pada server yang tersedia; evaluasi pooler hanya jika pengukuran beban/kapasitas menunjukkan kebutuhan dan pemilik menyetujuinya.
-6. Setelah application stack disetujui dan bootstrap Stage E dimulai, implementasikan adapter Laravel yang memenuhi kontrak ini tanpa menyalin fixture sintetis ke schema produksi.
+1. Selesaikan keputusan API/client authentication, assurance/MFA, dan lifecycle session yang belum ditetapkan oleh ADR-008.
+2. Evaluasi HMAC versus asymmetric signing/KMS, custody, rotasi, dual control, backup, dan prosedur key recovery. HMAC tetap hanya baseline PoC sampai pilihan produksi disetujui.
+3. Selesaikan audit read-only ownership, schema/table privileges, sequence, function, RLS policy, role membership, dan default privileges. Jangan mengubah ownership atau privilege sebelum inventaris serta rencana migrasi disetujui.
+4. Rancang serta uji authorization version/epoch atau mekanisme ekuivalen untuk memastikan revocation account/session/membership terlihat pada protected statement baru setelah commit.
+5. Implementasikan adapter trusted context Laravel hanya setelah role matrix, session contract, key custody, isolation enforcement, dan revocation implementation disetujui.
+6. Uji Laravel/Fortify melalui HTTP/API, termasuk logout, expiry, account disable, session revoke, membership revoke, tenant/unit isolation, IDOR, raw SQL, export, file, queue, dan scheduler.
+7. Connection pooling tetap ditunda. Evaluasi hanya apabila pengukuran beban/kapasitas dan persetujuan pemilik menunjukkan kebutuhan.
+
+PoC direct PostgreSQL yang telah lulus merupakan bukti teknis untuk desain awal. PoC tersebut tidak mengesahkan signer produksi, migration domain, role produksi, atau deployment produksi.

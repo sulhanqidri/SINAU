@@ -288,3 +288,17 @@ The regression script creates an empty temporary shadow table and attempts a no-
 ### Patch execution correction — 2026-11-26
 
 The first execution of PoC script 015 passed its database/function/trigger preflight and reached both function replacements, but its postflight text assertion failed because it searched a lowercase `pg_get_functiondef()` output using an uppercase `%ROWTYPE` literal. The script's transaction was not committed; after the psql process exited with `ON_ERROR_STOP`, PostgreSQL rolled the transaction back. Script 016 then correctly found that neither function retained the hardened configuration. The postflight comparison was corrected to be case-insensitive. No PoC changes should be considered applied until corrected script 015 completes with COMMIT and script 016 passes both trigger invocations.
+
+
+### Execution update — trigger function patch committed; regression invocation pending — 2026-11-26
+
+The corrected PoC patch 015 was executed against `sinau_design_poc`. The database/function/trigger preflight passed, both function definitions were replaced, the postflight confirmed the schema-qualified placement row type/relation and `search_path=pg_catalog, pg_temp`, and the transaction committed.
+
+The subsequent script 016:
+- created an empty temporary table shadow named `student_class_placements`;
+- confirmed the caller's unqualified lookup resolved to `pg_temp_9`, while `public.student_class_placements` remained addressable;
+- skipped the assessment trigger invocation because `assessment_participants` had no rows;
+- skipped the attendance trigger invocation because `attendance_session_participants` had no rows;
+- ended with ROLLBACK.
+
+Consequently, hardening is applied in the PoC, but the trigger-level regression gate remains **incomplete**. Both trigger invocations must be exercised with valid synthetic PoC fixture rows and report PASS before this finding is closed. No production database, application schema, role, service, SQLRadius, or MikroTik was changed. ADR-007 remains Proposed.

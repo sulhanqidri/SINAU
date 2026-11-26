@@ -416,7 +416,12 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
 
 Both scripts abort unless the current database is exactly \`sinau_design_poc\` and \`current_user\` is \`postgres\`. They are not migrations and must not be run against \`sinau\`, role \`sinau_app\`, SQLRadius, or any production service.
 
-**Status:** scripts are committed for controlled PoC execution. Database application and regression results are pending; this is not yet a passed security gate.
+**Execution status — 2026-11-26:**
+- Script 015 was executed successfully against `sinau_design_poc`: preflight passed, both function replacements succeeded, postflight passed, and COMMIT completed. The two functions now have `search_path=pg_catalog, pg_temp` and schema-qualified placement relation/row type references.
+- Script 016 confirmed the temporary shadow relation resolves as `pg_temp_9`, while `public.student_class_placements` remains addressable.
+- Both actual trigger invocations were SKIPPED because the two participant tables contained no rows. The test ended with ROLLBACK.
+- The remediation is applied, but the regression gate is **not yet passed**. Create valid synthetic PoC fixtures within a rollback-only test and obtain PASS for each trigger before closing the finding.
+- No production database or services were changed. ADR-007 remains Proposed.
 
 
 ### Patch-script correction — PostgreSQL deparser case normalization

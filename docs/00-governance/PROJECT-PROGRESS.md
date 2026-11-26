@@ -1255,3 +1255,25 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Corrected script 015 to compare `lower('public.student_class_placements%ROWTYPE')` against `lower(v_def)`. Re-download the corrected version before retrying.
 - No retained database changes from this attempt; no production database/role/service, SQLRadius, or MikroTik changes.
 - Status remains pending: rerun corrected 015, then 016. Require PASS for both assessment and attendance triggers; SKIP is not a full pass.
+
+
+### Participant trigger functions hardened in sinau_design_poc; regression fixture gap remains — 2026-11-26
+
+**Patch execution**
+- Corrected PoC script 015 was installed and executed by the user against `sinau_design_poc` as PostgreSQL administrator.
+- Preflight passed, both `CREATE FUNCTION` statements succeeded, postflight passed, and the transaction committed.
+- The postflight output confirms both functions now schema-qualify the placement row type/relation and store function configuration `search_path=pg_catalog, pg_temp`.
+- No table definitions, application rows, role memberships, grants, RLS policies, production database, SQLRadius, or MikroTik were changed by the patch.
+
+**Regression result — incomplete, not a pass**
+- Script 016 successfully created an empty temporary `student_class_placements` table and confirmed the session resolves the unqualified name to `pg_temp_9`, while `public.student_class_placements` remains independently addressable.
+- The assessment trigger test was SKIPPED because `public.assessment_participants` contained no rows.
+- The attendance trigger test was SKIPPED because `public.attendance_session_participants` contained no rows.
+- The test transaction rolled back successfully.
+- Therefore the function hardening is applied, but actual trigger invocation under temporary-object shadowing remains unverified. Do not close this security gate until both trigger tests have a valid PoC fixture row and report PASS.
+
+**Next work**
+- Read-only inspect row counts and required non-sensitive fixture columns/constraints in the participant tables and their referenced parent rows.
+- Prepare the smallest valid synthetic fixture set inside one explicit rollback-only test transaction, after dependency inventory. Do not use production records or commit fixture data.
+- Re-run the temp-shadow regression test under the same controlled scope and require both triggers to report PASS.
+- ADR-007 remains Proposed. This PoC result is not production security acceptance.

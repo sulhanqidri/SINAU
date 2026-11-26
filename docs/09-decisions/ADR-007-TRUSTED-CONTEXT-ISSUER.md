@@ -234,6 +234,7 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 16. Revocation key, account, session, dan membership diuji terpisah. Protected statement baru setelah revocation commit ditolak; statement yang sudah berjalan boleh selesai.
 17. Pemeriksaan authorization version/state untuk account/session/membership dilakukan secara authoritative per protected statement, tanpa cache lintas statement.
 18. Batas durasi transaction/request, timeout, idle transaction, dan perilaku saat koneksi dibatalkan ditetapkan serta diuji.
+19. Semua trigger/helper function yang berjalan pada protected DML mengunci search_path, schema-qualify seluruh tabel/tipe non-system, dan diuji terhadap temporary-object shadowing.
 
 ## 12. Non-goals dan batas keselamatan
 
@@ -255,3 +256,30 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 7. Connection pooling tetap ditunda. Evaluasi hanya apabila pengukuran beban/kapasitas dan persetujuan pemilik menunjukkan kebutuhan.
 
 PoC direct PostgreSQL yang telah lulus merupakan bukti teknis untuk desain awal. PoC tersebut tidak mengesahkan signer produksi, migration domain, role produksi, atau deployment produksi.
+
+
+## 14. PoC trigger-function search_path hardening — 2026-11-26
+
+A focused read-only audit found two SECURITY INVOKER trigger functions in the PostgreSQL PoC:
+
+- \`public.poc_check_assessment_participant()\`
+- \`public.poc_check_attendance_participant()\`
+
+Both are owned by \`sinau_poc\`, had \`proconfig IS NULL\`, and used unqualified \`student_class_placements\` relation and \`%ROWTYPE\` references. The two enabled BEFORE triggers are attached to the expected participant tables. The runtime and query roles cannot create triggers on those tables, but the audited roles have database TEMP privilege.
+
+A controlled, rolled-back session test under \`sinau_rls_test\` confirmed that an empty temporary relation named \`student_class_placements\` shadows the unqualified relation and row type in the caller's default search path: the unqualified relation/type resolved to \`pg_temp_1\`, while \`public.student_class_placements\` remained distinct. This confirms a name-resolution weakness; it does not alone demonstrate a successful data-integrity bypass.
+
+The constraint audit returned 40 validated constraint rows. Composite foreign keys protect tenant, unit, placement, and enrollment relationships. The participant-to-placement \`class_group_id\` comparison and date-within-placement-period checks are not fully encoded in those foreign keys and remain dependent on the trigger functions.
+
+### Remediation baseline
+
+The PoC patch replaces only the two audited trigger-function bodies and:
+- qualifies the row type as \`public.student_class_placements%ROWTYPE\`;
+- reads from \`public.student_class_placements\` explicitly;
+- sets function-level \`search_path = pg_catalog, pg_temp\`, with no application schema implicitly trusted;
+- preserves SECURITY INVOKER, function owner, existing trigger attachment, and existing ACLs;
+- makes no role, grant, table, policy, or application-row changes.
+
+The regression script creates an empty temporary shadow table and attempts a no-op UPDATE against one existing row in each participant table, causing the attached BEFORE trigger to execute. The test transaction rolls back. A missing fixture row is reported as SKIP, not PASS.
+
+**Execution status at this revision:** remediation and regression SQL scripts are committed as PoC artifacts but have not been run on the PostgreSQL host. Do not mark this gate passed until both trigger tests report PASS after the patch. ADR-007 remains Proposed; this work does not approve production deployment.

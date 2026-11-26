@@ -348,3 +348,72 @@ Expected final notice: `ABORTED TRANSACTION RECOVERY TESTS PASSED — SAME CONNE
 
 **Limit:** this simulates a SQL statement error and manual transaction rollback on a direct psql connection. It is not a Laravel exception-handler, PDO pool, PgBouncer, network disconnect, cancellation, or production connection-pool test. Run only against `sinau_design_poc`.
 
+
+
+## 14. Participant trigger temporary-object shadowing
+
+### Finding — read-only audit, 2026-11-26
+
+The following attached trigger functions had no function-level \`search_path\` and used an unqualified reference to \`student_class_placements\` in both the row type declaration and SELECT:
+
+- \`public.poc_check_assessment_participant()\`, attached to \`public.assessment_participants\`;
+- \`public.poc_check_attendance_participant()\`, attached to \`public.attendance_session_participants\`.
+
+A rolled-back test using \`SET LOCAL ROLE sinau_rls_test\` confirmed that an empty temporary table named \`student_class_placements\` shadows the unqualified relation and row type. The temporary schema was \`pg_temp_1\`. Runtime and query roles cannot create triggers on the participant tables, but both have TEMP privilege in the PoC.
+
+The read-only constraint audit returned 40 validated rows. Composite foreign keys preserve tenant/unit/placement/enrollment links. The class-group equality and date-within-placement-period checks remain in the trigger functions.
+
+### Apply the isolated PoC patch
+
+The patch script verifies the database name, administrator role, existing function owners/bodies, trigger attachments, and query-role SELECT privilege before changing anything. It schema-qualifies the placement row type/relation and pins the two SECURITY INVOKER functions to \`search_path = pg_catalog, pg_temp\`. The transaction commits only those two function definitions and preserves their owners and existing ACLs.
+
+Download the two scripts from this branch to a temporary directory:
+
+\`\`\`bash
+mkdir -p /tmp/sinau-trigger-hardening
+cd /tmp/sinau-trigger-hardening
+
+BASE='https://raw.githubusercontent.com/sulhanqidri/SINAU/feature/phase-0-requirements-blueprint/docs/03-database/poc'
+
+curl -fL "$BASE/015-harden-participant-trigger-search-path.sql" \
+  -o 015-harden-participant-trigger-search-path.sql
+
+curl -fL "$BASE/016-test-participant-trigger-temp-shadowing.sql" \
+  -o 016-test-participant-trigger-temp-shadowing.sql
+
+sudo install -o postgres -g postgres -m 600 \
+  015-harden-participant-trigger-search-path.sql \
+  /run/015-harden-participant-trigger-search-path.sql
+
+sudo install -o postgres -g postgres -m 600 \
+  016-test-participant-trigger-temp-shadowing.sql \
+  /run/016-test-participant-trigger-temp-shadowing.sql
+\`\`\`
+
+Apply the function-only patch, **only** to \`sinau_design_poc\`:
+
+\`\`\`bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/015-harden-participant-trigger-search-path.sql
+\`\`\`
+
+Then run the trigger regression test in a separate fresh PostgreSQL session:
+
+\`\`\`bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/016-test-participant-trigger-temp-shadowing.sql
+\`\`\`
+
+### Expected interpretation
+
+- The test intentionally creates an empty temporary table with the same name as the permanent placement table.
+- It first confirms that the caller's unqualified name resolves to the temporary table. The trigger functions must nevertheless read the schema-qualified permanent table under their pinned function search path.
+- For each participant table containing at least one row, the script performs a no-op UPDATE so its existing BEFORE trigger runs, then rolls the update back.
+- A PASS notice means that trigger completed with the empty temporary shadow present. A SKIP notice means that table has no fixture row and the corresponding trigger has not yet been exercised. Do not record a full pass if either trigger is skipped.
+- The script ends with ROLLBACK; it does not retain the no-op updates or temporary table.
+
+Both scripts abort unless the current database is exactly \`sinau_design_poc\` and \`current_user\` is \`postgres\`. They are not migrations and must not be run against \`sinau\`, role \`sinau_app\`, SQLRadius, or any production service.
+
+**Status:** scripts are committed for controlled PoC execution. Database application and regression results are pending; this is not yet a passed security gate.

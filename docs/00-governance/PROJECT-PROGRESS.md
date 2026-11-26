@@ -1224,3 +1224,24 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - HMAC tetap untuk PoC; algoritma dan custody key produksi belum diputuskan.
 - ADR-007 tetap **Proposed**. Persetujuan kebijakan revocation bukan persetujuan signer atau deployment produksi.
 - Tidak ada database, schema, table, role, credential, migration, atau service produksi yang diubah. Database `sinau`, role `sinau_app`, SQLRadius, dan MikroTik tetap di luar ruang lingkup.
+
+
+### Participant trigger search_path finding confirmed; PoC hardening scripts prepared — 2026-11-26
+
+**Read-only evidence**
+- public.poc_check_assessment_participant() is a SECURITY INVOKER trigger function (prosecdef=false), owned by sinau_poc, with no function-level search_path (proconfig is NULL). Its row type declaration and SELECT use unqualified student_class_placements.
+- public.poc_check_attendance_participant() has the same characteristics.
+- Both enabled BEFORE triggers are attached to public.assessment_participants and public.attendance_session_participants.
+- sinau_app_runtime_poc, sinau_rls_test, sinau_context_issuer_poc, and sinau_context_owner have database TEMP privilege in the audited PoC. Runtime and query roles cannot create triggers on the two participant tables.
+- Under SET LOCAL ROLE sinau_rls_test, creating an empty temporary student_class_placements table caused to_regclass('student_class_placements') and to_regtype('student_class_placements') to resolve to pg_temp_1, while public.student_class_placements remained separately addressable. The test transaction was rolled back. This confirms name/type shadowing, not by itself a completed trigger exploit.
+- The read-only constraint audit returned 40 constraint rows, all validated=true. Composite foreign keys preserve tenant/unit/placement/enrollment relationships. They do not include the participant class_group_id comparison or the placement start/end-date comparison; those checks remain in the trigger functions.
+
+**PoC remediation prepared**
+- Added 015-harden-participant-trigger-search-path.sql. It has strict database/role/function/trigger preconditions; replaces only the two audited function bodies; schema-qualifies public.student_class_placements and its %ROWTYPE; pins each invoker function to search_path=pg_catalog, pg_temp; verifies the postconditions; and commits the function-only change. It does not alter table rows, role membership, grants, RLS policies, or production objects.
+- Added 016-test-participant-trigger-temp-shadowing.sql. It creates an empty temporary shadow table, confirms the caller session resolves the unqualified name to that temp table, invokes each attached BEFORE trigger using a no-op UPDATE if a fixture row exists, and always ends with ROLLBACK. If a target participant table is empty, the corresponding trigger test is explicitly SKIPPED rather than reported as passed.
+- These scripts are source artifacts only at this checkpoint. They have not yet been executed on the user's PostgreSQL host; their SQL behavior and test outcomes remain pending server execution.
+
+**Safety boundary**
+- Both scripts hard-stop unless current_database() = sinau_design_poc and current_user = postgres.
+- No changes were made to sinau, sinau_app, production services, SQLRadius, or MikroTik.
+- ADR-007 remains Proposed. This finding and remediation do not approve production RLS, application integration, or production migrations.

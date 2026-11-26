@@ -1277,3 +1277,14 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Prepare the smallest valid synthetic fixture set inside one explicit rollback-only test transaction, after dependency inventory. Do not use production records or commit fixture data.
 - Re-run the temp-shadow regression test under the same controlled scope and require both triggers to report PASS.
 - ADR-007 remains Proposed. This PoC result is not production security acceptance.
+
+
+### Full rollback-only participant-trigger regression script prepared — 2026-11-26
+
+- Read-only inventory found all seven target academic tables empty; both participant triggers remain enabled, both functions remain SECURITY INVOKER and owned by `sinau_poc`, and both store `search_path=pg_catalog, pg_temp`.
+- The PoC schema 001 and smoke-test fixture convention were reviewed. Added `017-test-hardened-participant-triggers.sql`.
+- Script 017 hard-stops unless database is `sinau_design_poc`, current role is `postgres`, all ten participating tables are empty, both functions have the expected hardened configuration, and both expected triggers are enabled.
+- In one transaction it creates an empty temporary shadow, inserts a minimal synthetic tenant/unit/year/two-class/enrollment/placement chain, creates valid and invalid-date parent records, executes both valid trigger INSERT + no-op UPDATE paths, and checks four expected rejections (wrong class and outside placement period for assessment and attendance).
+- It asserts one valid participant row remains in each table inside the transaction, then ROLLBACKs. The script is only a GitHub artifact at this point; server execution is pending.
+- The earlier script 016 skipped both trigger invocations because the tables were empty. It rolled back successfully and did not persist fixture rows.
+- No production database, roles, services, SQLRadius, or MikroTik changes. ADR-007 remains Proposed.

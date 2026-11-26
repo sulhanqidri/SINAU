@@ -302,3 +302,12 @@ The subsequent script 016:
 - ended with ROLLBACK.
 
 Consequently, hardening is applied in the PoC, but the trigger-level regression gate remains **incomplete**. Both trigger invocations must be exercised with valid synthetic PoC fixture rows and report PASS before this finding is closed. No production database, application schema, role, service, SQLRadius, or MikroTik was changed. ADR-007 remains Proposed.
+
+
+### Next regression gate — minimal synthetic fixture transaction — 2026-11-26
+
+A read-only inventory showed the academic tables used by the participant triggers were empty. Script 016 therefore skipped both trigger invocations. Script 017 has been prepared from the committed PoC schema and smoke-test fixture conventions.
+
+The script creates an empty temporary shadow, inserts a minimal synthetic tenant/unit/year/class/enrollment/placement chain, and executes the assessment and attendance triggers through valid INSERT/no-op UPDATE paths. It also verifies that each trigger rejects a participant whose class differs from the placement and a participant date outside the placement period. All fixture work is inside one explicit transaction ending in ROLLBACK.
+
+**Status:** script 017 is prepared but not yet executed on the PostgreSQL host. The trigger hardening is applied in `sinau_design_poc`; the regression gate remains open until every expected PASS is reported. ADR-007 remains Proposed.

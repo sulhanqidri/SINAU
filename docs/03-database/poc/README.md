@@ -432,3 +432,33 @@ The patch script is corrected to compare the row-type expression case-insensitiv
 `position(lower('public.student_class_placements%ROWTYPE') IN lower(v_def))`.
 
 Re-download the corrected 015 script from the branch before retrying. No database changes were retained by the failed attempt. The 016 regression script did not make any changes because its preflight stopped before creating the test temporary table.
+
+
+## 15. Full participant-trigger regression with synthetic fixtures
+
+Script `017-test-hardened-participant-triggers.sql` addresses the empty-table SKIP result from test 016. It is a single rollback-only transaction and refuses to run unless the database is `sinau_design_poc`, the current role is `postgres`, all ten fixture/dependency tables are empty, both trigger functions are hardened SECURITY INVOKER functions, and both expected triggers are enabled.
+
+The script creates an empty temporary `student_class_placements` shadow table, then seeds a minimal synthetic tenant, education unit, academic year, two class groups, one enrollment, one time-bounded placement, assessment definitions, and attendance sessions. It exercises:
+- valid INSERT and no-op UPDATE paths for both participant triggers;
+- wrong-class rejection for assessment and attendance;
+- out-of-placement-period rejection for assessment and attendance.
+
+Each negative case must raise the exact expected trigger message. A foreign-key error, another exception, or an unexpected successful insert aborts the script. It asserts exactly one valid participant row remains in each participant table inside the test transaction, then ends with `ROLLBACK`. No test fixture is committed.
+
+Run only against the dedicated empty PoC database:
+
+```bash
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/feature/phase-0-requirements-blueprint/docs/03-database/poc/017-test-hardened-participant-triggers.sql' \
+  -o /run/017-test-hardened-participant-triggers.sql
+
+sudo chown postgres:postgres /run/017-test-hardened-participant-triggers.sql
+sudo chmod 600 /run/017-test-hardened-participant-triggers.sql
+
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/017-test-hardened-participant-triggers.sql
+```
+
+Expected result: PASS for temporary shadow setup, valid INSERT/UPDATE paths, all four invalid cases, final row assertions, and the final `ALL PARTICIPANT TRIGGER REGRESSION TESTS PASSED — TRANSACTION ROLLED BACK` marker. Any unexpected schema/constraint/function state aborts the transaction. The script does not perform COMMIT.
+
+**Execution status:** script 017 is a test artifact until the user runs it and supplies the server output. The two trigger functions are hardened in the PoC, but the regression gate remains open until script 017 completes successfully.

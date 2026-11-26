@@ -1298,3 +1298,17 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Revised \`017-test-hardened-participant-triggers.sql\` to reuse the existing parent records and insert no new tenant, unit, or academic-year rows. It uses a dedicated fixture UUID namespace/student code, checks exact key collisions, locks the seven target tables during the rollback-only transaction, and continues to test valid INSERT/UPDATE plus four expected trigger rejections.
 - The revised script's server execution is pending. Do not mark the regression gate passed until both participant triggers report PASS and the final rollback marker appears.
 - No parent rows or other database data were changed by the read-only inspections. The revised test script has not yet been run. No production database, role, service, SQLRadius, or MikroTik changes. ADR-007 remains Proposed.
+
+
+### Participant trigger temporary-table shadow regression passed — 2026-11-26
+
+- User successfully downloaded the pinned revised script 017 from commit \`66c6770f278d97fa5e5b02cb4e45e094d8463183\`, validated that it referenced the existing parent chain and exact fixture-key collision guard, then installed it at \`/run/017-test-hardened-participant-triggers.sql\` with owner \`postgres:postgres\` and mode 0600.
+- Executed the script against \`sinau_design_poc\` as PostgreSQL administrator using \`ON_ERROR_STOP=1\`.
+- Preflight passed: existing \`tenant-a / unit-a1 / academic_year 2026–2027\` parent chain, fixture key collision checks, both hardened SECURITY INVOKER functions, and both enabled participant triggers.
+- Temporary shadow test passed. The caller resolved the unqualified name to \`pg_temp_14\`, while the permanent \`public.student_class_placements\` relation remained distinct.
+- Both valid participant INSERTs passed; both no-op UPDATE trigger paths passed.
+- All four expected negative cases passed: assessment wrong-class, assessment date outside placement, attendance wrong-class, and attendance date outside placement.
+- Final assertions passed: exactly one valid synthetic row remained inside the transaction in each participant table; all four invalid fixture IDs were absent.
+- Script completed \`ROLLBACK\` and printed \`ALL PARTICIPANT TRIGGER REGRESSION TESTS PASSED — TRANSACTION ROLLED BACK\`. No synthetic academic rows, locks, or temporary objects were retained.
+- **Result:** the PoC regression gate for participant trigger temporary-table shadowing is closed as PASS. The two functions remain hardened in \`sinau_design_poc\`.
+- **Boundary:** this is a successful PoC regression, not production security acceptance, trusted-context/application integration approval, or production migration approval. ADR-007 remains Proposed. No \`sinau\` / \`sinau_app\`, SQLRadius, MikroTik, or production services were changed.

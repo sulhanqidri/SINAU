@@ -471,8 +471,12 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
 
 Expected result: PASS for existing parent fixture validation, collision checks, function/trigger preconditions, temporary shadow setup, valid INSERT/UPDATE paths, all four invalid cases, final row assertions, and the final \`ALL PARTICIPANT TRIGGER REGRESSION TESTS PASSED — TRANSACTION ROLLED BACK\` marker. The script does not perform COMMIT.
 
-**Execution history:**
-- The previous version of script 017 stopped at its empty-table preflight because \`tenants\`, \`education_units\`, and \`academic_years\` already contained 2, 3, and 3 rows respectively. It stopped before creating the temporary table or running DML; its transaction rolled back.
-- The revised script reuses the confirmed existing parent chain and narrows collision checks to its own synthetic fixture keys.
-- The revised script is a test artifact until the user executes it and supplies the server output. The trigger hardening remains applied in \`sinau_design_poc\`, but the regression gate remains open until both triggers pass.
-- No production database or services were changed. ADR-007 remains Proposed.
+**Execution result — PASS, 2026-11-26:**
+- User downloaded the pinned revision from commit \`66c6770f278d97fa5e5b02cb4e45e094d8463183\`, validated the revised fixture markers, installed it as \`postgres:postgres\` mode 0600, and executed it against \`sinau_design_poc\` with \`ON_ERROR_STOP=1\`.
+- Preflight passed for the existing \`tenant-a / unit-a1 / academic_year 2026–2027\` parent chain, exact fixture-key collision checks, both hardened SECURITY INVOKER functions, and both enabled participant triggers.
+- The temporary shadow resolved to \`pg_temp_14\`; the permanent \`public.student_class_placements\` relation remained distinct.
+- Both valid participant INSERTs and both no-op UPDATE trigger paths passed.
+- All four negative cases passed: assessment wrong-class, assessment out-of-period, attendance wrong-class, and attendance out-of-period.
+- Final assertions passed: exactly one valid synthetic row in each participant table and no invalid fixture IDs remained.
+- The script completed \`ROLLBACK\` and printed \`ALL PARTICIPANT TRIGGER REGRESSION TESTS PASSED — TRANSACTION ROLLED BACK\`. No synthetic academic rows, locks, or temporary objects were retained.
+- This closes the PoC regression gate for the temporary-table shadowing issue. It does not constitute production security acceptance or approval of production migrations. No production database, role, service, SQLRadius, or MikroTik changes were made. ADR-007 remains Proposed.

@@ -196,7 +196,7 @@ BEGIN
         END IF;
 
         IF position(
-            'public.student_class_placements%ROWTYPE'
+            lower('public.student_class_placements%ROWTYPE')
             IN lower(v_def)
         ) = 0 OR position(
             'from public.student_class_placements'

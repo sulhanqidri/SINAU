@@ -417,3 +417,13 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
 Both scripts abort unless the current database is exactly \`sinau_design_poc\` and \`current_user\` is \`postgres\`. They are not migrations and must not be run against \`sinau\`, role \`sinau_app\`, SQLRadius, or any production service.
 
 **Status:** scripts are committed for controlled PoC execution. Database application and regression results are pending; this is not yet a passed security gate.
+
+
+### Patch-script correction — PostgreSQL deparser case normalization
+
+The first server-side attempt reached both `CREATE OR REPLACE FUNCTION` statements, then failed in the script's postflight text inspection. PostgreSQL's `pg_get_functiondef()` normalizes the declaration text to lowercase in this output; the postflight compared that lowercase result to an uppercase literal `%ROWTYPE`. Because the script runs inside one transaction, exiting after the `ON_ERROR_STOP` error rolled the function replacements back. The subsequent regression preflight correctly found zero hardened functions.
+
+The patch script is corrected to compare the row-type expression case-insensitively:
+`position(lower('public.student_class_placements%ROWTYPE') IN lower(v_def))`.
+
+Re-download the corrected 015 script from the branch before retrying. No database changes were retained by the failed attempt. The 016 regression script did not make any changes because its preflight stopped before creating the test temporary table.

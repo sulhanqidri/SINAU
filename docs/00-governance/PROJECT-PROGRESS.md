@@ -1245,3 +1245,13 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Both scripts hard-stop unless current_database() = sinau_design_poc and current_user = postgres.
 - No changes were made to sinau, sinau_app, production services, SQLRadius, or MikroTik.
 - ADR-007 remains Proposed. This finding and remediation do not approve production RLS, application integration, or production migrations.
+
+
+### First trigger-hardening script run — postflight assertion corrected — 2026-11-26
+
+- User downloaded the committed 015/016 scripts from the SINAU documentation branch. Script 015 passed all preflight checks and reached both `CREATE OR REPLACE FUNCTION` statements, but then stopped at postflight because it searched a lowercase `pg_get_functiondef()` output using an uppercase `%ROWTYPE` literal.
+- The patch script runs within a transaction. The psql command used `ON_ERROR_STOP=1` and exited on the postflight error, so the uncommitted function replacements were rolled back. This is corroborated by script 016 reporting 0 of 2 functions hardened.
+- Script 016 stopped at its preflight before creating the temporary relation or running participant UPDATEs; no regression DML was performed.
+- Corrected script 015 to compare `lower('public.student_class_placements%ROWTYPE')` against `lower(v_def)`. Re-download the corrected version before retrying.
+- No retained database changes from this attempt; no production database/role/service, SQLRadius, or MikroTik changes.
+- Status remains pending: rerun corrected 015, then 016. Require PASS for both assessment and attendance triggers; SKIP is not a full pass.

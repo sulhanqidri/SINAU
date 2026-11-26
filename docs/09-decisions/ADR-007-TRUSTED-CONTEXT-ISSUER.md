@@ -283,3 +283,8 @@ The PoC patch replaces only the two audited trigger-function bodies and:
 The regression script creates an empty temporary shadow table and attempts a no-op UPDATE against one existing row in each participant table, causing the attached BEFORE trigger to execute. The test transaction rolls back. A missing fixture row is reported as SKIP, not PASS.
 
 **Execution status at this revision:** remediation and regression SQL scripts are committed as PoC artifacts but have not been run on the PostgreSQL host. Do not mark this gate passed until both trigger tests report PASS after the patch. ADR-007 remains Proposed; this work does not approve production deployment.
+
+
+### Patch execution correction — 2026-11-26
+
+The first execution of PoC script 015 passed its database/function/trigger preflight and reached both function replacements, but its postflight text assertion failed because it searched a lowercase `pg_get_functiondef()` output using an uppercase `%ROWTYPE` literal. The script's transaction was not committed; after the psql process exited with `ON_ERROR_STOP`, PostgreSQL rolled the transaction back. Script 016 then correctly found that neither function retained the hardened configuration. The postflight comparison was corrected to be case-insensitive. No PoC changes should be considered applied until corrected script 015 completes with COMMIT and script 016 passes both trigger invocations.

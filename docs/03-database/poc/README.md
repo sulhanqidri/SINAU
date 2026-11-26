@@ -480,3 +480,33 @@ Expected result: PASS for existing parent fixture validation, collision checks, 
 - Final assertions passed: exactly one valid synthetic row in each participant table and no invalid fixture IDs remained.
 - The script completed \`ROLLBACK\` and printed \`ALL PARTICIPANT TRIGGER REGRESSION TESTS PASSED — TRANSACTION ROLLED BACK\`. No synthetic academic rows, locks, or temporary objects were retained.
 - This closes the PoC regression gate for the temporary-table shadowing issue. It does not constitute production security acceptance or approval of production migrations. No production database, role, service, SQLRadius, or MikroTik changes were made. ADR-007 remains Proposed.
+
+
+## 16. Read-only audit — account/session/membership authorization freshness
+
+The next open ADR-007 security gate is whether a signed context is rechecked against authoritative account, authentication-session, tenant-membership, and unit-membership state for **each protected SQL statement**.
+
+The current source-level contract distinguishes two operations:
+- \`sinau_issuer_poc.validate_context_request(...)\` validates identity, session, and membership when a context is requested.
+- \`sinau_private.verify_context_token(...)\`, called by \`sinau_private.current_verified_context()\` and the public RLS policies, verifies the signed token, audience, time window, transaction XID, and signing-key state.
+
+The existing issuer test ISS-01—ISS-14 proves that invalid account/session/membership state is rejected when requesting a new context. It does not prove that a token already issued is rejected by a **later protected statement** after those source records are revoked.
+
+Script \`018-audit-authorization-freshness.sql\` is the next read-only inspection. It checks the installed PostgreSQL function definitions and metadata, verifies the RLS accessor calls the verifier, compares the verifier's references with the four synthetic authorization-state tables, confirms the issuer validator references those source tables, and lists public RLS policies that use the verified-context accessor. It performs no DML or DDL and ends with ROLLBACK.
+
+Run only against \`sinau_design_poc\` as PostgreSQL administrator:
+
+\`\`\`bash
+# Replace VERIFIED_COMMIT_SHA with the commit SHA containing script 018.
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/VERIFIED_COMMIT_SHA/docs/03-database/poc/018-audit-authorization-freshness.sql' \
+  -o /run/018-audit-authorization-freshness.sql
+
+sudo chown postgres:postgres /run/018-audit-authorization-freshness.sql
+sudo chmod 600 /run/018-audit-authorization-freshness.sql
+
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/018-audit-authorization-freshness.sql
+\`\`\`
+
+Expected diagnostic: the verifier function's installed body does not reference one or more live authorization-state tables, while the issuer validator does. This is reported as a **confirmed gap**, not as a passing authorization-revocation test. The follow-up is a separate rollback-only, two-connection test of account disable, session revoke, tenant-membership revoke, and unit-membership revoke under the approved \`READ COMMITTED\` semantics. No verifier implementation change is included in this audit script. ADR-007 remains Proposed.

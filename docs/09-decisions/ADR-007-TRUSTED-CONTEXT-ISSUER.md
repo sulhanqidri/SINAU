@@ -250,7 +250,7 @@ Tidak ada signer produksi atau migration aplikasi sebelum semua hal berikut memi
 1. Selesaikan keputusan API/client authentication, assurance/MFA, dan lifecycle session yang belum ditetapkan oleh ADR-008.
 2. Evaluasi HMAC versus asymmetric signing/KMS, custody, rotasi, dual control, backup, dan prosedur key recovery. HMAC tetap hanya baseline PoC sampai pilihan produksi disetujui.
 3. Selesaikan audit read-only ownership, schema/table privileges, sequence, function, RLS policy, role membership, dan default privileges. Jangan mengubah ownership atau privilege sebelum inventaris serta rencana migrasi disetujui.
-4. Rancang serta uji authorization version/epoch atau mekanisme ekuivalen untuk memastikan revocation account/session/membership terlihat pada protected statement baru setelah commit.
+4. Jalankan audit read-only PoC 018 untuk mencocokkan definisi verifier/accessor/issuer yang terpasang. Setelah hasilnya terverifikasi, rancang serta uji authorization version/epoch atau mekanisme ekuivalen agar revocation account/session/membership terlihat pada protected statement baru setelah commit.
 5. Implementasikan adapter trusted context Laravel hanya setelah role matrix, session contract, key custody, isolation enforcement, dan revocation implementation disetujui.
 6. Uji Laravel/Fortify melalui HTTP/API, termasuk logout, expiry, account disable, session revoke, membership revoke, tenant/unit isolation, IDOR, raw SQL, export, file, queue, dan scheduler.
 7. Connection pooling tetap ditunda. Evaluasi hanya apabila pengukuran beban/kapasitas dan persetujuan pemilik menunjukkan kebutuhan.

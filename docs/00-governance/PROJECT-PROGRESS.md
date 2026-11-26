@@ -1312,3 +1312,14 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Script completed \`ROLLBACK\` and printed \`ALL PARTICIPANT TRIGGER REGRESSION TESTS PASSED — TRANSACTION ROLLED BACK\`. No synthetic academic rows, locks, or temporary objects were retained.
 - **Result:** the PoC regression gate for participant trigger temporary-table shadowing is closed as PASS. The two functions remain hardened in \`sinau_design_poc\`.
 - **Boundary:** this is a successful PoC regression, not production security acceptance, trusted-context/application integration approval, or production migration approval. ADR-007 remains Proposed. No \`sinau\` / \`sinau_app\`, SQLRadius, MikroTik, or production services were changed.
+
+
+### Next security gate prepared — per-statement account/session/membership freshness — 2026-11-26
+
+- Source review of \`005-verify-context-token.sql\` confirms the verifier checks token syntax, MAC, audience/database, issue/expiry window, top-level XID, and signing-key status. Its documented contract explicitly says it does not establish actor membership.
+- Source review of \`007-rls-signed-context.sql\` confirms \`current_verified_context()\` delegates to \`verify_context_token()\`, and the public RLS policies use that accessor.
+- Source review of \`010-context-issuer-fixtures.sql\` and \`011-context-issuer-validation-tests.sql\` confirms the separate issuer validator checks synthetic identity, authentication-session, tenant-membership, and unit-membership state at context request time. ISS-01—ISS-14 therefore covers issuance-time validation, not state changes after a token is issued.
+- ADR-007 explicitly requires fresh authoritative account/session/membership state for each protected statement, without caching authorization state across statements. This is still an open security gate.
+- Added \`018-audit-authorization-freshness.sql\`, a read-only catalog audit that checks installed verifier/accessor/issuer function metadata and definitions, lists RLS policies using the accessor, and compares verifier dependencies to the four synthetic authorization-state tables. It is designed for \`sinau_design_poc\` only, uses \`BEGIN READ ONLY\`, performs no DDL/DML, and ends with ROLLBACK.
+- Server execution of script 018 is pending. A subsequent two-connection, rollback-only revocation test is not yet prepared; it must be designed after the installed-function audit confirms the exact server state and test fixture/token contract.
+- No production database, role, service, SQLRadius, or MikroTik changes. ADR-007 remains Proposed.

@@ -1170,7 +1170,7 @@ That behavior means a verifier that performs multiple independent SPI SELECTs fo
 
 ### Run the VOLATILE SPI snapshot probe
 
-Script `025-test-volatile-snapshot-freshness.sql` is a two-connection experiment. Connection A creates a temporary `SECURITY DEFINER VOLATILE` probe function inside its own transaction. The function:
+Script `025-test-volatile-snapshot-freshness.sql` is a two-connection experiment. **Execution result — PASS:** Connection A reported `VOLATILE SPI status sequence: active|disabled`; Connection B committed the synthetic account disable between the two internal reads; then Connection A rolled back and removed the temporary `SECURITY DEFINER VOLATILE` probe function. The function:
 1. reads the synthetic identity status (`active`);
 2. acquires a transaction-level advisory lock with key `(42424, 52525)` to signal Connection B;
 3. sleeps for 60 seconds;
@@ -1315,10 +1315,93 @@ ROLLBACK;
 SQL
 ```
 
-Expected final audit: `matching_rows=1`, `active_rows=1`, `disabled_rows=0`.
+**User execution result — PASS:** the restoration block updated exactly one row and the final read-only audit returned `matching_rows=1`, `active_rows=1`, `disabled_rows=0`. The synthetic account fixture is restored. No cleanup update is outstanding.
 
 If Connection B times out before the update, it rolls back without changing the row. Connection A will not report the expected sequence; stop and inspect, but do not run a blind restore. If Connection A fails after Connection B commits the revocation, restore the exact row before doing any other test.
 
 **Interpretation:** `active|disabled` proves the second internal SQL query of a VOLATILE function saw a commit made after the first internal query in the same top-level statement. It does not prove that RLS currently rechecks membership; the installed verifier v1 still does not consult these state tables. It also does not guarantee that a statement is forcibly cancelled by a revocation occurring after its authorization check.
 
 **Next design consequence:** implement v2 authoritative state retrieval in one joined SPI SELECT so account, exact session, tenant membership, unit membership/unit state, and signing-key status are evaluated from one coherent snapshot. Then test revoke-before-statement, revoke-during-check, and revoke-after-check boundaries through actual RLS policies. Do not add epochs or change verifier code until the probe result is recorded and the complete v2 token/epoch contract has been reviewed.
+
+
+## 29. Audit actual RLS verifier invocation count — 2026-11-27
+
+### Why this diagnostic is the next gate
+
+The source of script 007 generates a predicate for academic_years with two scalar subqueries: one reads tenant_id from sinau_private.current_verified_context(), and another independently reads unit_id from the same accessor. Since the accessor and verifier are VOLATILE, this source shape raises a question about repeated calls and potentially different internal SPI snapshots.
+
+PostgreSQL 18 provides two relevant diagnostic tools:
+- EXPLAIN (VERBOSE) displays the subplans generated for the policy; plain EXPLAIN plans the statement but does not execute it. See https://www.postgresql.org/docs/18/sql-explain.html and https://www.postgresql.org/docs/18/using-explain.html.
+- track_functions='pl' plus pg_stat_xact_user_functions records PL/pgSQL function calls made by the current transaction. The transaction-local view updates continuously; no global statistics reset is needed. See https://www.postgresql.org/docs/18/runtime-config-statistics.html and https://www.postgresql.org/docs/18/monitoring-stats.html.
+
+Script 026-audit-rls-verifier-call-count.sql performs one protected SELECT against public.academic_years, then reports the actual number of calls to sinau_private.verify_context_token(text) for that transaction. It also prints the installed policy expression and the non-executing EXPLAIN plan. The setting track_functions='pl' is LOCAL to the transaction, and the script ends in ROLLBACK. It does not change database objects, role grants, policies, persistent configuration, or fixture rows.
+
+### Prepare the script and existing synthetic signer
+
+~~~bash
+set -e
+
+SIGNER_COMMIT='70b2f3ccdadf14f306ca77104b6a5b4fb35328b0'
+AUDIT_COMMIT='cf6862bd82b938ded662eff97352b2227a80720e'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$SIGNER_COMMIT/docs/03-database/poc/019-sign-authorization-freshness-token.py" \
+  -o "$HOME/019-sign-authorization-freshness-token.py"
+chmod 700 "$HOME/019-sign-authorization-freshness-token.py"
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$AUDIT_COMMIT/docs/03-database/poc/026-audit-rls-verifier-call-count.sql" \
+  -o "$HOME/026-audit-rls-verifier-call-count.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/026-audit-rls-verifier-call-count.sql" \
+  /run/026-audit-rls-verifier-call-count.sql
+
+install -d -m 700 /run/sinau-poc-token-signer
+rm -f /run/authfreshness-context.token \
+  /run/sinau-poc-token-signer/authfreshness-context.token
+~~~
+
+The signer is the already-reviewed synthetic v1 signer; it reads the existing 0600 PoC HMAC key from the current OS user's home. It is not a real application issuer. Its token must be signed for the exact XID that Session A prints.
+
+### Terminal A — start the diagnostic
+
+~~~bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/026-audit-rls-verifier-call-count.sql
+~~~
+
+The script starts a READ COMMITTED transaction, enables PL/pgSQL function tracking only for that transaction, prints the XID, and waits for the token. Leave it running.
+
+### Terminal B — sign the exact XID and stage the token
+
+Replace XID_FROM_SESSION_A with the decimal XID printed in Terminal A:
+
+~~~bash
+python3 "$HOME/019-sign-authorization-freshness-token.py" XID_FROM_SESSION_A
+
+sudo install -o postgres -g postgres -m 600 \
+  /run/sinau-poc-token-signer/authfreshness-context.token \
+  /run/authfreshness-context.token
+~~~
+
+Press Enter in Terminal A. The script imports the token without displaying it, prints the installed policy expression and EXPLAIN plan, executes exactly one protected SELECT, reads the current transaction's verifier-call counter, and rolls back.
+
+### What to record
+
+- Visible row count should be 1 for the tenant-A/unit-A1 fixture.
+- Record the actual calls count for sinau_private.verify_context_token(text).
+- Examine the EXPLAIN output for independent InitPlan/SubPlan nodes corresponding to tenant and unit extraction.
+- A call count of 2 would confirm two verifier invocations for this single SELECT. A count of 1 would mean this run did not perform two separate executions despite the policy's two references; record the plan alongside the counter. Any other positive count must be explained from the plan and actual policy expression rather than assumed.
+- A count of 0 is a failed diagnostic (tracking disabled, policy not exercised, or function not tracked); do not interpret it as proof of one invocation.
+
+After script 026 reports ROLLBACK, remove both token copies:
+
+~~~bash
+rm -f /run/authfreshness-context.token \
+  /run/sinau-poc-token-signer/authfreshness-context.token
+~~~
+
+**Scope:** this measures the verifier invocation count for one SELECT on academic_years only. It does not establish counts for every table/policy or production query plan. No DDL or RLS policy modification is part of this gate.
+
+**Next design consequence:** if two or more verifier calls are confirmed, the v2 policy should evaluate one verified context row and compare both tenant and unit from that single row, not use separate scalar subqueries. The precise safe policy form must be validated against all table classes, especially tenant-only tables and audit_events with nullable unit_id. Do not change script 007 or the installed policy until the diagnostic output and a complete policy redesign are reviewed.
+

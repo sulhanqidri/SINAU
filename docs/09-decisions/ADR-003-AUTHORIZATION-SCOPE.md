@@ -71,6 +71,12 @@ This is a proposed policy baseline, not an accepted physical schema or deployed 
 The rollback-only issuer-side PoC (script 034) passed EU-01—EU-08. It confirmed the explicit `education_units.list_all` tenant permission is independent from `education_units.manage`, ordinary unit/tenant membership does not grant tenant-wide enumeration, suspended membership and cross-tenant requests deny, and unknown credentials/permission codes fail closed. All temporary fixtures were removed by ROLLBACK. Query-side RLS enforcement remains untested; this is evidence for the permission rule only, not approval of the physical schema or policy.
 
 
+
+### Query-side RLS test prepared for education-unit enumeration
+
+Script 035 is prepared to test a SELECT-only RLS policy candidate that grants a unit member only the exact active unit, and grants tenant-wide listing only when a verified tenant-only context has the explicit `education_units.list_all` permission. It includes tenant-B isolation, malformed-token denial, and separate INSERT/UPDATE/DELETE denial checks, with exact policy restoration after ROLLBACK. Server execution is pending. This is not yet an accepted or deployed policy.
+
+
 ### Platform support dan impersonation
 Akses operator platform ke data pelanggan bersifat istimewa, terbatas waktu, berdasarkan alasan/tiket, disetujui sesuai kebijakan, diberi indikator UI, dan seluruh tindakan diaudit. Impersonation tidak boleh menjadi jalan pintas untuk melewati audit.
 

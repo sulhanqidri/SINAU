@@ -1775,3 +1775,23 @@ sudo install -o postgres -g postgres -m 600 \
 Return to Terminal A and press Enter only after the install command succeeds. A complete pass must show one visible row for every table, exactly twelve verifier calls for the twelve protected SELECTs, cross-unit INSERT/UPDATE rejection, ROLLBACK, and confirmation that all twelve original two-subquery policies were restored. Then remove both token files with `sudo rm -f --`.
 
 Never run script 007 or make a persistent policy change based only on this probe.
+
+## 37. Script 033 execution result — 2026-11-27
+
+**Execution result: PASS on transaction XID 970** against the disposable database `sinau_design_poc`.
+
+- Preflight passed and the row-valued candidate policy was installed transaction-locally on all twelve ordinary tenant+unit tables.
+- Same-scope INSERTs for the synthetic A1 dependency chain were accepted across the eleven domain tables.
+- One protected SELECT per table returned its own fixture row; the transaction-local verifier counter increased by exactly twelve calls for twelve SELECTs (one verifier call per SELECT).
+- The candidate rejected both representative cross-unit INSERT and cross-unit UPDATE operations through WITH CHECK.
+- The transaction reached ROLLBACK. Postflight confirmed all twelve original two-subquery policy definitions were restored. The script reported that no persistent policy, DDL, role, grant, setting, or synthetic-row changes were retained.
+
+This validates the row-valued single-subquery candidate for the twelve ordinary NOT-NULL tenant+unit tables in this PoC. It does **not** approve a persistent change to script 007, production DDL, or application authorization. Tenant-only `education_units` and nullable-scope `audit_events` remain excluded and require their own authorization semantics.
+
+After the run, remove both transaction token copies:
+
+~~~bash
+sudo rm -f -- \
+  /run/authfreshness-context.token \
+  /run/sinau-poc-token-signer/authfreshness-context.token
+~~~

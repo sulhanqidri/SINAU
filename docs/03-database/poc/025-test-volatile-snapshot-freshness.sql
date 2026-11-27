@@ -113,7 +113,7 @@ BEGIN
 
     -- Connection B must observe this lock, update the one synthetic identity,
     -- and COMMIT while this function is sleeping.
-    PERFORM pg_catalog.pg_sleep(60);
+    PERFORM pg_catalog.pg_sleep(60::pg_catalog.float8);
 
     -- This is a second internal SPI SELECT in the same top-level SELECT call.
     -- VOLATILE PL/pgSQL should obtain a fresh READ COMMITTED snapshot here.

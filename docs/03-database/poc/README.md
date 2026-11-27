@@ -1960,3 +1960,48 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \
 ~~~
 
 Require EU-RLS-01—EU-RLS-11, the eight-call verifier assertion, all three write denials, `ROLLBACK`, exact original-policy restoration, temporary schema/function removal, absence of both synthetic session hashes, and the final freshness-probe completion marker. If any assertion fails, retain the first error and do not alter the installed policy. Do not run against `sinau`, use `sinau_app`, or modify SQLRadius/MikroTik.
+
+
+## 43. Script 036 execution and refreshed read-only inventory — 2026-11-27
+
+### Script 036 execution result — PASS
+
+The user executed the pinned `036-test-education-units-permission-freshness.sql` against `sinau_design_poc` as PostgreSQL administrator with `ON_ERROR_STOP=1`. The first run stopped at a malformed psql meta-command in the script copy (`\\echo` before section 5). The user's local copy was corrected to one leading backslash and the complete script was rerun.
+
+Observed on the complete rerun:
+- Preflight passed.
+- EU-RLS-01—EU-RLS-03 passed for unit member, ordinary tenant-only member, and tenant administrator visibility.
+- EU-RLS-08—EU-RLS-11 passed for tenant-role and `education_units.list_all` revoke/restore between protected SELECT statements.
+- EU-RLS-04 passed for malformed context.
+- Exactly eight protected SELECTs caused exactly eight verifier calls.
+- EU-RLS-05, EU-RLS-06, and EU-RLS-07 passed for INSERT, UPDATE, and DELETE denial.
+- ROLLBACK restored the exact original `education_units` policy, and postflight confirmed removal of the temporary schema, function, fixtures, and tokens.
+- The final marker printed: `EDUCATION-UNIT PERMISSION FRESHNESS PROBE COMPLETE — ALL CHANGES ROLLED BACK`.
+
+The first failed attempt was rolled back; the user's explicit postflight confirmed that the temporary schema/function were absent, the original single `sinau_rls_isolation` ALL policy was intact, and the original synthetic administrator identity was absent.
+
+**Scope limit:** script 036 changes synthetic role/permission state inside one READ COMMITTED transaction. It does not prove cross-connection freshness for account, session, or membership. It also does not bind the v1 token to one exact authentication session. No production RLS or role change is authorized.
+
+### Refreshed script 022 read-only inventory — PASS
+
+The user reran pinned script `022-audit-context-state-inventory.sql` from commit `702a7340ac8e0556871b92aa065922b6612c81c8`. The downloaded file SHA-256 was `13e539fb61fe040b5cad481490047e64f22701c7dc2236f150ed5f5feeb2d55e`.
+
+Observed:
+- PostgreSQL 18.7; database `sinau_design_poc`; audit role `postgres`; transaction isolation READ COMMITTED; `transaction_read_only=on`.
+- All eight expected relations were present: `public.tenants`, six `sinau_issuer_poc` relations, and `sinau_private.context_keys`.
+- The four authorization source tables still have no epoch/generation columns.
+- `poc_auth_sessions.session_hash` is a 32-byte `bytea` primary key and each session row is linked to its actor.
+- Seven primary-key indexes were reported valid, ready, and live; no secondary indexes were reported for these relations.
+- All four context functions were present, owned by `sinau_context_owner`, and had `search_path=pg_catalog, pg_temp`. The verifier and issuer functions are SECURITY DEFINER/VOLATILE; `current_verified_context()` is SECURITY INVOKER/VOLATILE.
+- The runtime role has no direct table or function privileges in the checked lists, but has SET membership in both `sinau_context_issuer_poc` and `sinau_rls_test`. Treat the runtime as a trusted backend executor; this role split does not defend against arbitrary SQL execution under the runtime connection.
+- Fourteen public RLS policy rows remain present, including separate tenant-only `education_units`, tenant+unit policies, and nullable-scope `audit_events`.
+- The catalog dependency query returned zero rows. This is not evidence of missing function references: PL/pgSQL body references may not appear in `pg_depend`; the function definitions were separately displayed and inspected.
+- The script ended with ROLLBACK and the read-only inventory completion marker.
+
+No data, schema, role, membership, privilege, function, RLS policy, or application row was modified by script 022.
+
+### Next design gate: session-bound token v2
+
+A proposal has been added at [037-session-bound-token-v2-design.md](037-session-bound-token-v2-design.md). It refines design 021 with an explicit session reference, account/tenant-membership/unit-membership generations, and a proposed unit lifecycle generation. The additional unit generation addresses the active → inactive/closed → active cycle, which could otherwise make an old unit-scoped token eligible again if only live status and membership generation were checked.
+
+The document is design-only; it adds no executable SQL and authorizes no DDL. Review the canonical token contract, session non-reuse/tombstone invariant, database-enforced epoch increments, and unit lifecycle generation before preparing the disposable-only schema prototype and script 037 behavior test. ADR-003, ADR-007, and ADR-008 remain subject to separate review. Do not change script 007, production schemas, roles, policies, application code, SQLRadius, or MikroTik.

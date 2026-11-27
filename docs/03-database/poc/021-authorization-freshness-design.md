@@ -472,3 +472,21 @@ Script `025-test-volatile-snapshot-freshness.sql` executed successfully. It crea
 **Boundary:** this probe tests PostgreSQL VOLATILE/SPI snapshot behavior, not the existing RLS verifier's membership freshness. The current v1 verifier still has no live authorization-state checks. After this probe, inspect whether the current RLS policy calls `current_verified_context()` once or multiple times per protected statement (the present policy contains separate scalar subqueries for tenant and unit). Do not assume the number of calls without plan/runtime evidence. Before implementation, define one coherent context evaluation per protected statement or prove that repeated calls cannot create mixed scope.
 
 No verifier v2 DDL is authorized yet. The script 025 gate is PASS, including fixture restoration. The next gate is script 026: inspect the installed academic_years policy plan and measure the actual verifier call count for one protected SELECT. Then complete the v2 claim/epoch contract before any separately reviewed disposable-only DDL prototype. ADR-007 remains Proposed.
+
+
+## 19. Confirmed repeated verifier execution; candidate row policy probe — 2026-11-27
+
+The user executed script 026 in `sinau_design_poc` with one transaction-bound synthetic token for XID 957.
+
+Observed:
+- The installed `academic_years` policy expression has two separate scalar subqueries to `current_verified_context()`: one for `tenant_id` and one for `unit_id`.
+- EXPLAIN showed `InitPlan 1` and `InitPlan 2`, each with its own Function Scan on `current_verified_context()`.
+- The one protected SELECT returned exactly one row.
+- `pg_stat_xact_user_functions` recorded `verify_context_token(text) calls=2`, `total_time_ms=2.790`, `self_time_ms=2.790`.
+- The script ended with ROLLBACK and cleared transaction-local context.
+
+**Finding:** two verifier executions for one protected SELECT are confirmed, not merely inferred from policy source. If v2 performs live authorization lookups from each call, the two executions could observe different internal SPI snapshots within the same outer query. The v2 policy contract must make the verified context available as one coherent row for all needed scope comparisons.
+
+Script `027-test-single-row-context-policy.sql` has been added as a rollback-only candidate test for `academic_years`. It temporarily replaces the original policy in an open transaction with `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`, executes one protected SELECT, counts verifier calls, and rolls back to restore the original policy. It has not yet been executed.
+
+**Important limitation:** this candidate handles the ordinary tenant+unit-scoped shape only. It is not yet approved for tenant-only tables or `audit_events`, whose nullable `unit_id` means tenant-level audit rows are intentionally allowed. All write checks, malformed-token paths, and cross-tenant/unit cases must also be revalidated before changing persistent script 007.

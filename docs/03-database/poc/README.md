@@ -1795,3 +1795,43 @@ sudo rm -f -- \
   /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ~~~
+  
+## 38. Explicit tenant permission for education-unit enumeration — script 034
+
+Script `034-test-education-units-tenant-permission.sql` prepares a rollback-only test for explicit tenant-scoped permission to enumerate all education units. It introduces a synthetic tenant-role/permission mapping and a narrow issuer-side helper in a temporary schema. The fixtures distinguish an active foundation administrator with the explicit `education_units.list_all` grant, an ordinary active unit member without that grant, and a suspended tenant member whose role assignment is otherwise active.
+
+The assertions require:
+- Explicit `education_units.list_all` succeeds for the active tenant administrator, even without a unit membership.
+- `education_units.list_all` does not imply `education_units.manage`.
+- Tenant membership and one unit membership alone do not grant cross-unit enumeration.
+- A suspended tenant membership blocks the role grant.
+- A grant in tenant A does not transfer to tenant B.
+- Unknown session credentials and out-of-contract permission codes fail closed.
+- Neither issuer nor query role can directly read role/permission tables; only the issuer capability can execute the permission helper.
+
+**Important scope boundary:** script 034 tests the issuer-side permission gate only. It does not test `public.education_units` visibility under RLS, modify an RLS policy, extend the v1 token, or prove that a tenant-only context is safe to use for listing all units. A separate query-side RLS test must prove that the verified context can use `education_units.list_all` without allowing an ordinary unit context to enumerate sibling units. The current v1 token contains actor/tenant/unit/XID but no permission claim; the final enforcement mechanism remains open.
+
+Download and stage the pinned script:
+
+~~~bash
+set -e
+
+EDUCATION_UNITS_POC_COMMIT='1dcc494f0b930793858d56549b7450c79e1c129a'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_POC_COMMIT/docs/03-database/poc/034-test-education-units-tenant-permission.sql" \
+  -o "$HOME/034-test-education-units-tenant-permission.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/034-test-education-units-tenant-permission.sql" \
+  /run/034-test-education-units-tenant-permission.sql
+~~~
+
+Run only against `sinau_design_poc` as PostgreSQL administrator:
+
+~~~bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \
+  -d sinau_design_poc \
+  -f /run/034-test-education-units-tenant-permission.sql
+~~~
+
+Require all EU-01 through EU-08 assertions, the privilege-boundary PASS, `ROLLBACK`, the postflight PASS, and the final completion marker. If the script fails, do not retry by changing installed policies or privileges; inspect the first error and preserve the output. No token signer is needed for script 034.

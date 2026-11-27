@@ -571,3 +571,12 @@ Script 028 completed as a read-only catalog inventory. Fourteen public tables ha
 The `audit_events` result requires special care: both `tenant_id` and `unit_id` are nullable. The schema check `CHECK (unit_id IS NULL OR tenant_id IS NOT NULL)` forbids a unit without a tenant but allows both values NULL. The current policy's tenant equality excludes both-NULL rows from normal tenant context. Whether such rows are intended to be globally readable is unresolved; do not widen the policy implicitly.
 
 Script 029 is prepared as a read-only aggregate count of audit-event rows by scope nullability and actor type. It has not yet run. The next gate is to establish whether both-NULL events exist and define the permitted access model, then design/test policy expressions by table class and command. The 027 row-valued candidate remains limited to ordinary tenant+unit `academic_years`.
+
+
+## 28. audit_events empty-data finding and read/write matrix gate — 2026-11-27
+
+Script 029 completed successfully as a read-only audit. `audit_events.tenant_id` and `unit_id` are both nullable; the validated constraint `unit_id IS NULL OR tenant_id IS NOT NULL` allows both-NULL rows, but the table had zero rows across all scope categories and actor types. The current policy continues to require tenant equality, so both-NULL events are not visible through ordinary tenant context. No evidence presently requires a global-audit exception; preserve the conservative policy.
+
+Script 030 has been prepared to test read/write behavior in one rollback-only transaction for representative tenant-only (`education_units`), tenant+unit (`academic_years`), and nullable-scope (`audit_events`) table classes. It tests authorized operations, cross-tenant/unit rejection, tenant-level audit rows, both-NULL audit denial, and malformed/empty-token fail-closed behavior. The script has not yet been executed.
+
+Script 030 passing will not by itself prove all business invariants on the other eleven tenant+unit tables; they have table-specific FKs and triggers. No persistent RLS policy or verifier-v2 implementation is authorized until the representative matrix, domain-level regressions, and final claim/epoch contract are reviewed.

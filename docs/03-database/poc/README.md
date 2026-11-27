@@ -1634,4 +1634,8 @@ sudo rm -f -- /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ~~~
 
-**Gate:** do not make any persistent policy rewrite in script 007 until script 030 passes and the resulting policy matrix is reviewed. Even after it passes, the result is representative-class evidence, not a replacement for domain-level tests of every protected table.
+**Execution result (2026-11-27): PASS.** Script 030 was executed against `sinau_design_poc` with transaction XID `962`. The transaction-bound token was installed successfully; tenant-only `education_units`, tenant+unit `academic_years`, nullable-scope `audit_events`, and empty/malformed-token fail-closed checks all reported PASS. The script reached `ROLLBACK` and printed `RLS POLICY CLASS MATRIX COMPLETE — ALL TEST DML ROLLED BACK`. This confirms the tested representative behaviors only; it did not persist test DML or alter installed policies.
+
+**Observed authorization behavior still requiring a product decision:** a token scoped to unit A1 can enumerate both tenant-A units through the tenant-only `education_units` policy. The test records current behavior; it does not approve that access rule for all unit members.
+
+**Gate:** script 030 has passed, but do not make a persistent policy rewrite in script 007 yet. First resolve the intended `education_units` enumeration permission and complete domain-level regression tests for every protected table. This representative-class result is not a replacement for those tests.

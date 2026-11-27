@@ -265,7 +265,7 @@ The user ran script 026 against the disposable PoC. For one protected `SELECT co
 
 This confirms the current policy evaluates the VOLATILE verified-context accessor twice for one SELECT. In a future verifier that performs live account/session/membership/key-state lookups, separate calls could use different internal snapshots. A policy must therefore expose tenant and unit claims from one coherent context result rather than separate scalar subqueries.
 
-Script 027 is a rollback-only test of a candidate row-valued subquery for `academic_years`: `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`. It has not yet been executed. This candidate does not yet settle tenant-only tables or the `audit_events` nullable-unit exception, nor does it approve a persistent change to script 007.
+Script 027 passed as a rollback-only test of the candidate row-valued subquery for `academic_years`: `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`. It produced one InitPlan and exactly one verifier call; ROLLBACK restored the original policy. This candidate does not yet settle tenant-only tables or the `audit_events` nullable-unit exception, nor does it approve a persistent change to script 007.
 
 
 ## 15. Composite row-context policy probe — PASS for academic_years — 2026-11-27

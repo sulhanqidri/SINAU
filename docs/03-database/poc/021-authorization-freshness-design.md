@@ -450,3 +450,25 @@ Script 023 reported zero explicit default-privilege rows for `sinau_context_owne
 The clean-install sources 005 and 010 were corrected to use a global default revocation for functions created by `sinau_context_owner`. Script 024 was added to apply the one persistent default-ACL change to the already-installed disposable PoC and test a newly created probe function in a transaction that rolls back.
 
 **Status after script 024 — PASS:** runtime role topology is inventoried; the backend-executor threat assumption remains a proposal. The live PoC now has the global context-owner default function ACL, and a transaction-scoped probe confirmed newly created functions exclude PUBLIC while retaining owner EXECUTE. The probe function was rolled back. No production object or role membership was changed. The next gate is the controlled VOLATILE/SPI snapshot test in script 025, followed by a review of one-query authorization-state retrieval and policy invocation count. Do not start verifier v2 DDL until these snapshot semantics and the final token/epoch contract are reviewed. ADR-007 remains Proposed.
+
+
+## 18. Global default function ACL PASS and VOLATILE snapshot gate — 2026-11-27
+
+### Default function ACL correction — verified
+
+The user executed script 024 on `sinau_design_poc`. The global function default ACL for `sinau_context_owner` is now `{sinau_context_owner=X/sinau_context_owner}`, with no PUBLIC EXECUTE. The four existing context functions retained their intended owner/capability grants and all report `public_can_execute=false`. A new SECURITY INVOKER probe created as `sinau_context_owner` inherited owner EXECUTE only; PUBLIC EXECUTE was false. The probe transaction ended with ROLLBACK, and the final persistence check reported that the probe function did not persist while the global default ACL did. This PoC gate is PASS.
+
+### Snapshot semantics to characterize next
+
+PostgreSQL 18 documents that a VOLATILE SQL/PLpgSQL function obtains a fresh snapshot at the start of each SQL query it executes, whereas STABLE/IMMUTABLE functions use the snapshot established for the calling query. READ COMMITTED separately gives each top-level command a new snapshot. References:
+- [Function Volatility Categories](https://www.postgresql.org/docs/18/xfunc-volatility.html)
+- [Visibility of Data Changes (SPI)](https://www.postgresql.org/docs/18/spi-visibility.html)
+- [Transaction Isolation](https://www.postgresql.org/docs/18/transaction-iso.html)
+
+The installed verifier and accessor are VOLATILE. If a v2 verifier performs independent internal SELECTs for account, session, tenant membership, unit membership/unit lifecycle, and signing-key state, each internal SELECT may observe a different committed state during one verifier call. That can produce a mixed authorization decision during a concurrent revoke/regrant. The candidate implementation should instead retrieve all required authoritative rows and the matching key record in one joined SPI SELECT, then validate their statuses, effective dates, actor/scope relationships, epochs, key status, and MAC in the function. A single joined SELECT gives the verifier one coherent statement snapshot for those inputs.
+
+Script `025-test-volatile-snapshot-freshness.sql` is prepared but not yet run. It creates a transaction-scoped VOLATILE SECURITY DEFINER probe that reads the synthetic account status, signals Session B with an advisory transaction lock, waits while B commits an account disable, and performs a second internal SELECT in the same top-level statement. Expected status sequence is `active|disabled`. The function definition and its transaction are rolled back; Session B must restore the one synthetic account row and confirm it is active.
+
+**Boundary:** this probe tests PostgreSQL VOLATILE/SPI snapshot behavior, not the existing RLS verifier's membership freshness. The current v1 verifier still has no live authorization-state checks. After this probe, inspect whether the current RLS policy calls `current_verified_context()` once or multiple times per protected statement (the present policy contains separate scalar subqueries for tenant and unit). Do not assume the number of calls without plan/runtime evidence. Before implementation, define one coherent context evaluation per protected statement or prove that repeated calls cannot create mixed scope.
+
+No verifier v2 DDL is authorized yet. The next gates are the script 025 result, RLS invocation-plan inspection, final v2 claim/epoch contract, and then a separately reviewed disposable-only DDL prototype. ADR-007 remains Proposed.

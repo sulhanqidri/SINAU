@@ -620,3 +620,26 @@ The v1 token does not carry permission or purpose claims. A passing issuer-side 
 Script 034 passed the issuer-side explicit `education_units.list_all` permission test. Script 035 is prepared to test the query-side policy candidate: verified actor/tenant/unit context is combined with current synthetic account, tenant-membership, unit-membership, and explicit tenant-role permission state in a SECURITY DEFINER helper owned by `sinau_context_owner`. The candidate returns only the active unit for unit context, or all active tenant units for a tenant-only context with `education_units.list_all`. A tenant-only context without the grant and a malformed token must return no rows. The policy applies only to SELECT; INSERT/UPDATE/DELETE denial, one verifier call per protected SELECT, and exact ROLLBACK policy restoration are included.
 
 The helper uses a private synthetic unit catalogue to avoid RLS recursion. The token v1 session-identifier limitation remains: the candidate checks for an active session for the actor but cannot bind a token to one particular session. The first Script 035 attempt stopped before its test transaction because the Script 010 synthetic unit-member session had reached its one-day expiry; no persistent state changed. The corrected script creates a fresh session inside the test transaction and checks its removal after ROLLBACK. **The corrected script remains pending execution.** This does not accept a persistent policy rewrite, production role design, or issuer implementation; ADR-007 remains Proposed.
+
+
+## 34. Education-unit query-side RLS permission candidate passed — 2026-11-27
+
+Script 035 completed successfully in `sinau_design_poc`. Its temporary SELECT-only policy candidate combined the verified actor/tenant/unit context with synthetic current account, tenant-membership, unit-membership, and tenant-role permission state through a narrow `SECURITY DEFINER` helper. The observed results were:
+
+- Unit-A1 context returned A1 only; sibling unit A2 and tenant-B unit B1 remained hidden.
+- Tenant-only context without `education_units.list_all` returned zero rows.
+- Tenant-only context with explicit `education_units.list_all` returned A1/A2 and excluded tenant B.
+- Malformed context returned zero rows.
+- Four protected SELECT statements produced exactly four verifier calls.
+- The SELECT-only candidate denied INSERT, UPDATE, and DELETE.
+- ROLLBACK restored the exact original `education_units` policy set and removed the temporary schema, helper, permission fixtures, and fresh session fixture.
+
+This is a successful, bounded query-side PoC for the proposed education-unit listing rule. It does not change the authorization status of ADR-003/ADR-007 and does not authorize persistent RLS, schema, role, or application changes.
+
+The following gaps remain material:
+1. The v1 context token has no authentication-session identifier. The test helper checks that the actor has an active session but cannot prove that the token belongs to one exact session when an actor has multiple sessions.
+2. Script 035 does not test a permission being revoked after token issuance, nor the required cross-connection READ COMMITTED statement-boundary behavior for `education_units.list_all`.
+3. The private synthetic `poc_units` catalogue avoids recursive access to the FORCE-RLS table; a trusted, non-recursive production unit-state source is still required.
+4. The helper is not integrated with Laravel/Fortify, an application connection manager, or real request lifecycle.
+
+The next security gate is to specify exact session binding and per-protected-statement authorization freshness, then test permission revocation at statement boundaries before any production authorization implementation is considered. Existing ADR-007 revocation rules remain in force: protected transactions use READ COMMITTED, subsequent statements must observe committed revocations, and REPEATABLE READ remains prohibited for protected transactions.

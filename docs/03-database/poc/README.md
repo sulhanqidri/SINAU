@@ -814,7 +814,7 @@ Script `022-audit-context-state-inventory.sql` inventories the installed authori
 Run on the SINAU PoC host:
 
 ```bash
-curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/b82a94d7d0bf256aeddfcea75af322d88e4498bb/docs/03-database/poc/022-audit-context-state-inventory.sql' \
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/702a7340ac8e0556871b92aa065922b6612c81c8/docs/03-database/poc/022-audit-context-state-inventory.sql' \
   -o /run/022-audit-context-state-inventory.sql
 
 sudo chown postgres:postgres /run/022-audit-context-state-inventory.sql
@@ -851,3 +851,8 @@ The user executed script 022 on the SINAU host. The output confirms PostgreSQL 1
 - No database/schema/role/privilege/RLS change was made by either audit run. The first run ended with ROLLBACK. Do not proceed to DDL until the corrected audit is reviewed.
 
 The raw first-run output is not treated as a full audit pass because the function metadata section was incomplete. The corrected run is still required.
+
+
+### Follow-up audit correction — runtime role attributes
+
+The second 022 run successfully populated all four function metadata rows and included `sinau_app_runtime_poc` in table/function effective-privilege output and role-membership output. It still omitted that role from section 10's role-attribute SELECT because that one filter list had not been updated. The script is corrected again to include `sinau_app_runtime_poc` in the role-attribute result. Re-run this final pinned revision before concluding whether the runtime role is login-capable or has additional role attributes. The existing membership output proves `SET ROLE` membership to issuer and query roles; it does not prove whether the role is a login itself.

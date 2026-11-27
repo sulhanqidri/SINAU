@@ -519,3 +519,19 @@ ALTER DEFAULT PRIVILEGES
 Script 024 was executed successfully against `sinau_design_poc`. The global function default ACL is now `{sinau_context_owner=X/sinau_context_owner}` and contains no PUBLIC EXECUTE. All four existing context functions retained their explicit owner/capability grants and have `public_can_execute=false`. The temporary probe function was created with owner EXECUTE and no PUBLIC EXECUTE, then removed by ROLLBACK. The final persistence audit confirmed the global default ACL remains and the probe function does not. This closes the default-function-ACL PoC gate; it does not approve production ACLs.
 
 No existing function grants, role memberships, schemas, tables, policies, or production objects are modified by the intended script 024 fix. ADR-007 remains Proposed.
+
+
+## 23. Default ACL verified; snapshot-consistency gate — 2026-11-27
+
+Script 024 completed successfully against `sinau_design_poc`. The global function default ACL for `sinau_context_owner` is `{sinau_context_owner=X/sinau_context_owner}`; PUBLIC EXECUTE is absent. The four existing context functions all retain their exact owner/capability grants and report `public_can_execute=false`. A newly created probe inherited owner EXECUTE only, then was removed by ROLLBACK. The global ACL persisted. The default-function-ACL PoC gate is closed.
+
+The next open gate is snapshot consistency. PostgreSQL 18 documents that VOLATILE functions obtain a fresh snapshot for each internal SQL query, whereas STABLE/IMMUTABLE functions use the calling query's snapshot; READ COMMITTED also gives each top-level statement its own snapshot. See:
+- [PostgreSQL 18 function volatility](https://www.postgresql.org/docs/18/xfunc-volatility.html)
+- [PostgreSQL 18 SPI visibility](https://www.postgresql.org/docs/18/spi-visibility.html)
+- [PostgreSQL 18 transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html)
+
+The installed verifier and accessor are VOLATILE. The candidate verifier v2 should read the signing-key row and the account, exact session, tenant membership, unit membership, and unit lifecycle rows with one joined SELECT, so all authoritative inputs are evaluated under one internal statement snapshot. Separate internal SELECTs could see different commits within one verifier call and produce a mixed authorization decision.
+
+Script 025 is prepared to test this documented SPI behavior with a synthetic account fixture and two connections. It has not yet been executed. Its expected result is `active|disabled`: the first internal SELECT reads before Connection B commits, and the second internal SELECT reads after that commit, while both occur inside one top-level SELECT statement. The probe function is transaction-scoped and rolls back; Connection B must restore the one changed synthetic row.
+
+The present RLS policies also need a plan/runtime inspection: the policy expression currently contains separate scalar subqueries for tenant and unit values, each referencing the VOLATILE verified-context accessor. We must establish whether this results in more than one verifier execution per protected statement and design a single coherent context evaluation path. Do not begin v2 verifier DDL before this behavior and the claim/epoch contract are reviewed. ADR-007 remains Proposed.

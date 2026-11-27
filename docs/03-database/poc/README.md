@@ -782,3 +782,19 @@ An earlier preliminary attempt with mismatched XIDs (Session A XID 934 vs signer
 **Limitations:** the PoC token has no session identifier. The session scenario tests only the single active synthetic session for actor `910...001`; it does not establish per-session revocation semantics for actors with multiple sessions. The experiment requires Session B's revocation commit to become visible, followed by a separately committed fixture restoration; it is not an all-rollback test.
 
 **Next gate:** design the token/session binding and live authorization freshness contract, then implement and retest only within `sinau_design_poc`. Compare per-statement authoritative-state checks with a carefully versioned authorization-epoch approach, including race/snapshot semantics and query cost. Do not modify production schemas, roles, RLS, or Laravel integration until the design and tests are reviewed. ADR-007 remains Proposed.
+
+
+## 19. Authorization freshness and session-bound token design — proposal (2026-11-27)
+
+The two-connection test in section 18 reproduced the same authorization-freshness gap for all four synthetic sources: account, authentication session, tenant membership, and unit membership. The final read-only audit confirmed that all four fixtures were restored and active. This is a `sinau_design_poc` finding only.
+
+The proposed next design is documented in [021-authorization-freshness-design.md](021-authorization-freshness-design.md). Its recommended direction is a hybrid:
+
+- Perform live, authoritative account/session/membership checks for every protected SQL statement. Do not cache authorization state across statements.
+- Bind the signed context to one immutable, server-side session reference. Revoking one session must not revoke another session belonging to the same actor.
+- Include monotonic account, tenant-membership, and unit-membership generations so that an old token cannot become valid again after a disable/revoke followed by reactivation/regrant. Generations supplement live checks; they do not replace them.
+- Preserve the approved `READ COMMITTED` statement-boundary policy. The exact interaction between the current `VOLATILE` verifier's internal SQL reads and statement snapshots still requires a controlled in-flight concurrency test.
+
+The existing primary keys are the starting point for point lookups: actor, session hash, actor/tenant membership, actor/tenant/unit membership, unit ownership, and key ID. Do not add status or epoch indexes speculatively; measure query plans and representative cardinalities first. A session `actor_id` index is only a candidate for bulk logout if the revoke-all query plan justifies it.
+
+**No implementation is included:** no SQL migration or verifier patch has been prepared or executed; no database, role, RLS policy, Laravel integration, production service, SQLRadius, or MikroTik has been changed. The v2 token format and generation columns remain proposals pending review. ADR-007 remains Proposed, and PR #1 must remain Open/Draft/unmerged.

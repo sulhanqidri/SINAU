@@ -856,3 +856,52 @@ The raw first-run output is not treated as a full audit pass because the functio
 ### Follow-up audit correction — runtime role attributes
 
 The second 022 run successfully populated all four function metadata rows and included `sinau_app_runtime_poc` in table/function effective-privilege output and role-membership output. It still omitted that role from section 10's role-attribute SELECT because that one filter list had not been updated. The script is corrected again to include `sinau_app_runtime_poc` in the role-attribute result. Re-run this final pinned revision before concluding whether the runtime role is login-capable or has additional role attributes. The existing membership output proves `SET ROLE` membership to issuer and query roles; it does not prove whether the role is a login itself.
+
+
+## 22. Corrected runtime audit results — function metadata and role grants
+
+The corrected execution of script 022 successfully returned all four function metadata rows. All four functions are `VOLATILE` with `search_path=pg_catalog, pg_temp`:
+
+| Function | Owner | Security mode | Effective EXECUTE grant |
+|---|---|---|---|
+| `sinau_issuer_poc.validate_context_request(text,uuid,uuid)` | `sinau_context_owner` | SECURITY DEFINER | owner, issuer role |
+| `sinau_issuer_poc.has_feature_entitlement(uuid,text)` | `sinau_context_owner` | SECURITY DEFINER | owner, issuer role |
+| `sinau_private.verify_context_token(text)` | `sinau_context_owner` | SECURITY DEFINER | owner, query role |
+| `sinau_private.current_verified_context()` | `sinau_context_owner` | SECURITY INVOKER | owner, query role |
+
+The function definitions in section 7 match those names/signatures. This corrects the metadata lookup gap from the first run.
+
+The direct effective privilege checks showed:
+- `sinau_app_runtime_poc`, `sinau_context_issuer_poc`, `sinau_poc`, and `sinau_rls_test` have no direct SELECT/INSERT/UPDATE/DELETE/TRUNCATE privileges on the authorization source tables or `context_keys`.
+- `sinau_app_runtime_poc` has no direct EXECUTE on the listed context functions.
+- `sinau_context_issuer_poc` can execute the two issuer functions, but has no direct SELECT on their source tables.
+- `sinau_rls_test` can execute the verifier and accessor, but cannot execute issuer functions or read source/key tables directly.
+- `sinau_context_owner` owns the protected fixture/key tables and has full table privileges.
+
+The role-membership output confirms `sinau_app_runtime_poc` has `SET` membership (not inherited membership) in both `sinau_context_issuer_poc` and `sinau_rls_test`. This means the runtime role can deliberately switch into each capability role. This is a trust boundary, not evidence of a direct table grant. The application design must constrain when/how it issues SET ROLE; the model does not protect against arbitrary SQL execution by a compromised runtime connection. Do not remove or change these memberships as part of this audit.
+
+**Residual audit item:** the second run's section 10 role-attribute SELECT omitted `sinau_app_runtime_poc` from its filter. The final script revision now includes it, but that revision has not yet been run. Until the one-row role-attribute query below is returned, do not claim whether `sinau_app_runtime_poc` itself has LOGIN or any elevated role attribute.
+
+Run only this small read-only query to close the residual item:
+
+```bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d sinau_design_poc <<'SQL'
+BEGIN READ ONLY;
+
+SELECT
+    rolname,
+    rolsuper,
+    rolcanlogin,
+    rolinherit,
+    rolcreaterole,
+    rolcreatedb,
+    rolreplication,
+    rolbypassrls
+FROM pg_catalog.pg_roles
+WHERE rolname = 'sinau_app_runtime_poc';
+
+ROLLBACK;
+SQL
+```
+
+The final corrected 022 script is pinned to commit `702a7340ac8e0556871b92aa065922b6612c81c8`. The first and second audit runs were read-only and ended with ROLLBACK. No data, schema, role, privilege, policy, or function was modified. Continue to hold all verifier DDL until the runtime-role attribute result and snapshot/concurrency design are reviewed.

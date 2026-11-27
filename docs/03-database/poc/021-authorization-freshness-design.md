@@ -283,3 +283,18 @@ Script 022 has been corrected to resolve function overloads using `pronargs` and
 ### Follow-up check still required — runtime role attributes
 
 The second audit run confirms `sinau_app_runtime_poc` has SET membership for `sinau_context_issuer_poc` and `sinau_rls_test`, with no inherited privileges through those memberships. The function/table effective privilege rows for the un-switched runtime role are false. However, the role-attribute SELECT in that run omitted `sinau_app_runtime_poc` due to a remaining script filter omission. The audit script has been corrected again; rerun the final pinned copy to establish whether this role can LOGIN and its remaining attributes. Do not infer its login capability from role membership alone.
+
+
+## 13. Corrected audit findings — function grants and runtime role
+
+The corrected runtime audit returned all four function metadata rows. Each function is `VOLATILE` with fixed `search_path=pg_catalog, pg_temp`:
+
+- `validate_context_request(text,uuid,uuid)` and `has_feature_entitlement(uuid,text)`: owned by `sinau_context_owner`, SECURITY DEFINER, EXECUTE granted to `sinau_context_issuer_poc` and owner.
+- `verify_context_token(text)`: owned by `sinau_context_owner`, SECURITY DEFINER, EXECUTE granted to `sinau_rls_test` and owner.
+- `current_verified_context()`: owned by `sinau_context_owner`, SECURITY INVOKER, EXECUTE granted to `sinau_rls_test` and owner.
+
+Direct effective table privileges show no SELECT/DML on authorization source tables or key storage for the app runtime, issuer, or query roles. Issuer can execute only the issuer validator/entitlement functions; query can execute the verifier/accessor but not issuer functions. The owner retains the expected table privileges.
+
+The membership records show `sinau_app_runtime_poc` can SET ROLE to issuer and query roles with `inherit_option=false`. This is a deliberate capability boundary to review: a compromised runtime connection able to issue arbitrary SQL could switch into either granted role. The audit does not modify or revoke those memberships.
+
+The corrected run still omitted `sinau_app_runtime_poc` from section 10's role-attribute filter. A final revision of script 022 includes it, but has not yet been run. The small read-only query is recorded in README section 22; do not infer whether this role has LOGIN or elevated attributes before receiving that result.

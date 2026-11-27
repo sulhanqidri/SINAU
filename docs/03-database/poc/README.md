@@ -970,3 +970,32 @@ The transaction ended with `ROLLBACK`; no catalog object or row was modified.
 **Transitive runtime access:** because the earlier SET ROLE test succeeded, a session with runtime identity can explicitly assume the issuer role and then execute its two functions. Thus, this is role-to-role separation, not protection against arbitrary SQL running through a runtime connection that retains the SET membership.
 
 **Limitations:** this audit checks effective ACL privileges via catalog OIDs; it did not invoke the SECURITY DEFINER functions or test the actual network login path for the runtime credential.
+
+
+## 25. Query capability effective-privilege audit — 2026-11-27
+
+The read-only audit ran after setting the session identity to `sinau_app_runtime_poc` and switching to `sinau_rls_test`. It reported:
+
+- `session_user = sinau_app_runtime_poc`
+- `current_user = sinau_rls_test`
+- schema `sinau_issuer_poc` USAGE: false
+- schema `sinau_private` USAGE: true
+
+OID-based relation privilege checks returned false for SELECT, INSERT, UPDATE, DELETE, and TRUNCATE on all five inspected relations: the four issuer authorization tables (`poc_identities`, `poc_auth_sessions`, `poc_tenant_memberships`, and `poc_unit_memberships`) and `sinau_private.context_keys`.
+
+Function EXECUTE results:
+
+| Function | EXECUTE |
+|---|---:|
+| `sinau_issuer_poc.validate_context_request(text,uuid,uuid)` | false |
+| `sinau_issuer_poc.has_feature_entitlement(uuid,text)` | false |
+| `sinau_private.verify_context_token(text)` | true |
+| `sinau_private.current_verified_context()` | true |
+
+The transaction ended with `ROLLBACK`; no catalog object or row was modified.
+
+**Interpretation:** direct query-role privileges match the intended capability split for the inspected relations/functions. The query role can use the private schema and execute the verifier/accessor, but cannot directly read or write authorization tables/key storage and cannot execute issuer functions.
+
+**Transitive runtime access:** because the earlier SET ROLE test succeeded, a session with runtime identity can explicitly assume the query role and execute the two query functions. Thus, this is issuer/query role-to-role separation, not protection against arbitrary SQL running through a runtime connection that retains the SET membership.
+
+**Limitations:** this audit checks effective ACL privileges via catalog OIDs. It did not invoke the verifier/accessor, exercise all RLS-protected operations, or test the actual network login path for the runtime credential.

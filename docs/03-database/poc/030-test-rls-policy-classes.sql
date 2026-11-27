@@ -448,6 +448,38 @@ BEGIN
             v_count;
     END IF;
 
+    UPDATE public.audit_events
+       SET correlation_id = '50000000-0000-0000-0000-000000000094'
+     WHERE id = '40000000-0000-0000-0000-000000000090';
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION
+            'FAIL audit_events same-scope UPDATE: expected one row, updated %',
+            v_rows;
+    END IF;
+
+    BEGIN
+        INSERT INTO public.audit_events
+            (id, tenant_id, unit_id, actor_type, actor_user_id, actor_service_code, correlation_id)
+        VALUES (
+            '40000000-0000-0000-0000-000000000094',
+            '00000000-0000-0000-0000-000000000002',
+            '20000000-0000-0000-0000-000000000001',
+            'user',
+            '91000000-0000-0000-0000-000000000001',
+            NULL,
+            '50000000-0000-0000-0000-000000000095'
+        );
+
+        RAISE EXCEPTION USING
+            ERRCODE = 'P0001',
+            MESSAGE = 'FAIL audit_events cross-tenant INSERT was accepted';
+    EXCEPTION
+        WHEN insufficient_privilege THEN
+            RAISE NOTICE 'PASS audit_events: cross-tenant INSERT rejected';
+    END;
+
     BEGIN
         INSERT INTO public.audit_events
             (id, tenant_id, unit_id, actor_type, actor_user_id, actor_service_code, correlation_id)

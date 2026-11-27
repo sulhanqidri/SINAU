@@ -257,3 +257,12 @@ The 023 audit also found no stored default-ACL row for `sinau_context_owner`. So
 PostgreSQL 18 documents that VOLATILE functions obtain a fresh snapshot for each internal query, while STABLE/IMMUTABLE functions use the calling query snapshot. The rollback-only two-connection probe in script 025 passed with observed sequence `active|disabled`; the synthetic identity fixture was restored and audited as exactly one active row and zero disabled rows. This confirms the documented VOLATILE/SPI behavior in this PoC. Script 026 is now prepared to print the installed academic_years policy expression/EXPLAIN plan and count verifier calls for one protected SELECT; it has not yet been executed. The proposed verifier-v2 strategy is to retrieve key status and all authoritative authorization-state rows with one joined SELECT so that the verifier evaluates them from one coherent SPI statement snapshot. The live tests must still characterize revoke-before-check, revoke-during-check, and revoke-after-check behavior through actual RLS policies.
 
 This section records PoC evidence and a proposed boundary only. It does not approve production role grants, SQL execution pathways, verifier implementation, or backend integration.
+
+
+## 14. RLS verifier invocation count and candidate policy — 2026-11-27
+
+The user ran script 026 against the disposable PoC. For one protected `SELECT count(*) FROM public.academic_years`, EXPLAIN showed two separate InitPlans, one for `tenant_id` and one for `unit_id`, each running a Function Scan on `current_verified_context()`. The transaction-local function counter recorded two calls to `sinau_private.verify_context_token(text)`; the query returned one visible row and the transaction rolled back.
+
+This confirms the current policy evaluates the VOLATILE verified-context accessor twice for one SELECT. In a future verifier that performs live account/session/membership/key-state lookups, separate calls could use different internal snapshots. A policy must therefore expose tenant and unit claims from one coherent context result rather than separate scalar subqueries.
+
+Script 027 is a rollback-only test of a candidate row-valued subquery for `academic_years`: `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`. It has not yet been executed. This candidate does not yet settle tenant-only tables or the `audit_events` nullable-unit exception, nor does it approve a persistent change to script 007.

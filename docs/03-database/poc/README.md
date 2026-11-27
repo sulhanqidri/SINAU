@@ -1737,7 +1737,7 @@ Within one transaction, it temporarily replaces all twelve original policies wit
 `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`
 for both USING and WITH CHECK. It then inserts a valid synthetic unit-A1 dependency chain as `sinau_rls_test`, measures the verifier-call baseline, runs one protected SELECT per table, and asserts that each test row is visible and the twelve SELECTs cause exactly twelve verifier calls. It also checks representative cross-unit INSERT and UPDATE WITH CHECK denial. The final ROLLBACK restores all twelve original policy definitions and removes test rows/temp objects. The postflight check verifies that the original two-subquery policy form is present again on all twelve relations.
 
-This is a candidate validation only, not approval for persistent policy installation. The policy rewrite is deliberately limited to the twelve ordinary tenant+unit tables; tenant-only authorization and nullable audit-event visibility still require separate designs. Script 033 is authored and statically reviewed but has **not yet been executed**.
+This is a candidate validation only, not approval for persistent policy installation. The policy rewrite is deliberately limited to the twelve ordinary tenant+unit tables; tenant-only authorization and nullable audit-event visibility still require separate designs. At the time this section was first written, Script 033 had not yet been executed. Its subsequent successful execution on XID 970 is recorded in section 37 below.
 
 Download and stage:
 

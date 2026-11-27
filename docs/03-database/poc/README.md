@@ -1744,7 +1744,7 @@ Download and stage:
 ~~~bash
 set -e
 
-POLICY_PROBE_COMMIT='6e4f2203888499566799b9e2e8e9faffc7ded94c'
+POLICY_PROBE_COMMIT='6bef982a91a27aaeb8a16a8acc85a2e0ba5468ff'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$POLICY_PROBE_COMMIT/docs/03-database/poc/033-test-single-row-policy-all-tenant-unit.sql" \
   -o "$HOME/033-test-single-row-policy-all-tenant-unit.sql"

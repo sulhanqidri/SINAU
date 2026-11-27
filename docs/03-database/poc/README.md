@@ -1639,3 +1639,41 @@ sudo rm -f -- /run/authfreshness-context.token \
 **Observed authorization behavior still requiring a product decision:** a token scoped to unit A1 can enumerate both tenant-A units through the tenant-only `education_units` policy. The test records current behavior; it does not approve that access rule for all unit members.
 
 **Gate:** script 030 has passed, but do not make a persistent policy rewrite in script 007 yet. First resolve the intended `education_units` enumeration permission and complete domain-level regression tests for every protected table. This representative-class result is not a replacement for those tests.
+
+## 33. Read-only domain-integrity inventory for remaining tenant+unit tables
+
+Script `031-audit-domain-integrity-matrix.sql` inventories the eleven tenant+unit relations not yet covered by the representative RLS behavior test:
+`assessment_definitions`, `assessment_participants`, `attendance_corrections`, `attendance_record_revisions`, `attendance_records`, `attendance_session_participants`, `attendance_sessions`, `class_groups`, `student_class_placements`, `student_enrollments`, and `student_scores`.
+
+It reads PostgreSQL catalog metadata only: columns and defaults, nullability, primary/unique/foreign-key/check/exclusion constraints, deferrability and validation, non-internal trigger definitions and trigger-function security settings, indexes, and installed RLS policies. It does not read application rows, create temp objects, or alter any database object, role, grant, policy, or setting. The script has a strict database/role guard and runs in a READ ONLY transaction.
+
+Download and execute on the disposable PoC only:
+
+~~~bash
+set -e
+
+DOMAIN_COMMIT='7049b5b3d171ff1f4e7bde7acf50cc14b855f447'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$DOMAIN_COMMIT/docs/03-database/poc/031-audit-domain-integrity-matrix.sql" \
+  -o "$HOME/031-audit-domain-integrity-matrix.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/031-audit-domain-integrity-matrix.sql" \
+  /run/031-audit-domain-integrity-matrix.sql
+
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/031-audit-domain-integrity-matrix.sql
+~~~
+
+Expected final marker: `DOMAIN INTEGRITY INVENTORY COMPLETE — READ ONLY`. Review the output sections for constraints, trigger functions, indexes, and RLS policy coverage. This is an inventory, not yet a domain write regression. Preserve the output for designing the next rollback-only test. Script 017 already passed its dedicated regression for the two assessment/attendance participant triggers; do not duplicate that trigger-shadow test.
+
+## 34. Proposed tenant-wide visibility rule for education_units — NOT ADOPTED
+
+Recommended authorization behavior for the multi-unit foundation and independent-school model:
+
+- A tenant owner or explicitly authorized foundation/tenant administrator may enumerate all active education units within that tenant.
+- A unit-scoped member may enumerate only the unit selected in the verified context, unless a separate tenant-wide capability is active.
+- No role may read units from another tenant. Creating, editing, deactivating, or transferring units should be governed by separate write capabilities rather than inferred from permission to list units.
+
+This is a design recommendation, not an approved policy. The current PoC issuer fixtures store tenant and unit membership status but no role/capability field. The v1 context exposes actor, tenant, and unit identifiers but no tenant-wide permission. Therefore, current context claims cannot safely distinguish a foundation administrator from an ordinary unit member. Before changing the `education_units` RLS predicate, the issuer design must add and validate a tenant-wide capability from authoritative membership/authorization state, and the verified context must expose it coherently. Do not infer this capability from a client-provided setting or from tenant membership alone.

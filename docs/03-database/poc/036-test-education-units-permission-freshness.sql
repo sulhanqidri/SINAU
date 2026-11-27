@@ -1201,7 +1201,7 @@ BEGIN
 END
 $call_count_tests$;
 
-\echo '===== 5. CHECK SELECT-ONLY POLICY AND WRITE DENIAL ====='
+\echo '===== 7. CHECK SELECT-ONLY POLICY AND WRITE DENIAL ====='
 
 DO $load_write_admin_context$
 DECLARE
@@ -1296,7 +1296,7 @@ $write_boundary_tests$;
 
 RESET ROLE;
 
-\echo '===== 7. ROLLBACK AND VERIFY ORIGINAL POLICY RESTORATION ====='
+\echo '===== 8. ROLLBACK AND VERIFY ORIGINAL POLICY RESTORATION ====='
 
 ROLLBACK;
 

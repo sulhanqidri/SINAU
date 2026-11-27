@@ -1866,7 +1866,7 @@ Expected assertions:
 - EU-RLS-03: the tenant administrator with explicit `education_units.list_all` sees A1 and A2, but not B1.
 - EU-RLS-04: a malformed token sees zero units.
 - EU-RLS-05—EU-RLS-07: the SELECT-only policy does not grant INSERT, UPDATE, or DELETE.
-- Four protected SELECT statements cause exactly four calls to `verify_context_token(text)`, one per statement.
+- The verifier call-count assertion runs immediately after the four protected SELECTs and before DML-denial probes; it requires exactly four calls to `verify_context_token(text)`, one per SELECT. This separation avoids counting any SELECT-policy evaluation PostgreSQL may perform while executing UPDATE/DELETE.
 - ROLLBACK restores the exact original `education_units` policy set and removes the temporary schema, helper, rows, role/permission fixtures, signed tokens, and test state.
 
 **Limitations to preserve:** the existing v1 token has no session identifier. The candidate helper can check that the actor currently has an active session, but cannot bind the token to one exact session where an actor has multiple sessions. The private `poc_units` catalog is synthetic metadata used to avoid querying FORCE-RLS `public.education_units` from inside its own policy; production must design a trusted non-recursive unit-state lookup. This script is query-side PoC evidence only, not final authorization architecture, production DDL, or approval to replace the installed policy. ADR-003 and ADR-007 remain Proposed.
@@ -1876,7 +1876,7 @@ Download and stage the pinned script:
 ~~~bash
 set -e
 
-EDUCATION_UNITS_RLS_COMMIT='eec0058e98f6d0cdc55e05c11162c3be09e7581f'
+EDUCATION_UNITS_RLS_COMMIT='9211a42b3925f9f3fccbe96c5b6df63b94473328'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_RLS_COMMIT/docs/03-database/poc/035-test-education-units-rls-permission.sql" \
   -o "$HOME/035-test-education-units-rls-permission.sql"

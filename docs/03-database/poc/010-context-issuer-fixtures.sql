@@ -59,6 +59,13 @@ BEGIN;
 
 SET LOCAL ROLE sinau_context_owner;
 
+-- Prevent future functions created by the context owner from inheriting
+-- PostgreSQL's built-in PUBLIC EXECUTE default. This is global by design:
+-- per-schema REVOKE cannot remove the built-in global PUBLIC privilege.
+ALTER DEFAULT PRIVILEGES
+    FOR ROLE sinau_context_owner
+    REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
 CREATE TABLE IF NOT EXISTS sinau_issuer_poc.poc_identities (
     actor_id pg_catalog.uuid PRIMARY KEY,
     account_status pg_catalog.text NOT NULL

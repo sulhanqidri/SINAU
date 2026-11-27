@@ -825,6 +825,6 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
   -f /run/022-audit-context-state-inventory.sql
 ```
 
-Replace `50b8e6555b5e3c5074c016d796cf4f9176e21da6` with the commit containing this script. Preserve the output for review, but redact hostnames or other environment details if sharing publicly. The output is an inventory, not a pass/fail approval. In particular, catalog-recorded `pg_depend` entries may omit table references inside PL/pgSQL function bodies; review the displayed function definitions as well.
+The download URL is pinned to the commit containing this script; run the command as shown. Preserve the output for review, but redact hostnames or other environment details if sharing publicly. The output is an inventory, not a pass/fail approval. In particular, catalog-recorded `pg_depend` entries may omit table references inside PL/pgSQL function bodies; review the displayed function definitions as well.
 
 The inventory must be checked against the live PoC host before proposing any DDL. Do not assume the repository's original fixture DDL exactly matches the installed database. PR #1 remains Open/Draft/unmerged; no verifier implementation is authorized by this audit.

@@ -377,3 +377,22 @@ Do not change function volatility or snapshot strategy before this evidence and 
 6. Review evidence and explicitly update ADR status before considering any application integration.
 
 **Status boundary:** this section is a design proposal, not an implementation approval. No SQL, table, role, credential, RLS policy, Laravel integration, production database, SQLRadius, or MikroTik change is authorized. ADR-007 remains **Proposed**. PR #1 must remain **Open, Draft, and unmerged**. See [PoC authorization-freshness design](../03-database/poc/021-authorization-freshness-design.md) for the complete proposal.
+
+
+## 16. First read-only runtime inventory — 2026-11-27
+
+The first execution of PoC audit script 022 ran against PostgreSQL 18.7 on `sinau_design_poc` as `postgres` with `transaction_read_only = on`, and reached its final ROLLBACK marker.
+
+The catalog output confirmed:
+- the issuer fixture tables, `sinau_private.context_keys`, and `public.tenants` exist;
+- no account, tenant-membership, or unit-membership generation columns exist in the four authorization source tables;
+- the session table uses a 32-byte `bytea` `session_hash` primary key;
+- seven primary-key indexes across the six issuer fixture tables and key store are valid/ready/live; no secondary index was reported on those tables;
+- the fixture tables and key store are owned by `sinau_context_owner`, while `public.tenants` is owned by `sinau_poc`;
+- 14 public RLS policies use `current_verified_context()`;
+- the query role has no direct access to authorization fixture/key tables and cannot execute the issuer validator, while it can execute the current verifier/accessor chain;
+- `sinau_app_runtime_poc` is granted SET membership to both issuer and query roles with `inherit_option=false`; its full role attributes/effective privileges need the corrected script output.
+
+**Audit limitation:** the first script's section 6 function metadata query did not match verifier/issuer overloads because of an incorrect `pg_get_function_identity_arguments()` predicate. Section 7 displayed their installed definitions, so those blank rows do not mean the functions are absent. Script 022 was corrected to match by argument count and type OIDs and to include the runtime role in role/privilege inventories. Re-run the corrected script before relying on the affected metadata and role sections.
+
+This inventory is read-only evidence, not security acceptance. No schema, data, role, grant, policy, verifier, application, or production object was changed. ADR-007 remains **Proposed**.

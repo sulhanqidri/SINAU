@@ -297,4 +297,16 @@ Direct effective table privileges show no SELECT/DML on authorization source tab
 
 The membership records show `sinau_app_runtime_poc` can SET ROLE to issuer and query roles with `inherit_option=false`. This is a deliberate capability boundary to review: a compromised runtime connection able to issue arbitrary SQL could switch into either granted role. The audit does not modify or revoke those memberships.
 
-The corrected run still omitted `sinau_app_runtime_poc` from section 10's role-attribute filter. A final revision of script 022 includes it, but has not yet been run. The small read-only query is recorded in README section 22; do not infer whether this role has LOGIN or elevated attributes before receiving that result.
+The focused read-only query returned one row for `sinau_app_runtime_poc`: `rolsuper=false`, `rolcanlogin=true`, `rolinherit=false`, `rolcreaterole=false`, `rolcreatedb=false`, `rolreplication=false`, and `rolbypassrls=false`. The role is therefore a login-capable, non-superuser runtime principal without the listed administrative or RLS-bypass attributes.
+
+### Runtime role capability interpretation — 2026-11-27
+
+The result closes the role-attribute omission in the preceding audit run. Combined with the previously recorded memberships (`SET` allowed, `INHERIT` not allowed) to `sinau_context_issuer_poc` and `sinau_rls_test`, the runtime login can deliberately switch into those capability roles. `rolinherit=false` prevents automatic inheritance; it does **not** prevent an explicit `SET ROLE`. The absence of direct EXECUTE/table grants to the unswitched runtime role must therefore not be described as complete isolation from the issuer/query capabilities.
+
+This is a trust-boundary finding, not proof that an external attacker can log in or that a production exploit exists. The runtime role is not superuser and cannot bypass RLS, but arbitrary SQL execution through a compromised runtime connection could exercise privileges available after switching to a granted role. The application threat model must decide whether the runtime is intentionally trusted with both capabilities.
+
+Before any verifier DDL or application integration, explicitly choose and test one of these models:
+- preserve the memberships and document that the runtime credential is trusted to exercise issuer and query capabilities; constrain SQL execution and re-audit the full post-`SET ROLE` privilege surface; or
+- remove/reduce the relevant `SET` memberships in a separately reviewed PoC role-model change and provide the required issuer/query capability through separately controlled database identities or another narrowly scoped mechanism.
+
+No role, membership, grant, schema, or function was changed by the focused query. The corrected full script 022 revision was not rerun as part of this one-row check; this direct query independently establishes the listed role attributes.

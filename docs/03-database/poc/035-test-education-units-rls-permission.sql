@@ -603,7 +603,7 @@ claims(token_name, actor_id, tenant_id, unit_id) AS (
 clock_values AS MATERIALIZED (
     SELECT
         pg_catalog.floor(
-            pg_catalog.extract(epoch FROM pg_catalog.clock_timestamp())
+            EXTRACT(EPOCH FROM pg_catalog.clock_timestamp())
         )::pg_catalog.int8 AS issued_at,
         pg_catalog.pg_current_xact_id()::pg_catalog.text AS xid_text
 ),
@@ -640,22 +640,50 @@ SELECT
 FROM payloads;
 
 DO $token_guard$
+DECLARE
+    v_unit_token pg_catalog.text;
+    v_tenant_token pg_catalog.text;
+    v_admin_token pg_catalog.text;
+    v_count pg_catalog.int8;
 BEGIN
-    IF (
-        SELECT pg_catalog.count(*)
-        FROM pg_temp.poc_education_units_context_tokens
-    ) <> 3 THEN
+    SELECT pg_catalog.count(*) INTO v_count
+    FROM pg_temp.poc_education_units_context_tokens;
+
+    IF v_count <> 3 THEN
         RAISE EXCEPTION
             'Expected three synthetic transaction-bound context tokens';
     END IF;
 
+    SELECT token_value INTO v_unit_token
+    FROM pg_temp.poc_education_units_context_tokens
+    WHERE token_name = 'ordinary-unit-a1';
+
+    SELECT token_value INTO v_tenant_token
+    FROM pg_temp.poc_education_units_context_tokens
+    WHERE token_name = 'ordinary-tenant-only';
+
+    SELECT token_value INTO v_admin_token
+    FROM pg_temp.poc_education_units_context_tokens
+    WHERE token_name = 'foundation-admin-tenant-only';
+
+    IF v_unit_token IS NULL OR v_tenant_token IS NULL OR v_admin_token IS NULL THEN
+        RAISE EXCEPTION 'One or more signed synthetic context tokens are missing';
+    END IF;
+
+    PERFORM pg_catalog.set_config(
+        'poc.education_units.unit_context_token', v_unit_token, true
+    );
+    PERFORM pg_catalog.set_config(
+        'poc.education_units.tenant_context_token', v_tenant_token, true
+    );
+    PERFORM pg_catalog.set_config(
+        'poc.education_units.admin_context_token', v_admin_token, true
+    );
+
     RAISE NOTICE
-        'PASS: three synthetic v1 contexts signed for this exact transaction without printing tokens';
+        'PASS: three signed synthetic contexts staged without printing tokens or granting direct temp-table access';
 END
 $token_guard$;
-
-GRANT SELECT ON TABLE pg_temp.poc_education_units_context_tokens
-    TO sinau_rls_test;
 
 CREATE TEMP TABLE poc_education_units_verifier_baseline (
     calls pg_catalog.int8 NOT NULL
@@ -689,11 +717,7 @@ BEGIN
     -- EU-RLS-01: a unit-A1 member sees A1 only.
     PERFORM pg_catalog.set_config(
         'app.context_token',
-        (
-            SELECT token_value
-            FROM pg_temp.poc_education_units_context_tokens
-            WHERE token_name = 'ordinary-unit-a1'
-        ),
+        pg_catalog.current_setting('poc.education_units.unit_context_token', true),
         true
     );
 
@@ -725,11 +749,7 @@ BEGIN
     -- EU-RLS-02: an ordinary tenant-only context has no list_all permission.
     PERFORM pg_catalog.set_config(
         'app.context_token',
-        (
-            SELECT token_value
-            FROM pg_temp.poc_education_units_context_tokens
-            WHERE token_name = 'ordinary-tenant-only'
-        ),
+        pg_catalog.current_setting('poc.education_units.tenant_context_token', true),
         true
     );
 
@@ -749,11 +769,7 @@ BEGIN
     -- two active unit rows, but never tenant B's unit.
     PERFORM pg_catalog.set_config(
         'app.context_token',
-        (
-            SELECT token_value
-            FROM pg_temp.poc_education_units_context_tokens
-            WHERE token_name = 'foundation-admin-tenant-only'
-        ),
+        pg_catalog.current_setting('poc.education_units.admin_context_token', true),
         true
     );
 
@@ -807,6 +823,8 @@ RESET ROLE;
 
 \echo '===== 5. CHECK SELECT-ONLY POLICY AND WRITE DENIAL ====='
 
+SET LOCAL ROLE sinau_rls_test;
+
 DO $write_boundary_tests$
 DECLARE
     v_rows pg_catalog.int8;
@@ -826,8 +844,6 @@ BEGIN
         RAISE EXCEPTION
             'FAIL: candidate listing policy is not SELECT-only';
     END IF;
-
-    SET LOCAL ROLE sinau_rls_test;
 
     PERFORM pg_catalog.set_config(
         'app.context_token',
@@ -889,10 +905,10 @@ BEGIN
 
     RAISE NOTICE
         'PASS EU-RLS-07: tenant list_all does not grant DELETE';
-
-    RESET ROLE;
 END
 $write_boundary_tests$;
+
+RESET ROLE;
 
 \echo '===== 6. VERIFY ONE VERIFIED-CONTEXT CALL PER PROTECTED SELECT ====='
 

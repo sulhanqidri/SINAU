@@ -1399,3 +1399,17 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 4. Setelah itu lanjutkan desain kebijakan `audit_events` nullable-scope dan matriks RLS per kelas tabel. Jangan mengubah policy permanen atau membuat migration domain produksi sebelum semua gate ditinjau dan disetujui.
 
 PR #1 tetap Draft, Open, dan belum merged. Tidak ada persetujuan untuk merge atau implementasi produksi.
+
+
+### Education-unit permission state re-evaluation probe prepared — 2026-11-27
+
+- Added `docs/03-database/poc/036-test-education-units-permission-freshness.sql` at commit `fe53d75245358ee31dfa11e1d4a8cd52574c4f19`.
+- Script 036 starts from the Script 035 rollback-only query-side scenario and adds four protected SELECTs using the same signed administrator context token and transaction XID.
+- EU-RLS-08/09 revoke and restore the synthetic tenant-role assignment; the next SELECT is expected to deny and the subsequent SELECT is expected to regain only tenant-A listing.
+- EU-RLS-10/11 remove and restore the `education_units.list_all` role-permission mapping; the next SELECT is expected to deny and the subsequent SELECT is expected to regain tenant-A listing.
+- The expected verifier-call count is eight for eight protected SELECT statements. Write denials and exact policy restoration remain part of the script.
+- All role/permission mutations occur inside one transaction and are removed by ROLLBACK. **Server execution is pending; do not mark Script 036 PASS until the complete output and final postflight marker are reviewed.**
+- This probe addresses only statement-to-statement re-evaluation of synthetic role/permission state under READ COMMITTED. It does not test a second connection committing revocation, exact session binding, or the broader account/session/membership freshness gap.
+- No database execution or persistent policy/schema/role change was performed while preparing Script 036.
+
+**Immediate next action:** execute the pinned Script 036 only on `sinau_design_poc`; inspect every assertion and the rollback postflight. If it passes, proceed to the separately designed cross-connection permission-revocation test and exact session-binding contract. PR #1 remains Draft/Open/unmerged.

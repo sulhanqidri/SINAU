@@ -727,15 +727,23 @@ BEGIN
       AND p.cmd = 'ALL'
       AND 'sinau_rls_test' = ANY (p.roles)
       AND p.qual LIKE '%current_verified_context%'
-      AND p.with_check LIKE '%current_verified_context%';
+      AND p.with_check LIKE '%current_verified_context%'
+      AND (
+          pg_catalog.length(p.qual)
+          - pg_catalog.length(pg_catalog.replace(p.qual, 'current_verified_context', ''))
+      ) / pg_catalog.length('current_verified_context') = 2
+      AND (
+          pg_catalog.length(p.with_check)
+          - pg_catalog.length(pg_catalog.replace(p.with_check, 'current_verified_context', ''))
+      ) / pg_catalog.length('current_verified_context') = 2;
 
     IF v_count <> 12 THEN
         RAISE EXCEPTION
-            'FAIL original policy restoration: expected twelve policies, found %',
+            'FAIL original policy restoration: expected twelve original two-subquery policies, found %',
             v_count;
     END IF;
 
-    RAISE NOTICE 'PASS: ROLLBACK restored all twelve original policy definitions';
+    RAISE NOTICE 'PASS: ROLLBACK restored all twelve original two-subquery policy definitions';
 END
 $restore_check$;
 

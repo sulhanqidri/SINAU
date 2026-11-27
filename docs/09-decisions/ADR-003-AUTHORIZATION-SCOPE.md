@@ -54,6 +54,17 @@ Untuk API, tenant/unit selector boleh menjadi petunjuk pemilihan konteks, tetapi
 ### Akses administrator yayasan
 Tidak ada akses seluruh unit secara implisit hanya karena role bernama administrator yayasan. Pilihan akses harus berupa grant eksplisit yang dapat diaudit: unit tertentu atau permission tenant-level yang secara jelas memberi kemampuan mengelola unit. Akses baca/ubah data siswa dan nilai tetap dapat dibatasi terpisah.
 
+### Candidate permission for education-unit enumeration
+
+For the tenant-only `education_units` relation, the recommended authorization baseline is:
+- A unit-scoped context may enumerate only the matching `education_units` row.
+- Tenant-wide enumeration requires an explicit tenant-scope permission, proposed code `education_units.list_all`, assigned to the actor's active tenant membership through an auditable tenant-role/permission mapping.
+- Tenant membership alone, unit membership in one unit, or a role name such as “administrator yayasan” does not grant this capability.
+- `education_units.list_all` is a read/list permission only; it does not imply `education_units.manage`, access to academic data in sibling units, or any other cross-unit permission.
+- Suspended, revoked, expired, or not-yet-valid tenant membership/role assignments fail closed.
+
+This is a proposed policy baseline, not an accepted physical schema or deployed RLS policy. The PoC must validate the issuer-side explicit permission and then separately prove query-side RLS enforcement. The current v1 context token carries actor, tenant, unit, and transaction claims but no permission claim; therefore a generic tenant-level token alone must not be treated as proof of `education_units.list_all`.
+
 ### Platform support dan impersonation
 Akses operator platform ke data pelanggan bersifat istimewa, terbatas waktu, berdasarkan alasan/tiket, disetujui sesuai kebijakan, diberi indikator UI, dan seluruh tindakan diaudit. Impersonation tidak boleh menjadi jalan pintas untuk melewati audit.
 

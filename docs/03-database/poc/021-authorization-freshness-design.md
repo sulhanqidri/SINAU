@@ -516,3 +516,21 @@ Script 027 passed for `public.academic_years` on XID 958. EXPLAIN showed one Ini
 Script 028 has been added as a read-only catalog inventory to classify all public tables with `tenant_id`/`unit_id`, identify nullability, list exact RLS USING/WITH CHECK expressions and ENABLE/FORCE status, and inspect the special `tenants`, `education_units`, and `audit_events` relations. It has not yet been executed.
 
 Next gate: execute and review script 028, then design a per-class SELECT/INSERT/UPDATE/DELETE test matrix. The candidate one-row comparison is validated only for ordinary tenant+unit-scoped `academic_years`; do not update persistent script 007 or begin verifier v2 DDL until tenant-only, nullable-unit, malformed-token, cross-scope, and write checks have been separately reviewed.
+
+
+## 22. RLS table/policy inventory and audit_events nullability — 2026-11-27
+
+Script 028 ran successfully as a read-only audit against `sinau_design_poc`.
+
+Inventory result: 14 public tables have `tenant_id` or `unit_id` scope columns:
+- 1 tenant-only relation: `education_units` (`tenant_id NOT NULL`, no `unit_id`).
+- 12 tenant+unit relations with both columns NOT NULL: `academic_years`, `assessment_definitions`, `assessment_participants`, `attendance_corrections`, `attendance_record_revisions`, `attendance_records`, `attendance_session_participants`, `attendance_sessions`, `class_groups`, `student_class_placements`, `student_enrollments`, and `student_scores`.
+- 1 tenant+unit relation with nullable scope columns: `audit_events` (`tenant_id` nullable and `unit_id` nullable).
+
+All 14 scoped tables have ENABLE RLS and FORCE RLS. The audit found zero scoped tables without both settings and zero RLS-enabled public tables without a policy. Every listed isolation policy is PERMISSIVE, for role `sinau_rls_test`, command `ALL`, with both USING and WITH CHECK. `tenants` has no scope columns and remains outside RLS as the global tenant registry.
+
+**Important schema detail:** `001-schema.sql` defines `audit_events` with nullable `tenant_id` and `unit_id` and the check `CHECK (unit_id IS NULL OR tenant_id IS NOT NULL)`. This prohibits a non-null unit without a tenant but permits both columns to be NULL because a CHECK condition evaluating UNKNOWN does not reject the row. The current RLS predicate requires `tenant_id = verified_context.tenant_id`, so a both-NULL row is not visible to a normal tenant context. Whether both-NULL events are intended as global/system audit records remains an explicit semantic question; keep the current deny-to-tenant behavior unless a separately authorized global-audit path is designed.
+
+Script 029 has been added as a read-only aggregate audit of `audit_events` scope-nullability and actor-type distribution. It reports only counts and catalog metadata, not payloads or actor IDs. It has not yet been executed.
+
+**Next gate:** review script 029 counts, confirm intended both-NULL audit-event semantics, then prepare a table-class policy matrix. The composite row policy tested in 027 remains approved only as a candidate for the ordinary tenant+unit `academic_years` shape. Do not modify script 007 or verifier v2 until tenant-only, nullable-unit, and write-operation behavior are separately tested.

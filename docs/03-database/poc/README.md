@@ -1182,7 +1182,7 @@ The probe function is created after the global default ACL fix; it should not gr
 Download and stage the script:
 
 ```bash
-curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/93a13100f93c2df65ba20479db98716086e3aafe/docs/03-database/poc/025-test-volatile-snapshot-freshness.sql' \
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/70b2f3ccdadf14f306ca77104b6a5b4fb35328b0/docs/03-database/poc/025-test-volatile-snapshot-freshness.sql' \
   -o /run/025-test-volatile-snapshot-freshness.sql
 
 sudo chown postgres:postgres /run/025-test-volatile-snapshot-freshness.sql

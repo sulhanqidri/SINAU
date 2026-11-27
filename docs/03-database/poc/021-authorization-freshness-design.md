@@ -534,3 +534,14 @@ All 14 scoped tables have ENABLE RLS and FORCE RLS. The audit found zero scoped 
 Script 029 has been added as a read-only aggregate audit of `audit_events` scope-nullability and actor-type distribution. It reports only counts and catalog metadata, not payloads or actor IDs. It has not yet been executed.
 
 **Next gate:** review script 029 counts, confirm intended both-NULL audit-event semantics, then prepare a table-class policy matrix. The composite row policy tested in 027 remains approved only as a candidate for the ordinary tenant+unit `academic_years` shape. Do not modify script 007 or verifier v2 until tenant-only, nullable-unit, and write-operation behavior are separately tested.
+
+
+## 23. audit_events data audit and representative policy matrix — 2026-11-27
+
+Script 029 completed successfully in a READ ONLY transaction. Both `audit_events.tenant_id` and `audit_events.unit_id` are nullable. The validated check constraint `unit_id IS NULL OR tenant_id IS NOT NULL` allows both columns to be NULL and prohibits a non-NULL unit with NULL tenant. However, the table was empty at the time of audit: total rows=0, both-NULL=0, tenant-only=0, tenant+unit=0, invalid-by-check=0. The actor-type grouped query returned zero rows.
+
+**Interpretation:** the schema permits both-NULL audit events, but the current PoC data does not demonstrate that such events are stored or required. The current policy requires tenant equality and therefore keeps both-NULL rows hidden from a tenant context. Preserve this conservative behavior until a global/system audit visibility model is explicitly designed; do not infer global access from nullability alone.
+
+Script 030 has been prepared as a rollback-only behavioral matrix for representative policy classes: tenant-only `education_units`, tenant+unit `academic_years`, and nullable-scope `audit_events`. It tests same-scope SELECT/INSERT/UPDATE/DELETE, cross-tenant/unit denial, tenant-level audit rows with `unit_id IS NULL`, denial of both-NULL audit inserts under the current tenant-scoped policy, and empty/malformed token fail-closed behavior. It has not yet been executed. It uses fixed synthetic IDs and rolls back all test DML.
+
+Even if script 030 passes, its result is representative-class evidence only. The remaining eleven tenant+unit tables have business-specific FKs/triggers and still need domain-level regression tests before persistent changes to script 007. Do not change the installed RLS policies or start verifier v2 DDL until script 030 and the complete policy review pass.

@@ -600,3 +600,9 @@ Script 032 passed on XID 963. Same-scope INSERT/SELECT/UPDATE/DELETE succeeded a
 Script 033 is prepared to test the single-row `(tenant_id, unit_id)` policy candidate across all twelve ordinary tenant+unit relations. It replaces policies only inside a transaction, inserts one synthetic dependency chain under the RLS test role, measures exactly one verifier call for each of twelve separate protected SELECTs, exercises representative cross-unit WITH CHECK denials, and postflights restoration of the original two-subquery policies after ROLLBACK. It is not yet executed. Do not treat the candidate as adopted or alter script 007 until the actual output is reviewed.
 
 The probe excludes tenant-only `education_units` and nullable `audit_events`, whose authorization semantics remain distinct. ADR-007 remains Proposed; no production changes are authorized.
+
+## 31. All-twelve-table row-valued RLS candidate evidence — 2026-11-27
+
+Script 033 passed on transaction XID 970 in the disposable `sinau_design_poc` database. The experiment temporarily applied the row-valued `(tenant_id, unit_id)` comparison to the twelve ordinary tenant+unit tables. Each of twelve protected SELECTs returned its matching synthetic row and caused exactly one verifier call; representative cross-unit INSERT and UPDATE attempts were rejected by WITH CHECK. ROLLBACK restored all twelve original two-subquery policy definitions, with no persistent policy or fixture changes.
+
+This is supporting PoC evidence for the query-policy expression only. It does not validate a live production issuer, change the token claim contract, settle tenant-wide authority, or authorize policy/role/DDL deployment. `education_units` and `audit_events` remain excluded because their scope shapes and authorization semantics differ. **ADR-007 remains Proposed** pending the unresolved issuer contract, threat-model decisions, and explicit approval gates.

@@ -419,3 +419,34 @@ The transaction ended with `ROLLBACK`. No role, membership, grant, schema, funct
 **Important transitive capability:** the earlier runtime-identity simulation established that `sinau_app_runtime_poc` can `SET ROLE` to `sinau_rls_test`. Consequently, a runtime session can reach the verifier/accessor functions through that explicit role switch. The direct separation between issuer and query roles does not isolate the runtime login from either capability while these SET memberships remain.
 
 **Scope limitation:** the check used `has_table_privilege` and `has_function_privilege` against catalog OIDs. It inventories ACL-derived effective privileges for the switched query role; it did not invoke the verifier/accessor, test all data paths through RLS, or authenticate a network connection as the runtime role. ADR-007 remains Proposed; no verifier implementation or production change is authorized.
+
+
+## 17. Runtime role boundary and default ACL findings — 2026-11-27
+
+The user executed read-only script 023 on PostgreSQL 18.7 against `sinau_design_poc`. It completed its catalog checks and ended with ROLLBACK.
+
+### Runtime role boundary
+
+The role inventory confirmed:
+
+| Role | LOGIN | INHERIT | SUPERUSER | BYPASSRLS |
+|---|---:|---:|---:|---:|
+| `sinau_app_runtime_poc` | true | false | false | false |
+| `sinau_context_issuer_poc` | false | false | false | false |
+| `sinau_rls_test` | false | true | false | false |
+| `sinau_context_owner` | false | false | false | false |
+| `sinau_poc` | true | true | false | false |
+
+Runtime has exactly two SET-reachable capability roles in the inspected graph: issuer and query. Neither membership has ADMIN OPTION; neither is inherited by runtime; there is no SET path from runtime to context owner, `sinau_poc`, or `postgres`. No role is inherited through an INHERIT path by runtime. Runtime has no direct schema USAGE/CREATE in `sinau_crypto`, `sinau_issuer_poc`, or `sinau_private`, no direct EXECUTE on the four context functions, and no reported trigger-creation privilege on inspected relations. The four context functions and the inspected private authorization/key relations are owned by NOLOGIN `sinau_context_owner`.
+
+`sinau_poc` is a separate LOGIN test/database-owner role and has INHERIT and SET membership in issuer and query. It is not in the runtime's SET-reachability graph and must remain a PoC owner/test identity, never the web runtime login.
+
+The earlier same-connection test 012 establishes why the present PoC grants runtime SET membership to both capability roles: it switches issuer → query → issuer without changing the top-level XID. Removing either membership alone would break that tested sequence. The candidate model therefore treats the runtime principal as a trusted backend executor, not as a general-purpose or user-accessible SQL account. This does not protect against arbitrary SQL injection/SQL execution in a runtime session: compromised SQL can deliberately assume either granted capability. Keep SQL construction, connection use, and access to database consoles tightly controlled; a stronger separation would require a different architecture and renewed same-XID proof.
+
+### Default function EXECUTE correction
+
+Script 023 reported zero explicit default-privilege rows for `sinau_context_owner`. Source review found that script 005 used a schema-scoped `ALTER DEFAULT PRIVILEGES ... IN SCHEMA sinau_private REVOKE EXECUTE ... FROM PUBLIC`. PostgreSQL 18 documents that schema-specific default privileges are additive and cannot revoke the built-in global PUBLIC EXECUTE default for functions. The four existing context functions individually revoke PUBLIC EXECUTE, but newly created functions were not protected by the attempted schema-scoped rule. See [PostgreSQL 18 ALTER DEFAULT PRIVILEGES](https://www.postgresql.org/docs/18/sql-alterdefaultprivileges.html).
+
+The clean-install sources 005 and 010 were corrected to use a global default revocation for functions created by `sinau_context_owner`. Script 024 was added to apply the one persistent default-ACL change to the already-installed disposable PoC and test a newly created probe function in a transaction that rolls back.
+
+**Status:** runtime role topology is inventoried; the backend-executor threat assumption remains a proposal. The default ACL source correction is committed, but the live PoC default ACL correction has not yet been verified. Do not start verifier v2 DDL until script 024 completes and the role-boundary threat assumption is recorded. No production object or role membership was changed by the audits. ADR-007 remains Proposed.

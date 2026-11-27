@@ -601,7 +601,6 @@ $audit_scope$;
 DO $fail_closed$
 DECLARE
     v_count pg_catalog.int8;
-    v_token pg_catalog.text;
 BEGIN
     PERFORM pg_catalog.set_config('app.context_token', '', true);
 
@@ -644,11 +643,9 @@ BEGIN
             RAISE NOTICE 'PASS malformed token: INSERT denied by WITH CHECK';
     END;
 
-    SELECT token INTO STRICT v_token
-    FROM pg_temp.poc_signed_context_input;
-
-    PERFORM pg_catalog.set_config('app.context_token', v_token, true);
-
+    -- The original token was installed with is_local=true before SET LOCAL ROLE.
+    -- It is intentionally not re-read here: this role cannot SELECT the postgres-owned
+    -- temp input table, and the final ROLLBACK restores the transaction-local GUC.
     RAISE NOTICE 'PASS fail-closed: empty/malformed SELECT hidden and INSERT denied';
 END
 $fail_closed$;

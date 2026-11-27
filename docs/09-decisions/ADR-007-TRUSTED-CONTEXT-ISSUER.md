@@ -401,3 +401,12 @@ This inventory is read-only evidence, not security acceptance. No schema, data, 
 ### Runtime role attribute query correction
 
 The second audit run confirmed `sinau_app_runtime_poc` is a member with SET permission to both `sinau_context_issuer_poc` and `sinau_rls_test`, without inherited privileges via those memberships. Its direct effective table/function privileges are false. The role-attribute query in that run omitted this one role because its filter list was not updated. The audit script has now been corrected again; rerun the final pinned script before deciding whether this role is login-capable. No role or membership was changed.
+
+
+## 17. Corrected verifier metadata and role-grant findings — 2026-11-27
+
+The corrected audit returned all four expected functions. Each is `VOLATILE` and fixed to `search_path=pg_catalog, pg_temp`. Issuer validator and entitlement functions are SECURITY DEFINER owned by `sinau_context_owner` and executable by the issuer role. The verifier is SECURITY DEFINER owned by `sinau_context_owner`; the verified-context accessor is SECURITY INVOKER with EXECUTE grants to the query role. Direct effective privileges show no direct authorization-table/key-store SELECT or DML for the runtime, issuer, and query roles. The query role can execute verifier/accessor but not issuer functions; issuer can execute issuer functions but not read source tables directly.
+
+The role-membership output confirms `sinau_app_runtime_poc` can SET ROLE to issuer and query roles, while not inheriting their privileges. This is a capability boundary that must be understood in the application threat model: arbitrary SQL running as this runtime connection can deliberately switch to a granted capability role. No membership change is authorized by this audit.
+
+The corrected audit's role-attribute query still omitted `sinau_app_runtime_poc`. Script 022 has been revised to include that role, and README section 22 records a minimal read-only query to obtain its attributes. Its LOGIN/superuser/BYPASSRLS status remains unverified until that query is run. No role or privilege has been changed.

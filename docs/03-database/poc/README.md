@@ -1876,7 +1876,7 @@ Download and stage the pinned script:
 ~~~bash
 set -e
 
-EDUCATION_UNITS_RLS_COMMIT='df37661518c31053042f7a54265ffe12c15f3735'
+EDUCATION_UNITS_RLS_COMMIT='382e9668481a58d5c147370bc9bdffdf07d89401'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_RLS_COMMIT/docs/03-database/poc/035-test-education-units-rls-permission.sql" \
   -o "$HOME/035-test-education-units-rls-permission.sql"

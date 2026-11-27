@@ -87,6 +87,17 @@ BEGIN
             'RLS-035 administrator actor fixture ID already exists';
     END IF;
 
+    IF EXISTS (
+        SELECT 1
+        FROM pg_catalog.pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'education_units'
+          AND policyname = 'education_units_select_scope_poc'
+    ) THEN
+        RAISE EXCEPTION
+            'RLS-035 candidate policy name already exists';
+    END IF;
+
     SELECT pg_catalog.count(*)
       INTO v_policy_count
       FROM pg_catalog.pg_policies
@@ -196,10 +207,27 @@ BEGIN
       INTO v_tenant_a_units, v_tenant_b_units
       FROM sinau_issuer_poc.poc_units;
 
-    IF v_tenant_a_units <> 2 OR v_tenant_b_units <> 1 THEN
+    IF v_tenant_a_units <> 2 OR v_tenant_b_units <> 1
+       OR NOT EXISTS (
+           SELECT 1 FROM sinau_issuer_poc.poc_units
+           WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
+             AND unit_id = '10000000-0000-0000-0000-000000000001'
+             AND unit_status = 'active'
+       )
+       OR NOT EXISTS (
+           SELECT 1 FROM sinau_issuer_poc.poc_units
+           WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
+             AND unit_id = '10000000-0000-0000-0000-000000000002'
+             AND unit_status = 'active'
+       )
+       OR NOT EXISTS (
+           SELECT 1 FROM sinau_issuer_poc.poc_units
+           WHERE tenant_id = '00000000-0000-0000-0000-000000000002'
+             AND unit_id = '20000000-0000-0000-0000-000000000001'
+             AND unit_status = 'active'
+       ) THEN
         RAISE EXCEPTION
-            'Expected private synthetic unit catalogue active counts tenant-A=2/tenant-B=1; found %/%',
-            v_tenant_a_units, v_tenant_b_units;
+            'Expected private synthetic unit catalogue active rows A1/A2/B1 are not present';
     END IF;
 
     IF NOT EXISTS (

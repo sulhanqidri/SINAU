@@ -1403,11 +1403,11 @@ PR #1 tetap Draft, Open, dan belum merged. Tidak ada persetujuan untuk merge ata
 
 ### Education-unit permission state re-evaluation probe prepared — 2026-11-27
 
-- Added `docs/03-database/poc/036-test-education-units-permission-freshness.sql` at commit `fe53d75245358ee31dfa11e1d4a8cd52574c4f19`.
+- Added `docs/03-database/poc/036-test-education-units-permission-freshness.sql` at commit `367e5984ff7691dc653a114f20ddbf5ab80701e9`.
 - Script 036 starts from the Script 035 rollback-only query-side scenario and adds four protected SELECTs using the same signed administrator context token and transaction XID.
 - EU-RLS-08/09 revoke and restore the synthetic tenant-role assignment; the next SELECT is expected to deny and the subsequent SELECT is expected to regain only tenant-A listing.
 - EU-RLS-10/11 remove and restore the `education_units.list_all` role-permission mapping; the next SELECT is expected to deny and the subsequent SELECT is expected to regain tenant-A listing.
-- The expected verifier-call count is eight for eight protected SELECT statements. Write denials and exact policy restoration remain part of the script.
+- The expected verifier-call count is eight for eight protected SELECT statements. Write denials and exact policy restoration remain part of the script. Preflight checks both synthetic session-hash collisions; postflight verifies that both synthetic session rows and the administrator tenant membership are absent.
 - All role/permission mutations occur inside one transaction and are removed by ROLLBACK. **Server execution is pending; do not mark Script 036 PASS until the complete output and final postflight marker are reviewed.**
 - This probe addresses only statement-to-statement re-evaluation of synthetic role/permission state under READ COMMITTED. It does not test a second connection committing revocation, exact session binding, or the broader account/session/membership freshness gap.
 - No database execution or persistent policy/schema/role change was performed while preparing Script 036.

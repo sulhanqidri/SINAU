@@ -1943,19 +1943,19 @@ set -e
 
 EDUCATION_UNITS_FRESHNESS_COMMIT='fe53d75245358ee31dfa11e1d4a8cd52574c4f19'
 
-curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_FRESHNESS_COMMIT/docs/03-database/poc/036-test-education-units-permission-freshness.sql" \\
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_FRESHNESS_COMMIT/docs/03-database/poc/036-test-education-units-permission-freshness.sql" \
   -o "$HOME/036-test-education-units-permission-freshness.sql"
 
-sudo install -o postgres -g postgres -m 600 \\
-  "$HOME/036-test-education-units-permission-freshness.sql" \\
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/036-test-education-units-permission-freshness.sql" \
   /run/036-test-education-units-permission-freshness.sql
 ~~~
 
 Run only against `sinau_design_poc` as PostgreSQL administrator:
 
 ~~~bash
-sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \\
-  -d sinau_design_poc \\
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \
+  -d sinau_design_poc \
   -f /run/036-test-education-units-permission-freshness.sql
 ~~~
 

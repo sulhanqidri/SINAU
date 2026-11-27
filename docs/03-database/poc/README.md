@@ -1835,3 +1835,17 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \
 ~~~
 
 Require all EU-01 through EU-08 assertions, the privilege-boundary PASS, `ROLLBACK`, the postflight PASS, and the final completion marker. If the script fails, do not retry by changing installed policies or privileges; inspect the first error and preserve the output. No token signer is needed for script 034.
+ 
+## 39. Script 034 execution result — explicit tenant permission gate — 2026-11-27
+
+**Execution result: PASS** against `sinau_design_poc`. Preflight confirmed the disposable database, PostgreSQL administrator execution boundary, issuer fixtures, and unused synthetic IDs. Script 034 created a temporary issuer-side role/permission model and reported PASS for EU-01 through EU-08:
+
+- An active tenant administrator with explicit `education_units.list_all` was accepted without any unit membership.
+- `education_units.list_all` did not imply `education_units.manage`.
+- An ordinary actor with tenant membership and a single unit membership was not granted tenant-wide listing.
+- Suspended tenant membership, a tenant-A grant requested against tenant B, an unknown session credential, and an out-of-contract permission all failed closed.
+- The issuer/query role privilege boundary passed: neither capability can directly read permission assignment tables, and only the issuer capability can execute the helper.
+
+The script completed `ROLLBACK`; postflight confirmed the temporary schema, helper function, identity, session, membership, role, and permission fixtures were removed. No RLS policy, token format, permanent role, grant, or application object was changed.
+
+This closes only the **issuer-side permission semantics** test. It does not yet prove RLS row visibility on `public.education_units`. The query-side test must still prove that a unit-scoped token sees only its own unit, an ordinary tenant-only context without the permission sees no sibling units, a tenant-only context with the explicit permission sees only units in that tenant, and write operations remain separately denied. The installed `education_units` policy remains unchanged.

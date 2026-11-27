@@ -1727,3 +1727,51 @@ sudo install -o postgres -g postgres -m 600 \
 Return to Terminal A and press Enter only after the install command succeeds. Wait for `DOMAIN TABLE CRUD / INTEGRITY REGRESSION COMPLETE — ALL DML ROLLED BACK`. Then remove both temporary token files with `sudo rm -f --`.
 
 A failure in this script must be reviewed before any retry. Never change installed RLS policies or production databases to make the PoC pass.
+
+
+## 36. Single-row tenant+unit policy candidate across all twelve tables
+
+Script `033-test-single-row-policy-all-tenant-unit.sql` extends the disposable row-valued policy probe from `academic_years` (script 027) to all twelve NOT-NULL tenant+unit relations: `academic_years` plus the eleven tables inventoried by 031. It deliberately does not change the tenant-only `education_units` policy or nullable-scope `audit_events` policy.
+
+Within one transaction, it temporarily replaces all twelve original policies with the candidate:
+`(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`
+for both USING and WITH CHECK. It then inserts a valid synthetic unit-A1 dependency chain as `sinau_rls_test`, measures the verifier-call baseline, runs one protected SELECT per table, and asserts that each test row is visible and the twelve SELECTs cause exactly twelve verifier calls. It also checks representative cross-unit INSERT and UPDATE WITH CHECK denial. The final ROLLBACK restores all twelve original policy definitions and removes test rows/temp objects. The postflight check verifies that the original two-subquery policy form is present again on all twelve relations.
+
+This is a candidate validation only, not approval for persistent policy installation. The policy rewrite is deliberately limited to the twelve ordinary tenant+unit tables; tenant-only authorization and nullable audit-event visibility still require separate designs. Script 033 is authored and statically reviewed but has **not yet been executed**.
+
+Download and stage:
+
+~~~bash
+set -e
+
+POLICY_PROBE_COMMIT='6e4f2203888499566799b9e2e8e9faffc7ded94c'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$POLICY_PROBE_COMMIT/docs/03-database/poc/033-test-single-row-policy-all-tenant-unit.sql" \
+  -o "$HOME/033-test-single-row-policy-all-tenant-unit.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/033-test-single-row-policy-all-tenant-unit.sql" \
+  /run/033-test-single-row-policy-all-tenant-unit.sql
+~~~
+
+Terminal A:
+
+~~~bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/033-test-single-row-policy-all-tenant-unit.sql
+~~~
+
+When the transaction XID appears, use Terminal B to sign that exact XID and install the token:
+
+~~~bash
+python3 "$HOME/019-sign-authorization-freshness-token.py" XID_FROM_SESSION_A
+
+sudo install -o postgres -g postgres -m 600 \
+  /run/sinau-poc-token-signer/authfreshness-context.token \
+  /run/authfreshness-context.token
+~~~
+
+Return to Terminal A and press Enter only after the install command succeeds. A complete pass must show one visible row for every table, exactly twelve verifier calls for the twelve protected SELECTs, cross-unit INSERT/UPDATE rejection, ROLLBACK, and confirmation that all twelve original two-subquery policies were restored. Then remove both token files with `sudo rm -f --`.
+
+Never run script 007 or make a persistent policy change based only on this probe.

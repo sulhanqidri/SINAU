@@ -266,3 +266,12 @@ The user ran script 026 against the disposable PoC. For one protected `SELECT co
 This confirms the current policy evaluates the VOLATILE verified-context accessor twice for one SELECT. In a future verifier that performs live account/session/membership/key-state lookups, separate calls could use different internal snapshots. A policy must therefore expose tenant and unit claims from one coherent context result rather than separate scalar subqueries.
 
 Script 027 is a rollback-only test of a candidate row-valued subquery for `academic_years`: `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`. It has not yet been executed. This candidate does not yet settle tenant-only tables or the `audit_events` nullable-unit exception, nor does it approve a persistent change to script 007.
+
+
+## 15. Composite row-context policy probe — PASS for academic_years — 2026-11-27
+
+The user executed script 027 successfully against `sinau_design_poc`. The candidate policy temporarily compared `(tenant_id, unit_id)` to a single subquery returning both claims from `current_verified_context()`.
+
+EXPLAIN showed one InitPlan/Function Scan for the accessor, the protected `academic_years` SELECT returned one row, and `pg_stat_xact_user_functions` recorded exactly one call to `verify_context_token(text)` (2.623 ms). The post-ROLLBACK policy inventory showed the original two-subquery policy restored.
+
+This proves the row-valued single-subquery shape can reduce verifier invocation count from two to one for this table and this SELECT. It is not yet a universal policy design. Tenant-only tables, `audit_events` where `unit_id IS NULL` is intentionally allowed, and INSERT/UPDATE/DELETE checks still require separate policy expressions and explicit denial tests. Do not update persistent script 007 based on this one table's SELECT result alone.

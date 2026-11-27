@@ -543,7 +543,7 @@ Script 026 was executed successfully with a valid synthetic token for XID 957. T
 
 This is now a measured behavior: **one protected SELECT triggers two verifier calls** under the existing policy. With a v2 verifier performing live authorization checks, those calls may consult authoritative state using different internal VOLATILE/SPI snapshots. A single coherent scope record is required for both comparisons.
 
-Script 027 has been prepared to temporarily replace the `academic_years` policy inside a transaction with a row-valued single-subquery comparison, `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`. It will inspect EXPLAIN, execute one protected SELECT, measure the actual verifier count, and ROLLBACK to restore the installed policy. It has not yet run. This candidate is not yet approved for other table classes, especially tenant-only tables and `audit_events` with nullable `unit_id`. Do not alter persistent script 007 until the test and full RLS policy matrix pass.
+Script 027 executed this row-valued comparison inside a transaction. EXPLAIN showed one InitPlan/Function Scan, the protected SELECT returned one row, and the transaction-local counter recorded exactly one verifier call (2.623 ms). ROLLBACK restored the original two-subquery policy. The candidate is validated only for `academic_years`; it is not approved for tenant-only tables or `audit_events` with nullable `unit_id`. Do not alter persistent script 007 until the complete RLS policy matrix passes.
 
 
 ## 25. Composite row-context policy measured once — 2026-11-27

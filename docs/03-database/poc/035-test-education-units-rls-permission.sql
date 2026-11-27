@@ -1015,6 +1015,35 @@ $malformed_context_visibility$;
 
 RESET ROLE;
 
+\echo '===== 6. VERIFY ONE VERIFIED-CONTEXT CALL PER PROTECTED SELECT ====='
+
+DO $call_count_tests$
+DECLARE
+    v_before pg_catalog.int8;
+    v_after pg_catalog.int8;
+BEGIN
+    SELECT calls INTO v_before
+    FROM pg_temp.poc_education_units_verifier_baseline;
+
+    SELECT COALESCE(s.calls, 0)
+      INTO v_after
+      FROM pg_catalog.pg_proc AS p
+      LEFT JOIN pg_catalog.pg_stat_xact_user_functions AS s
+        ON s.funcid = p.oid
+     WHERE p.oid =
+        'sinau_private.verify_context_token(text)'::pg_catalog.regprocedure;
+
+    IF (v_after - v_before) <> 4 THEN
+        RAISE EXCEPTION
+            'FAIL: expected exactly four verifier calls for four SELECT statements; before/after/delta=%/%/%',
+            v_before, v_after, v_after - v_before;
+    END IF;
+
+    RAISE NOTICE
+        'PASS: four protected SELECTs caused exactly four verifier calls (one per statement)';
+END
+$call_count_tests$;
+
 \echo '===== 5. CHECK SELECT-ONLY POLICY AND WRITE DENIAL ====='
 
 DO $load_write_admin_context$
@@ -1109,35 +1138,6 @@ END
 $write_boundary_tests$;
 
 RESET ROLE;
-
-\echo '===== 6. VERIFY ONE VERIFIED-CONTEXT CALL PER PROTECTED SELECT ====='
-
-DO $call_count_tests$
-DECLARE
-    v_before pg_catalog.int8;
-    v_after pg_catalog.int8;
-BEGIN
-    SELECT calls INTO v_before
-    FROM pg_temp.poc_education_units_verifier_baseline;
-
-    SELECT COALESCE(s.calls, 0)
-      INTO v_after
-      FROM pg_catalog.pg_proc AS p
-      LEFT JOIN pg_catalog.pg_stat_xact_user_functions AS s
-        ON s.funcid = p.oid
-     WHERE p.oid =
-        'sinau_private.verify_context_token(text)'::pg_catalog.regprocedure;
-
-    IF (v_after - v_before) <> 4 THEN
-        RAISE EXCEPTION
-            'FAIL: expected exactly four verifier calls for four SELECT statements; before/after/delta=%/%/%',
-            v_before, v_after, v_after - v_before;
-    END IF;
-
-    RAISE NOTICE
-        'PASS: four protected SELECTs caused exactly four verifier calls (one per statement)';
-END
-$call_count_tests$;
 
 \echo '===== 7. ROLLBACK AND VERIFY ORIGINAL POLICY RESTORATION ====='
 

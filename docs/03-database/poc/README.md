@@ -1391,7 +1391,7 @@ Press Enter in Terminal A. The script imports the token without displaying it, p
 - Visible row count should be 1 for the tenant-A/unit-A1 fixture.
 - Record the actual calls count for sinau_private.verify_context_token(text).
 - Examine the EXPLAIN output for independent InitPlan/SubPlan nodes corresponding to tenant and unit extraction.
-- A call count of 2 would confirm two verifier invocations for this single SELECT. A count of 1 would mean this run did not perform two separate executions despite the policy's two references; record the plan alongside the counter. Any other positive count must be explained from the plan and actual policy expression rather than assumed.
+- **User execution result — PASS:** one protected SELECT returned exactly one row and recorded `verify_context_token(text) calls=2` (`total_time_ms=2.790`, `self_time_ms=2.790`). EXPLAIN showed two independent InitPlans: InitPlan 1 called `current_verified_context()` for `tenant_id`; InitPlan 2 called it again for `unit_id`. The installed policy expression and execution plan therefore confirm two verifier executions for this single SELECT. The query transaction rolled back.
 - A count of 0 is a failed diagnostic (tracking disabled, policy not exercised, or function not tracked); do not interpret it as proof of one invocation.
 
 After script 026 reports ROLLBACK, remove both token copies:
@@ -1403,5 +1403,81 @@ rm -f /run/authfreshness-context.token \
 
 **Scope:** this measures the verifier invocation count for one SELECT on academic_years only. It does not establish counts for every table/policy or production query plan. No DDL or RLS policy modification is part of this gate.
 
-**Next design consequence:** if two or more verifier calls are confirmed, the v2 policy should evaluate one verified context row and compare both tenant and unit from that single row, not use separate scalar subqueries. The precise safe policy form must be validated against all table classes, especially tenant-only tables and audit_events with nullable unit_id. Do not change script 007 or the installed policy until the diagnostic output and a complete policy redesign are reviewed.
+**Next design consequence:** repeated verifier execution is confirmed. A candidate policy for tables requiring both tenant and unit scope should obtain both claims from one row-valued subquery, for example `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`. PostgreSQL's single-row comparison requires the subquery to return exactly as many columns as the left row constructor and at most one row. Script 027 tests this candidate inside a transaction and rolls it back. Tenant-only tables and `audit_events` with nullable `unit_id` require separate safe expressions; do not mechanically apply the same predicate to them.
 
+## 30. Candidate one-row context policy — rollback-only probe
+
+Script `027-test-single-row-context-policy.sql` tests a candidate rewrite for `public.academic_years` only. It temporarily replaces the installed `sinau_rls_isolation` policy inside a transaction with a single row-valued subquery:
+
+```sql
+(tenant_id, unit_id) = (
+    SELECT ctx.tenant_id, ctx.unit_id
+    FROM sinau_private.current_verified_context() AS ctx
+)
+```
+
+The subquery returns two columns for the two left-hand row fields and at most one row because the verified context function returns at most one row for a valid transaction-bound token. PostgreSQL documents that a `row_constructor operator (subquery)` comparison requires the subquery to return exactly as many columns as the left row constructor, and at most one row. See https://www.postgresql.org/docs/18/functions-subquery.html.
+
+The candidate policy is applied only inside the open transaction. The script runs EXPLAIN and one actual protected SELECT, measures verifier calls with transaction-local function tracking, checks that the query still returns exactly one tenant-A/unit-A1 row, and then ROLLBACK restores the original installed two-subquery policy. It prints the restored policy after rollback as an additional check.
+
+Pinned script:
+https://raw.githubusercontent.com/sulhanqidri/SINAU/021ea42dcdd90760e58d1c114c2bb47490ef5f3f/docs/03-database/poc/027-test-single-row-context-policy.sql
+
+Download and stage:
+
+```bash
+set -e
+
+SIGNER_COMMIT='70b2f3ccdadf14f306ca77104b6a5b4fb35328b0'
+POLICY_COMMIT='021ea42dcdd90760e58d1c114c2bb47490ef5f3f'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$SIGNER_COMMIT/docs/03-database/poc/019-sign-authorization-freshness-token.py" \
+  -o "$HOME/019-sign-authorization-freshness-token.py"
+chmod 700 "$HOME/019-sign-authorization-freshness-token.py"
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$POLICY_COMMIT/docs/03-database/poc/027-test-single-row-context-policy.sql" \
+  -o "$HOME/027-test-single-row-context-policy.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/027-test-single-row-context-policy.sql" \
+  /run/027-test-single-row-context-policy.sql
+
+install -d -m 700 /run/sinau-poc-token-signer
+rm -f /run/authfreshness-context.token \
+  /run/sinau-poc-token-signer/authfreshness-context.token
+```
+
+Terminal A:
+
+```bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/027-test-single-row-context-policy.sql
+```
+
+When Terminal A prints the transaction XID, sign a token for that exact XID in Terminal B:
+
+```bash
+python3 "$HOME/019-sign-authorization-freshness-token.py" XID_FROM_SESSION_A
+
+sudo install -o postgres -g postgres -m 600 \
+  /run/sinau-poc-token-signer/authfreshness-context.token \
+  /run/authfreshness-context.token
+```
+
+Press Enter in Terminal A. Expected candidate evidence:
+- The candidate policy expression uses one row-valued subquery for both `tenant_id` and `unit_id`.
+- EXPLAIN shows one InitPlan/Function Scan for `current_verified_context()` returning both columns.
+- The protected SELECT returns one visible row.
+- `verify_context_token(text)` call count is exactly 1.
+- Script prints `PASS: composite row comparison returned one row with exactly one verifier call`.
+- After ROLLBACK, the catalog output shows the original two-subquery policy restored.
+
+After the script has rolled back, remove the token copies:
+
+```bash
+rm -f /run/authfreshness-context.token \
+  /run/sinau-poc-token-signer/authfreshness-context.token
+```
+
+This candidate is not yet adopted. First test it, inspect its plan and actual count, and verify fail-closed behavior with malformed/expired tokens and cross-tenant/unit rows. This script covers only `academic_years`; it does not settle the null-unit exception for `audit_events`, tenant-only tables, or write policy semantics across every table. Do not modify persistent script 007 or install this candidate policy outside the disposable rollback-only probe.

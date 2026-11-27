@@ -999,3 +999,47 @@ The transaction ended with `ROLLBACK`; no catalog object or row was modified.
 **Transitive runtime access:** because the earlier SET ROLE test succeeded, a session with runtime identity can explicitly assume the query role and execute the two query functions. Thus, this is issuer/query role-to-role separation, not protection against arbitrary SQL running through a runtime connection that retains the SET membership.
 
 **Limitations:** this audit checks effective ACL privileges via catalog OIDs. It did not invoke the verifier/accessor, exercise all RLS-protected operations, or test the actual network login path for the runtime credential.
+
+
+## 26. Read-only runtime role boundary audit
+
+The role-switch and effective-privilege checks establish that the runtime login can explicitly enter the issuer and query capability roles, and that each capability role has a narrow direct privilege surface. Before recording the role topology as accepted, run script `023-audit-runtime-role-boundary.sql` to inspect the complete membership options and ownership boundary.
+
+The script reports:
+- attributes for the runtime login, issuer/query capability roles, context owner, and PoC owner;
+- membership edges with `ADMIN`, `INHERIT`, and `SET` options;
+- all roles reachable from runtime through `SET TRUE` membership chains;
+- all privileges inherited through `INHERIT TRUE` membership chains;
+- direct runtime schema/function privileges without switching;
+- owners of the private schemas, authorization tables, key store, and context functions;
+- context-owner default ACLs.
+
+It reads catalog metadata and effective ACLs only. It does not inspect token/session/key values or application rows, and it performs no DDL, DML, GRANT, or REVOKE. It has a hard guard for `sinau_design_poc` + superuser `postgres`, begins `READ ONLY`, and ends with `ROLLBACK`.
+
+Run the exact pinned script:
+
+```bash
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/c104e12ad07cec56086084e7d5a4cd89f4534982/docs/03-database/poc/023-audit-runtime-role-boundary.sql' \
+  -o /run/023-audit-runtime-role-boundary.sql
+
+sudo chown postgres:postgres /run/023-audit-runtime-role-boundary.sql
+sudo chmod 600 /run/023-audit-runtime-role-boundary.sql
+
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/023-audit-runtime-role-boundary.sql
+```
+
+### Review criteria
+
+- `sinau_app_runtime_poc` is the only login in the runtime/capability chain; issuer, query, and context-owner roles are NOLOGIN.
+- Runtime has `SET` reachability only to the intended issuer and query roles (plus any separately documented PoC-only path). It must not reach the owner, PoC admin, or PostgreSQL administrator.
+- Runtime has no `ADMIN OPTION` on capability/owner roles.
+- Issuer/query memberships do not accidentally expose other roles through nested membership paths.
+- Capability roles do not own the schemas, protected tables, key store, or security-definer functions.
+- Runtime cannot CREATE in the private schemas and has no unexpected direct object privileges.
+- Default ACLs do not grant future private functions to PUBLIC.
+
+The role-switching ability is required by the current same-connection flow: script 012 proves issuer → query → issuer switches while preserving one XID. Therefore, removing runtime SET membership is not a safe standalone change; it would require a different context-issuance/query architecture and a new XID-continuity proof. The candidate role model treats the runtime login as a trusted backend executor, while keeping the issuer and query capabilities as separate NOLOGIN roles with narrow grants. This remains a proposal until script 023 output and threat-model review are complete.
+
+No role or privilege should be changed based only on the inventory. ADR-007 remains Proposed and PR #1 remains Open/Draft/unmerged.

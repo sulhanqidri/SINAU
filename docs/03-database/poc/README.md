@@ -880,28 +880,26 @@ The direct effective privilege checks showed:
 
 The role-membership output confirms `sinau_app_runtime_poc` has `SET` membership (not inherited membership) in both `sinau_context_issuer_poc` and `sinau_rls_test`. This means the runtime role can deliberately switch into each capability role. This is a trust boundary, not evidence of a direct table grant. The application design must constrain when/how it issues SET ROLE; the model does not protect against arbitrary SQL execution by a compromised runtime connection. Do not remove or change these memberships as part of this audit.
 
-**Residual audit item:** the second run's section 10 role-attribute SELECT omitted `sinau_app_runtime_poc` from its filter. The final script revision now includes it, but that revision has not yet been run. Until the one-row role-attribute query below is returned, do not claim whether `sinau_app_runtime_poc` itself has LOGIN or any elevated role attribute.
+**Role-attribute follow-up — completed by focused read-only query**
 
-Run only this small read-only query to close the residual item:
+The one-row query returned:
 
-```bash
-sudo -u postgres psql -X -v ON_ERROR_STOP=1 -d sinau_design_poc <<'SQL'
-BEGIN READ ONLY;
+| Attribute | Result |
+|---|---:|
+| `rolsuper` | false |
+| `rolcanlogin` | true |
+| `rolinherit` | false |
+| `rolcreaterole` | false |
+| `rolcreatedb` | false |
+| `rolreplication` | false |
+| `rolbypassrls` | false |
 
-SELECT
-    rolname,
-    rolsuper,
-    rolcanlogin,
-    rolinherit,
-    rolcreaterole,
-    rolcreatedb,
-    rolreplication,
-    rolbypassrls
-FROM pg_catalog.pg_roles
-WHERE rolname = 'sinau_app_runtime_poc';
+This closes the role-attribute question for `sinau_app_runtime_poc` without rerunning the full script 022. The query was wrapped in `BEGIN READ ONLY` / `ROLLBACK`; it did not change any catalog object.
 
-ROLLBACK;
-SQL
-```
+### Security interpretation and remaining gate
 
-The final corrected 022 script is pinned to commit `702a7340ac8e0556871b92aa065922b6612c81c8`. The first and second audit runs were read-only and ended with ROLLBACK. No data, schema, role, privilege, policy, or function was modified. Continue to hold all verifier DDL until the runtime-role attribute result and snapshot/concurrency design are reviewed.
+The runtime role is a login-capable, non-superuser principal with no direct elevated role attributes in the listed categories. However, the membership inventory shows `SET` (but not `INHERIT`) membership in both `sinau_context_issuer_poc` and `sinau_rls_test`. Consequently, the runtime can explicitly switch to those roles. `rolinherit=false` is not a barrier to `SET ROLE`, and the absence of direct grants on the unswitched runtime role does not mean that those capabilities are unreachable from its login.
+
+This is a role-capability boundary that must be decided in the threat model. If the runtime credential is intended to be unable to exercise issuer/query capabilities under arbitrary SQL execution, the relevant `SET` memberships need a separately reviewed reduction and the application must use another controlled capability path. If those memberships are intentional, document that the runtime is trusted with the capabilities, and audit privileges/default privileges after each role switch. **Do not change memberships as part of this read-only audit.**
+
+The final corrected script 022 remains pinned to commit `702a7340ac8e0556871b92aa065922b6612c81c8`; this focused query did not rerun the full script. All checks described here were read-only. No data, schema, role, membership, privilege, policy, or function was modified. Keep verifier DDL on hold until the role-capability decision and snapshot/concurrency design are reviewed.

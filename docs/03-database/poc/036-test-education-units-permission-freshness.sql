@@ -991,19 +991,25 @@ RESET ROLE;
 -- Revoke the administrator's tenant-role assignment. The existing signed
 -- context token and transaction XID remain unchanged.
 SET LOCAL ROLE sinau_context_owner;
-UPDATE sinau_education_units_query_freshness_poc.poc_tenant_membership_roles
-   SET assignment_status = 'revoked',
-       revoked_at = pg_catalog.clock_timestamp()
- WHERE actor_id = '97000000-0000-0000-0000-000000000001'
-   AND tenant_id = '00000000-0000-0000-0000-000000000001'
-   AND role_code = 'foundation_unit_admin';
-DO $assert_role_assignment_revoked$
+DO $revoke_role_assignment$
+DECLARE
+    v_rows pg_catalog.int8;
 BEGIN
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Could not revoke the synthetic tenant-role assignment';
+    UPDATE sinau_education_units_query_freshness_poc.poc_tenant_membership_roles
+       SET assignment_status = 'revoked',
+           revoked_at = pg_catalog.clock_timestamp()
+     WHERE actor_id = '97000000-0000-0000-0000-000000000001'
+       AND tenant_id = '00000000-0000-0000-0000-000000000001'
+       AND role_code = 'foundation_unit_admin';
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION
+            'Expected to revoke exactly one tenant-role assignment; changed %',
+            v_rows;
     END IF;
 END
-$assert_role_assignment_revoked$;
+$revoke_role_assignment$;
 RESET ROLE;
 
 SET LOCAL ROLE sinau_rls_test;
@@ -1028,12 +1034,25 @@ RESET ROLE;
 -- Restore the role assignment and prove the same context can regain only its
 -- explicitly granted tenant list capability.
 SET LOCAL ROLE sinau_context_owner;
-UPDATE sinau_education_units_query_freshness_poc.poc_tenant_membership_roles
-   SET assignment_status = 'active',
-       revoked_at = NULL
- WHERE actor_id = '97000000-0000-0000-0000-000000000001'
-   AND tenant_id = '00000000-0000-0000-0000-000000000001'
-   AND role_code = 'foundation_unit_admin';
+DO $restore_role_assignment$
+DECLARE
+    v_rows pg_catalog.int8;
+BEGIN
+    UPDATE sinau_education_units_query_freshness_poc.poc_tenant_membership_roles
+       SET assignment_status = 'active',
+           revoked_at = NULL
+     WHERE actor_id = '97000000-0000-0000-0000-000000000001'
+       AND tenant_id = '00000000-0000-0000-0000-000000000001'
+       AND role_code = 'foundation_unit_admin';
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION
+            'Expected to restore exactly one tenant-role assignment; changed %',
+            v_rows;
+    END IF;
+END
+$restore_role_assignment$;
 RESET ROLE;
 
 SET LOCAL ROLE sinau_rls_test;
@@ -1058,16 +1077,22 @@ RESET ROLE;
 -- Remove the explicit permission mapping while leaving the tenant-role
 -- assignment active. The permission must be re-evaluated, not cached.
 SET LOCAL ROLE sinau_context_owner;
-DELETE FROM sinau_education_units_query_freshness_poc.poc_tenant_role_permissions
- WHERE role_code = 'foundation_unit_admin'
-   AND permission_code = 'education_units.list_all';
-DO $assert_permission_mapping_removed$
+DO $remove_permission_mapping$
+DECLARE
+    v_rows pg_catalog.int8;
 BEGIN
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'Could not remove the synthetic list_all permission mapping';
+    DELETE FROM sinau_education_units_query_freshness_poc.poc_tenant_role_permissions
+     WHERE role_code = 'foundation_unit_admin'
+       AND permission_code = 'education_units.list_all';
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION
+            'Expected to remove exactly one list_all mapping; deleted %',
+            v_rows;
     END IF;
 END
-$assert_permission_mapping_removed$;
+$remove_permission_mapping$;
 RESET ROLE;
 
 SET LOCAL ROLE sinau_rls_test;

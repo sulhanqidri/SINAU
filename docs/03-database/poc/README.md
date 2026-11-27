@@ -168,8 +168,8 @@ After successfully applying `007-rls-signed-context.sql`, run the functional tes
 
 1. Open psql against `sinau_design_poc`; set session authorization to `sinau_poc`; create a temporary token input table; grant SELECT/INSERT on it to `sinau_rls_test`; begin; set local role to `sinau_rls_test`; allocate and record `pg_current_xact_id()::text`.
 2. Use `006-sign-context-token.py` in a separate Bash terminal to create a token for exactly that XID. Copy it into a postgres-owned mode-0600 file under `/run` (tmpfs). Never display the token or key.
-3. At the original psql prompt, import the token into `pg_temp.poc_signed_context_input` using `\\copy`.
-4. Stage `008-test-signed-context-rls.sql` under `/run` and run `\\i /run/008-test-signed-context-rls.sql` from that same psql session. Do not run the test file with a new psql process because the XID and temp table are session-bound.
+3. At the original psql prompt, import the token into `pg_temp.poc_signed_context_input` using `\copy`.
+4. Stage `008-test-signed-context-rls.sql` under `/run` and run `\i /run/008-test-signed-context-rls.sql` from that same psql session. Do not run the test file with a new psql process because the XID and temp table are session-bound.
 5. Expected assertions: valid token sees only tenant A/unit A1; changing unsigned legacy `app.tenant_id` and `app.unit_id` to tenant B/unit B1 does not change visibility; empty/malformed token sees zero rows; same-scope INSERT succeeds; cross-tenant and cross-unit INSERTs are rejected by RLS `WITH CHECK`.
 6. After all assertions pass, execute `ROLLBACK;`, exit psql, and remove both token copies from `/run`. Do not commit test data.
 
@@ -182,10 +182,10 @@ The functional SQL file is assertion-oriented and deliberately does not commit o
 After the assertions in `008-test-signed-context-rls.sql` pass, do not exit psql yet. First execute `ROLLBACK;` to end the token-bearing transaction. In the same psql connection, keep `SET SESSION AUTHORIZATION sinau_poc` unchanged and run:
 
 ```sql
-\\i /run/009-test-context-reset.sql
+\i /run/009-test-context-reset.sql
 ```
 
-The script begins a new transaction, applies `SET LOCAL ROLE sinau_rls_test`, and asserts that the prior transaction-local `app.context_token` is absent/empty and that `academic_years` exposes zero rows without a token. It does not need a new token. After the assertions pass, execute `ROLLBACK;` again and then `\\q`.
+The script begins a new transaction, applies `SET LOCAL ROLE sinau_rls_test`, and asserts that the prior transaction-local `app.context_token` is absent/empty and that `academic_years` exposes zero rows without a token. It does not need a new token. After the assertions pass, execute `ROLLBACK;` again and then `\q`.
 
 This proves local GUC reset across a transaction boundary on the same connection. It is a useful connection-reuse check, but it is not a substitute for testing the actual application pooler or worker lifecycle.
 
@@ -230,8 +230,8 @@ At the psql prompt, simulate the PoC application login and run the tests:
 
 ```sql
 SET SESSION AUTHORIZATION sinau_poc;
-\\i /run/011-context-issuer-validation-tests.sql
-\\q
+\i /run/011-context-issuer-validation-tests.sql
+\q
 ```
 
 The test file changes to `sinau_context_issuer_poc` to call the narrow validation functions, then changes to `sinau_rls_test` to prove that the query role cannot call the issuer, read membership fixtures or key material, or mutate membership fixtures. Its test transaction ends with ROLLBACK.
@@ -267,7 +267,7 @@ At the psql prompt:
 
 ```sql
 SET SESSION AUTHORIZATION sinau_poc;
-\\i /run/sinau-poc-012.sql
+\i /run/sinau-poc-012.sql
 ```
 
 Expected notices:
@@ -276,7 +276,7 @@ Expected notices:
 - Switching back to issuer role retains the same top-level XID.
 - ROLLBACK restores the original session role and clears the transaction-local probe.
 
-The script ends with ROLLBACK. Exit psql with `\\q` after it reports `ROLE SWITCH / XID CONTINUITY TESTS PASSED — TRANSACTION ROLLED BACK`.
+The script ends with ROLLBACK. Exit psql with `\q` after it reports `ROLE SWITCH / XID CONTINUITY TESTS PASSED — TRANSACTION ROLLED BACK`.
 
 **Execution status — verified 2026-11-19:** Script 012 passed on PostgreSQL 18.7 against `sinau_design_poc`. The output showed issuer → query → issuer role transitions with the same top-level XID (890); issuer/query privileges were constrained as expected; ROLLBACK restored session authorization to `sinau_poc` and cleared the transaction-local probe. Final notice: `ROLE SWITCH / XID CONTINUITY TESTS PASSED — TRANSACTION ROLLED BACK`.
 
@@ -299,7 +299,7 @@ At the psql prompt:
 
 ```sql
 SET SESSION AUTHORIZATION sinau_poc;
-\\i /run/sinau-poc-013.sql
+\i /run/sinau-poc-013.sql
 ```
 
 The assertions cover:
@@ -332,7 +332,7 @@ At the psql prompt:
 
 ```sql
 SET SESSION AUTHORIZATION sinau_poc;
-\\i /run/sinau-poc-014.sql
+\i /run/sinau-poc-014.sql
 ```
 
 Expected behavior:
@@ -814,14 +814,14 @@ Script `022-audit-context-state-inventory.sql` inventories the installed authori
 Run on the SINAU PoC host:
 
 ```bash
-curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/VERIFIED_COMMIT_SHA/docs/03-database/poc/022-audit-context-state-inventory.sql' \\
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/VERIFIED_COMMIT_SHA/docs/03-database/poc/022-audit-context-state-inventory.sql' \
   -o /run/022-audit-context-state-inventory.sql
 
 sudo chown postgres:postgres /run/022-audit-context-state-inventory.sql
 sudo chmod 600 /run/022-audit-context-state-inventory.sql
 
-sudo -u postgres psql -X -v ON_ERROR_STOP=1 \\
-  -d sinau_design_poc \\
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
   -f /run/022-audit-context-state-inventory.sql
 ```
 

@@ -6,9 +6,9 @@
 -- This script reads catalog metadata only. It does not read application rows,
 -- create temporary objects, or modify tables, data, policies, grants, or roles.
 
-\\set ON_ERROR_STOP on
-\\pset pager off
-\\echo '===== SINAU POC — DOMAIN INTEGRITY / RLS INVENTORY (READ ONLY) ====='
+\set ON_ERROR_STOP on
+\pset pager off
+\echo '===== SINAU POC — DOMAIN INTEGRITY / RLS INVENTORY (READ ONLY) ====='
 
 DO $guard$
 DECLARE
@@ -57,7 +57,7 @@ $guard$;
 
 BEGIN READ ONLY;
 
-\\echo '===== 1. TABLE / RLS STATUS ====='
+\echo '===== 1. TABLE / RLS STATUS ====='
 
 SELECT
     c.relname AS table_name,
@@ -85,7 +85,7 @@ WHERE n.nspname = 'public'
   ]::pg_catalog.text[])
 ORDER BY c.relname;
 
-\\echo '===== 2. COLUMN / DEFAULT / NULLABILITY INVENTORY ====='
+\echo '===== 2. COLUMN / DEFAULT / NULLABILITY INVENTORY ====='
 
 SELECT
     c.relname AS table_name,
@@ -123,7 +123,7 @@ WHERE n.nspname = 'public'
   AND NOT a.attisdropped
 ORDER BY c.relname, a.attnum;
 
-\\echo '===== 3. PRIMARY / UNIQUE / FOREIGN KEY / CHECK / EXCLUSION CONSTRAINTS ====='
+\echo '===== 3. PRIMARY / UNIQUE / FOREIGN KEY / CHECK / EXCLUSION CONSTRAINTS ====='
 
 SELECT
     c.relname AS table_name,
@@ -161,7 +161,7 @@ WHERE n.nspname = 'public'
   ]::pg_catalog.text[])
 ORDER BY c.relname, con.contype, con.conname;
 
-\\echo '===== 4. NON-INTERNAL TRIGGERS AND TRIGGER FUNCTION SECURITY ====='
+\echo '===== 4. NON-INTERNAL TRIGGERS AND TRIGGER FUNCTION SECURITY ====='
 
 SELECT
     c.relname AS table_name,
@@ -203,7 +203,7 @@ WHERE n.nspname = 'public'
   AND NOT t.tgisinternal
 ORDER BY c.relname, t.tgname;
 
-\\echo '===== 5. INDEX INVENTORY ====='
+\echo '===== 5. INDEX INVENTORY ====='
 
 SELECT
     i.tablename AS table_name,
@@ -226,7 +226,7 @@ WHERE i.schemaname = 'public'
   ]::pg_catalog.text[])
 ORDER BY i.tablename, i.indexname;
 
-\\echo '===== 6. INSTALLED RLS POLICIES ====='
+\echo '===== 6. INSTALLED RLS POLICIES ====='
 
 SELECT
     p.tablename AS table_name,
@@ -255,5 +255,5 @@ ORDER BY p.tablename, p.policyname, p.cmd;
 
 ROLLBACK;
 
-\\echo '===== DOMAIN INTEGRITY INVENTORY COMPLETE — READ ONLY ====='
-\\echo 'No application rows, schema objects, grants, roles, or policies were changed.'
+\echo '===== DOMAIN INTEGRITY INVENTORY COMPLETE — READ ONLY ====='
+\echo 'No application rows, schema objects, grants, roles, or policies were changed.'

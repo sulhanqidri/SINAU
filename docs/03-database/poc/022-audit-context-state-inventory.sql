@@ -161,12 +161,15 @@ WHERE (n.nspname, tbl.relname) IN (
 ORDER BY n.nspname, tbl.relname, i.indisprimary DESC, idx.relname;
 
 \echo '===== 6. CONTEXT FUNCTIONS — METADATA ====='
-WITH expected(schema_name, function_name, identity_args) AS (
+WITH expected(
+    schema_name, function_name, argument_count,
+    argument_1_type, argument_2_type, argument_3_type
+) AS (
     VALUES
-        ('sinau_private', 'verify_context_token', 'text'),
-        ('sinau_private', 'current_verified_context', ''),
-        ('sinau_issuer_poc', 'validate_context_request', 'text, uuid, uuid'),
-        ('sinau_issuer_poc', 'has_feature_entitlement', 'uuid, text')
+        ('sinau_private', 'verify_context_token', 1, 'pg_catalog.text', NULL::pg_catalog.text, NULL::pg_catalog.text),
+        ('sinau_private', 'current_verified_context', 0, NULL::pg_catalog.text, NULL::pg_catalog.text, NULL::pg_catalog.text),
+        ('sinau_issuer_poc', 'validate_context_request', 3, 'pg_catalog.text', 'pg_catalog.uuid', 'pg_catalog.uuid'),
+        ('sinau_issuer_poc', 'has_feature_entitlement', 2, 'pg_catalog.uuid', 'pg_catalog.text', NULL::pg_catalog.text)
 )
 SELECT
     e.schema_name AS expected_schema,
@@ -187,7 +190,20 @@ LEFT JOIN pg_catalog.pg_namespace AS n
 LEFT JOIN pg_catalog.pg_proc AS p
   ON p.pronamespace = n.oid
  AND p.proname = e.function_name
- AND pg_catalog.pg_get_function_identity_arguments(p.oid) = e.identity_args
+ AND p.pronargs = e.argument_count
+ AND CASE e.argument_count
+       WHEN 0 THEN true
+       WHEN 1 THEN
+           p.proargtypes[0] = pg_catalog.to_regtype(e.argument_1_type)::pg_catalog.oid
+       WHEN 2 THEN
+           p.proargtypes[0] = pg_catalog.to_regtype(e.argument_1_type)::pg_catalog.oid
+           AND p.proargtypes[1] = pg_catalog.to_regtype(e.argument_2_type)::pg_catalog.oid
+       WHEN 3 THEN
+           p.proargtypes[0] = pg_catalog.to_regtype(e.argument_1_type)::pg_catalog.oid
+           AND p.proargtypes[1] = pg_catalog.to_regtype(e.argument_2_type)::pg_catalog.oid
+           AND p.proargtypes[2] = pg_catalog.to_regtype(e.argument_3_type)::pg_catalog.oid
+       ELSE false
+     END
 ORDER BY e.schema_name, e.function_name;
 
 \echo '===== 7. CONTEXT FUNCTION SOURCE — DEFINITIONS ONLY ====='
@@ -216,7 +232,8 @@ WITH target_roles AS (
         'sinau_poc',
         'sinau_context_owner',
         'sinau_context_issuer_poc',
-        'sinau_rls_test'
+        'sinau_rls_test',
+        'sinau_app_runtime_poc'
     )
 ),
 target_tables AS (
@@ -256,7 +273,8 @@ WITH target_roles AS (
         'sinau_poc',
         'sinau_context_owner',
         'sinau_context_issuer_poc',
-        'sinau_rls_test'
+        'sinau_rls_test',
+        'sinau_app_runtime_poc'
     )
 ),
 target_functions AS (
@@ -318,12 +336,14 @@ WHERE member_role.rolname IN (
         'sinau_poc',
         'sinau_context_owner',
         'sinau_context_issuer_poc',
-        'sinau_rls_test'
+        'sinau_rls_test',
+        'sinau_app_runtime_poc'
     )
    OR granted_role.rolname IN (
         'sinau_context_owner',
         'sinau_context_issuer_poc',
-        'sinau_rls_test'
+        'sinau_rls_test',
+        'sinau_app_runtime_poc'
     )
 ORDER BY member_role.rolname, granted_role.rolname;
 

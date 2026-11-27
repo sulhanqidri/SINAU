@@ -414,3 +414,20 @@ The focused read-only query returned the runtime role attributes: `rolsuper=fals
 The role is nevertheless a member with `SET` permission (but no `INHERIT`) for both `sinau_context_issuer_poc` and `sinau_rls_test`. Explicit `SET ROLE` remains available; `rolinherit=false` only prevents automatic privilege inheritance. Thus, the runtime login can intentionally assume both capability roles, and its lack of direct grants while unswitched is not complete capability isolation. Arbitrary SQL execution through a compromised runtime connection could use the capabilities granted to those roles. This is a trust-boundary finding, not proof of a production exploit.
 
 Before implementation, the role model must explicitly decide whether the runtime credential is trusted with the issuer and query capabilities. If not, reduce the relevant SET memberships in a separately reviewed PoC role-model change and provide a separately controlled capability path. If yes, document the trust assumption and re-audit the full privilege surface after role switching. No role, membership, grant, or other database object was changed by the focused query. The full corrected script 022 was not rerun; the one-row query independently confirms these role attributes.
+
+
+## 18. Runtime SET ROLE capability test — 2026-11-27
+
+A focused test simulated the runtime session identity from a `postgres` connection in two separate read-only transactions. With `SET LOCAL SESSION AUTHORIZATION sinau_app_runtime_poc`, both `SET LOCAL ROLE sinau_context_issuer_poc` and `SET LOCAL ROLE sinau_rls_test` succeeded.
+
+The reported identity pairs were:
+- Issuer switch: `session_user=sinau_app_runtime_poc`, `current_user=sinau_context_issuer_poc`.
+- Query switch: `session_user=sinau_app_runtime_poc`, `current_user=sinau_rls_test`.
+
+Both transactions ended with `ROLLBACK`. No role or membership was modified. This confirms the capability is operational under the simulated runtime session identity; `rolinherit=false` does not prevent explicit `SET ROLE`.
+
+**Limitation:** the connection was authenticated as `postgres`; `SET LOCAL SESSION AUTHORIZATION` simulated the runtime identity. The test does not prove that a direct network connection using the runtime credential succeeds, and it does not test password/SCRAM, `pg_hba.conf`, or application connection settings.
+
+This strengthens the threat-model finding: arbitrary SQL execution in a session operating as the runtime role can switch to either granted capability role and exercise the privileges of that role. This is not itself proof of an external exploit or production impact.
+
+Before implementation, the role model must explicitly choose whether the runtime credential is trusted with both capabilities. If not, reduce the SET memberships in a separately reviewed PoC change and provide another controlled capability path. If yes, document the trust assumption and re-audit the post-switch effective privilege surface. No verifier DDL or production change is authorized by this test. ADR-007 remains Proposed. PR #1 remains Open, Draft, and unmerged.

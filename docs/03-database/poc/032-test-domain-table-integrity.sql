@@ -380,6 +380,11 @@ BEGIN
 END
 $valid_inserts$;
 
+-- Force the initially-deferred correction -> revision FK to be checked now,
+-- rather than relying only on a rollback before commit-time validation.
+SET CONSTRAINTS correction_applied_revision_fk IMMEDIATE;
+\echo 'PASS: deferred correction/revision FK validated with SET CONSTRAINTS IMMEDIATE'
+
 \echo '===== 2. SAME-SCOPE SELECT / UPDATE / DELETE READINESS ====='
 
 DO $crud_checks$
@@ -484,7 +489,7 @@ BEGIN
     IF v_rows <> 1 THEN RAISE EXCEPTION 'attendance_corrections UPDATE failed'; END IF;
 
     UPDATE public.attendance_record_revisions
-       SET attendance_status = 'absent'
+       SET attendance_status = 'late'
      WHERE id = 'cc000000-0000-0000-0000-000000000001';
     GET DIAGNOSTICS v_rows = ROW_COUNT;
     IF v_rows <> 1 THEN RAISE EXCEPTION 'attendance_record_revisions UPDATE failed'; END IF;

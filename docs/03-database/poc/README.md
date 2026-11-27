@@ -1140,3 +1140,185 @@ Expected final evidence:
 - script prints `CONTEXT OWNER DEFAULT FUNCTION ACL FIX COMPLETE`.
 
 The only persistent effect is the context owner's global default EXECUTE policy for future functions in this database. No existing function grant is changed by script 024, and no role membership, schema, table, policy, application row, or production object is changed. Do not consider this gate passed until the script has actually been run and its complete output reviewed.
+
+
+## 28. VOLATILE SPI snapshot visibility test — 2026-11-27
+
+### Script 024 execution result — PASS
+
+The user executed `024-fix-context-owner-default-function-acl.sql` against `sinau_design_poc`.
+
+Observed:
+- Pre-fix inventory had zero stored default ACL rows for `sinau_context_owner`.
+- The global `ALTER DEFAULT PRIVILEGES FOR ROLE sinau_context_owner REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` completed and committed.
+- The stored global function ACL became `{sinau_context_owner=X/sinau_context_owner}`; PUBLIC EXECUTE was absent.
+- All four existing context functions retained their specific owner/capability-role EXECUTE grants, and all four returned `public_can_execute=false`.
+- The probe function was created by `sinau_context_owner` in a rollback-only transaction. Its ACL was `{sinau_context_owner=X/sinau_context_owner}`, with PUBLIC EXECUTE false and owner EXECUTE true.
+- The probe transaction rolled back; the final persistence query reported `probe_function_persisted=false` and `global_default_acl_persisted=true`.
+- The script ended with `CONTEXT OWNER DEFAULT FUNCTION ACL FIX COMPLETE`.
+
+**Gate closed:** the live disposable database now has a global default function ACL for `sinau_context_owner` that excludes PUBLIC EXECUTE. This does not change existing function grants, role memberships, tables, policies, or production objects. The corrected clean-install sources 005 and 010 now contain the same global revoke.
+
+### Why the next test is needed
+
+PostgreSQL 18 documents that a VOLATILE SQL/PLpgSQL function obtains a fresh snapshot for each internal query it executes, whereas STABLE/IMMUTABLE functions use the calling query's snapshot. Separately, READ COMMITTED gives each top-level command its own snapshot. References:
+- [PostgreSQL 18 Function Volatility Categories](https://www.postgresql.org/docs/18/xfunc-volatility.html)
+- [PostgreSQL 18 Visibility of Data Changes (SPI)](https://www.postgresql.org/docs/18/spi-visibility.html)
+- [PostgreSQL 18 Transaction Isolation](https://www.postgresql.org/docs/18/transaction-iso.html)
+
+That behavior means a verifier that performs multiple independent SPI SELECTs for account, session, tenant membership, unit membership, unit lifecycle, and key state could observe different committed database states during one verifier call. To avoid internally mixed authorization state, the v2 design should retrieve all authoritative authorization rows and the applicable signing-key record with **one joined SQL SELECT**, then perform signature/epoch comparisons in PL/pgSQL. A single SPI command uses one snapshot for that joined read. The existing verifier does not yet implement this.
+
+### Run the VOLATILE SPI snapshot probe
+
+Script `025-test-volatile-snapshot-freshness.sql` is a two-connection experiment. Connection A creates a temporary `SECURITY DEFINER VOLATILE` probe function inside its own transaction. The function:
+1. reads the synthetic identity status (`active`);
+2. acquires a transaction-level advisory lock with key `(42424, 52525)` to signal Connection B;
+3. sleeps for 60 seconds;
+4. executes a second internal SELECT against the same synthetic identity row;
+5. expects to return `active|disabled` after Connection B commits the change during the sleep.
+
+The probe function is created after the global default ACL fix; it should not grant EXECUTE to PUBLIC. The function and all A-side DDL are rolled back when the test ends. Connection B performs one exact synthetic-row update that must be restored after A rolls back.
+
+Download and stage the script:
+
+```bash
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/93a13100f93c2df65ba20479db98716086e3aafe/docs/03-database/poc/025-test-volatile-snapshot-freshness.sql' \
+  -o /run/025-test-volatile-snapshot-freshness.sql
+
+sudo chown postgres:postgres /run/025-test-volatile-snapshot-freshness.sql
+sudo chmod 600 /run/025-test-volatile-snapshot-freshness.sql
+```
+
+#### Connection A — start the probe
+
+Run in terminal A. It blocks for up to 60 seconds during the probe:
+
+```bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/025-test-volatile-snapshot-freshness.sql
+```
+
+When it prints `PROBE RUNNING`, immediately execute the following block in terminal B. Do not wait for A to finish.
+
+#### Connection B — wait for A's advisory lock, revoke, and commit
+
+```bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc <<'SQL'
+BEGIN;
+
+DO $revoke$
+DECLARE
+    v_seen pg_catalog.bool := false;
+    v_rows pg_catalog.int4;
+    i pg_catalog.int4;
+BEGIN
+    FOR i IN 1..400 LOOP
+        SELECT EXISTS (
+            SELECT 1
+            FROM pg_catalog.pg_locks
+            WHERE locktype = 'advisory'
+              AND classid = 42424::pg_catalog.oid
+              AND objid = 52525::pg_catalog.oid
+              AND objsubid = 2
+              AND granted
+              AND pid <> pg_catalog.pg_backend_pid()
+        )
+        INTO v_seen;
+
+        EXIT WHEN v_seen;
+        PERFORM pg_catalog.pg_sleep(0.1::pg_catalog.float8);
+    END LOOP;
+
+    IF NOT v_seen THEN
+        RAISE EXCEPTION
+            'TIMEOUT: Connection A did not expose the expected advisory lock';
+    END IF;
+
+    UPDATE sinau_issuer_poc.poc_identities
+       SET account_status = 'disabled'
+     WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+       AND account_status = 'active';
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION
+            'Expected exactly one active synthetic identity, updated %',
+            v_rows;
+    END IF;
+
+    RAISE NOTICE
+        'PASS: observed Connection A probe lock and changed exactly one synthetic identity';
+END
+$revoke$;
+
+COMMIT;
+SQL
+```
+
+Expected Connection A result:
+
+```text
+VOLATILE SPI status sequence: active|disabled
+PASS: VOLATILE internal SELECT after the concurrent COMMIT observed the new READ COMMITTED state
+SESSION A ROLLED BACK — TEMPORARY PROBE FUNCTION REMOVED
+```
+
+#### Mandatory restoration after Connection A finishes
+
+Run in terminal B even if the probe reports a failure, provided the disable transaction committed:
+
+```bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc <<'SQL'
+BEGIN;
+
+DO $restore$
+DECLARE
+    v_rows pg_catalog.int4;
+BEGIN
+    UPDATE sinau_issuer_poc.poc_identities
+       SET account_status = 'active'
+     WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+       AND account_status = 'disabled';
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+
+    IF v_rows <> 1 THEN
+        RAISE EXCEPTION
+            'Expected exactly one disabled synthetic identity for restoration, updated %',
+            v_rows;
+    END IF;
+
+    RAISE NOTICE 'PASS: restored exactly one synthetic identity to active';
+END
+$restore$;
+
+COMMIT;
+
+BEGIN READ ONLY;
+
+SELECT
+    pg_catalog.count(*) AS matching_rows,
+    pg_catalog.count(*) FILTER (
+        WHERE account_status = 'active'
+    ) AS active_rows,
+    pg_catalog.count(*) FILTER (
+        WHERE account_status = 'disabled'
+    ) AS disabled_rows
+FROM sinau_issuer_poc.poc_identities
+WHERE actor_id = '91000000-0000-0000-0000-000000000001';
+
+ROLLBACK;
+SQL
+```
+
+Expected final audit: `matching_rows=1`, `active_rows=1`, `disabled_rows=0`.
+
+If Connection B times out before the update, it rolls back without changing the row. Connection A will not report the expected sequence; stop and inspect, but do not run a blind restore. If Connection A fails after Connection B commits the revocation, restore the exact row before doing any other test.
+
+**Interpretation:** `active|disabled` proves the second internal SQL query of a VOLATILE function saw a commit made after the first internal query in the same top-level statement. It does not prove that RLS currently rechecks membership; the installed verifier v1 still does not consult these state tables. It also does not guarantee that a statement is forcibly cancelled by a revocation occurring after its authorization check.
+
+**Next design consequence:** implement v2 authoritative state retrieval in one joined SPI SELECT so account, exact session, tenant membership, unit membership/unit state, and signing-key status are evaluated from one coherent snapshot. Then test revoke-before-statement, revoke-during-check, and revoke-after-check boundaries through actual RLS policies. Do not add epochs or change verifier code until the probe result is recorded and the complete v2 token/epoch contract has been reviewed.

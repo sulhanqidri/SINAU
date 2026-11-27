@@ -1,7 +1,7 @@
 # SINAU — Project Progress & Handoff Tracker
 
 **Versi tracker:** 1.0  
-**Tanggal checkpoint:** 2026-11-18  
+**Tanggal checkpoint:** 2026-11-27  
 **Status proyek:** Perencanaan dan validasi fondasi; belum memasuki implementasi aplikasi  
 **Repository:** `sulhanqidri/SINAU`  
 **Branch kerja dokumentasi:** `feature/phase-0-requirements-blueprint`  
@@ -17,7 +17,7 @@
 | Product discovery dan requirement baseline | 🟡 In progress | Baseline MVP disetujui 2026-11-18; validasi stakeholder/praktisi dan requirement rinci tetap berjalan |
 | Master blueprint dan katalog dokumen | 🟡 In progress | Master blueprint, katalog kelengkapan, dan peta proses bisnis memiliki baseline draft; belum tervalidasi/diterima |
 | Arsitektur aplikasi | 🟡 In progress | Modular monolith adalah baseline; stack aplikasi masih rekomendasi PoC |
-| Tenant dan authorization | 🟡 In progress | Model baseline dan ADR ada; implementasi serta pembuktian keamanan belum dilakukan |
+| Tenant dan authorization | 🟡 In progress | Script 034/035 passed untuk permission dan visibilitas education_units pada PoC; exact session binding, revocation freshness, kelas tabel RLS lain, dan integrasi aplikasi masih terbuka |
 | Database PostgreSQL 18 | 🟡 In progress | Engine diputuskan; logical ERD dan data dictionary MVP draft tersedia; review dan PoC menyeluruh belum lulus |
 | Design system dan UX | 🟡 In progress | Prinsip dan inventory awal ada; prototipe dan tokens final belum disahkan |
 | Aplikasi Laravel/Vue | ⚪ Not started | Belum ada kode aplikasi atau migration domain produksi |
@@ -60,6 +60,7 @@ Legenda: 🟢 Done (bukti tersedia dan acceptance terpenuhi) · 🟡 In progress
 - [x] Smoke test constraint relasional berhasil: FK tenant, composite FK, update scope, unique per tenant, membership, delete restriction, dan rollback.
 - [ ] Jalankan PoC lengkap dan simpan hasil/bukti.
 - [ ] Uji authorization/IDOR, RLS defense-in-depth, raw SQL, concurrency entitlement, query plan/benchmark, serta backup/restore/PITR.
+- Catatan bukti parsial: Script 034 (issuer-side explicit permission) dan Script 035 (query-side education_units RLS candidate) telah PASS pada `sinau_design_poc`; hasilnya belum menutup seluruh gerbang RLS/authorization.
 - [ ] Review hasil PoC dan tandai gerbang database diterima secara eksplisit.
 
 ### Server SINAU
@@ -1374,3 +1375,27 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - **First server attempt stopped safely at preflight.** The earlier Script 010 unit-member session has a one-day expiry; by the time Script 035 was first run, the active session row was no longer unexpired. All earlier public/private unit-catalogue and unit-membership preflight checks had passed, so the remaining condition was the stale session. The failure occurred before `BEGIN ISOLATION LEVEL READ COMMITTED`; no policy, schema, fixture, or database row was changed. Script 035 has been updated to insert a dedicated synthetic active session inside the test transaction, lock its source tables, and assert the new session is absent after ROLLBACK. Its four-call verifier counter is checked immediately after the SELECT visibility probes and before UPDATE/DELETE denial probes. **The corrected Script 035 has not yet been executed.** No permanent RLS policy, verifier, token format, production role, app migration, or production schema was changed by this preparation.
 - Script 033 remains PASS on XID 970 and script 034 is PASS. ADR-003 and ADR-007 remain Proposed. PR #1 remains Draft/open/unmerged.
 - No production database `sinau`, role `sinau_app`, SQLRadius, MikroTik, or production service was accessed or modified.
+
+
+### Script 035 education_units query-side RLS passed — 2026-11-27
+
+- User menjalankan commit `9211a42b3925f9f3fccbe96c5b6df63b94473328`, file `docs/03-database/poc/035-test-education-units-rls-permission.sql`, terhadap database disposable `sinau_design_poc` sebagai PostgreSQL administrator.
+- Preflight passed. Script membuat fixture role/permission tenant sementara dan helper `SECURITY DEFINER` yang hanya dapat dieksekusi oleh query role; query role tidak mendapat akses langsung ke tabel sumber permission.
+- EU-RLS-01 PASS: konteks anggota unit A1 hanya melihat A1; A2 dan B1 tenant lain tersembunyi.
+- EU-RLS-02 PASS: konteks tenant-only tanpa `education_units.list_all` melihat nol baris.
+- EU-RLS-03 PASS: administrator dengan permission eksplisit melihat A1/A2 tetapi tidak B1 tenant lain.
+- EU-RLS-04 PASS: malformed context melihat nol baris.
+- Empat protected SELECT menyebabkan tepat empat pemanggilan verifier—satu per statement.
+- EU-RLS-05/06/07 PASS: kandidat policy SELECT-only tidak memberi hak INSERT, UPDATE, atau DELETE.
+- Script menjalankan `ROLLBACK`; postflight memastikan definisi policy asli `education_units` pulih persis dan schema/function/fixture/session sementara terhapus. Completion marker final tercetak.
+- **Kesimpulan:** query-side PoC untuk aturan visibilitas education-unit lulus. Dikombinasikan dengan Script 034, sisi issuer permission dan sisi query RLS telah diuji secara terpisah. Ini bukan persetujuan atas schema fisik, policy permanen, role produksi, atau migration aplikasi.
+- Batas yang masih terbuka: token v1 tidak mengikat token ke satu session ID; Script 035 hanya memeriksa adanya session aktif untuk actor. Script ini belum menguji revocation `education_units.list_all` setelah token diterbitkan, cross-connection statement freshness, sumber unit-state produksi tanpa RLS recursion, atau integrasi Laravel/Fortify.
+- Tidak ada perubahan permanen pada database `sinau_design_poc` dari Script 035. Tidak ada akses/perubahan pada database produksi `sinau`, role `sinau_app`, SQLRadius, MikroTik, ataupun layanan produksi.
+
+**Next action — security gate berikutnya:**
+1. Tetapkan kontrak exact authentication-session binding pada context token/verified context; actor yang memiliki beberapa session harus dapat dibedakan tanpa mempercayai session ID dari client.
+2. Definisikan sumber otoritatif untuk status account, session, tenant/unit membership, role assignment, dan permission. Pastikan perubahan committed terdeteksi oleh protected statement berikutnya pada READ COMMITTED.
+3. Siapkan probe rollback-only untuk mencabut `education_units.list_all` setelah token diterbitkan, kemudian pastikan SELECT berikutnya ditolak; uji juga race/statement boundary dan biaya query.
+4. Setelah itu lanjutkan desain kebijakan `audit_events` nullable-scope dan matriks RLS per kelas tabel. Jangan mengubah policy permanen atau membuat migration domain produksi sebelum semua gate ditinjau dan disetujui.
+
+PR #1 tetap Draft, Open, dan belum merged. Tidak ada persetujuan untuk merge atau implementasi produksi.

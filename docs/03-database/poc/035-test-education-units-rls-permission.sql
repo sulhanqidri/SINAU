@@ -22,6 +22,7 @@
 DO $preflight$
 DECLARE
     v_policy_count pg_catalog.int8;
+    v_total_policies pg_catalog.int8;
     v_tenant_a_units pg_catalog.int8;
     v_tenant_b_units pg_catalog.int8;
 BEGIN
@@ -99,6 +100,18 @@ BEGIN
         RAISE EXCEPTION
             'Expected exactly one original ALL policy for sinau_rls_test; found %',
             v_policy_count;
+    END IF;
+
+    SELECT pg_catalog.count(*)
+      INTO v_total_policies
+      FROM pg_catalog.pg_policies
+     WHERE schemaname = 'public'
+       AND tablename = 'education_units';
+
+    IF v_total_policies <> 1 THEN
+        RAISE EXCEPTION
+            'Expected one total education_units policy before probe; found %',
+            v_total_policies;
     END IF;
 
     IF NOT EXISTS (
@@ -224,8 +237,7 @@ SELECT
     with_check
 FROM pg_catalog.pg_policies
 WHERE schemaname = 'public'
-  AND tablename = 'education_units'
-  AND policyname = 'sinau_rls_isolation';
+  AND tablename = 'education_units';
 
 DO $policy_snapshot_guard$
 BEGIN
@@ -996,7 +1008,6 @@ BEGIN
               FROM pg_catalog.pg_policies
               WHERE schemaname = 'public'
                 AND tablename = 'education_units'
-                AND policyname = 'sinau_rls_isolation'
               EXCEPT
               SELECT
                   schemaname, tablename, policyname,
@@ -1016,7 +1027,6 @@ BEGIN
               FROM pg_catalog.pg_policies
               WHERE schemaname = 'public'
                 AND tablename = 'education_units'
-                AND policyname = 'sinau_rls_isolation'
           )
       ) AS differences;
 

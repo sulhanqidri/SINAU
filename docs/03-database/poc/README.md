@@ -1647,6 +1647,10 @@ Script `031-audit-domain-integrity-matrix.sql` inventories the eleven tenant+uni
 
 It reads PostgreSQL catalog metadata only: columns and defaults, nullability, primary/unique/foreign-key/check/exclusion constraints, deferrability and validation, non-internal trigger definitions and trigger-function security settings, indexes, and installed RLS policies. It does not read application rows, create temp objects, or alter any database object, role, grant, policy, or setting. The script has a strict database/role guard and runs in a READ ONLY transaction.
 
+**Execution result (2026-11-27): PASS.** All 11 target tables were found; each has RLS ENABLE and FORCE, and all 11 have the expected `sinau_rls_isolation` policy. The inventory reported 27 indexes and two enabled non-internal temporal triggers: `assessment_participant_temporal_check` and `attendance_participant_temporal_check`. Both trigger functions are SECURITY INVOKER, VOLATILE, PARALLEL UNSAFE, with `search_path=pg_catalog, pg_temp`; their temporary-shadow and negative temporal behavior already passed script 017 on 2026-11-26. The full metadata output included 130 constraint/catalog rows. No application rows were read or changed; the script ended with ROLLBACK and its read-only completion marker.
+
+The inventory confirms the remaining domain-level regression targets: composite FK chains for class/enrollment/placement/attendance/assessment, the no-overlapping-placement exclusion, score/result and finalization checks, correction idempotency, revision numbering, and the initially deferred correction-to-revision FK.
+
 Download and execute on the disposable PoC only:
 
 ~~~bash

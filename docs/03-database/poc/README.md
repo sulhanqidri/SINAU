@@ -1500,3 +1500,38 @@ Next inspect every RLS-protected table and classify it as tenant-only, tenant+un
 
 
 This candidate is not yet adopted. First test it, inspect its plan and actual count, and verify fail-closed behavior with malformed/expired tokens and cross-tenant/unit rows. This script covers only `academic_years`; it does not settle the null-unit exception for `audit_events`, tenant-only tables, or write policy semantics across every table. Do not modify persistent script 007 or install this candidate policy outside the disposable rollback-only probe.
+
+## 31. Read-only RLS table/policy matrix inventory
+
+Script `028-audit-rls-policy-table-matrix.sql` is a read-only catalog audit to enumerate every public ordinary/partitioned table that has `tenant_id`, `unit_id`, or RLS enabled. It classifies scope columns and nullability, reports ENABLE/FORCE RLS, lists the exact installed policy expressions and commands, and flags scoped tables without both ENABLE and FORCE or RLS tables without policies.
+
+It also prints focused details for `tenants`, `education_units`, and `audit_events`. These distinctions are required before generalizing the one-row context candidate:
+- `tenants` is the global registry and intentionally remains outside tenant RLS in the current PoC.
+- `education_units` is tenant-scoped, not unit-scoped.
+- `audit_events` allows a tenant-level row with `unit_id IS NULL`; preserve that behavior explicitly.
+
+Script 028 uses a READ ONLY transaction and a database/superuser guard. It performs no persistent changes.
+
+Download and run:
+
+~~~bash
+set -e
+
+AUDIT_COMMIT='dd1dacb269d660b8e00e7274d2419ea9f6af7fa3'
+
+curl -fL \
+  "https://raw.githubusercontent.com/sulhanqidri/SINAU/$AUDIT_COMMIT/docs/03-database/poc/028-audit-rls-policy-table-matrix.sql" \
+  -o "$HOME/028-audit-rls-policy-table-matrix.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/028-audit-rls-policy-table-matrix.sql" \
+  /run/028-audit-rls-policy-table-matrix.sql
+
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/028-audit-rls-policy-table-matrix.sql
+~~~
+
+Review all five output sections, especially scope class/nullability, exact USING/WITH CHECK expressions, scoped tables not ENABLE/FORCE, and special-table behavior. The script ends with ROLLBACK and an explicit read-only completion marker.
+
+**Gate:** do not change persistent script 007 until the complete inventory is reviewed and a per-class SELECT/INSERT/UPDATE/DELETE matrix is designed. The `academic_years` composite policy probe is validated only for that table and does not prove the candidate is appropriate for tenant-only or nullable-unit policies.

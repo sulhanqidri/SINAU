@@ -562,3 +562,12 @@ Script 027 passed for `public.academic_years`: one InitPlan/Function Scan return
 Script 028 now provides a read-only inventory of every public table with tenant/unit scope columns or RLS enabled. It reports column nullability, ENABLE/FORCE status, exact policies and special handling for the global tenant registry, tenant-scoped education units, and nullable-unit audit events. The script has not yet been executed.
 
 The one-row candidate remains validated only for the ordinary tenant+unit `academic_years` case. No permanent policy change is authorized. Review script 028 output before defining the complete SELECT/INSERT/UPDATE/DELETE policy matrix and before any verifier-v2 DDL.
+
+
+## 27. RLS policy inventory; audit_events null scope remains open — 2026-11-27
+
+Script 028 completed as a read-only catalog inventory. Fourteen public tables had tenant/unit columns: one tenant-only table (`education_units`), twelve tenant+unit tables with both columns NOT NULL, and one nullable-scope table (`audit_events`). All fourteen scoped tables had RLS ENABLE and FORCE; none was missing a policy. Each installed isolation policy was PERMISSIVE, for `sinau_rls_test`, command ALL with USING and WITH CHECK. The global `tenants` registry remains outside this scope inventory and RLS.
+
+The `audit_events` result requires special care: both `tenant_id` and `unit_id` are nullable. The schema check `CHECK (unit_id IS NULL OR tenant_id IS NOT NULL)` forbids a unit without a tenant but allows both values NULL. The current policy's tenant equality excludes both-NULL rows from normal tenant context. Whether such rows are intended to be globally readable is unresolved; do not widen the policy implicitly.
+
+Script 029 is prepared as a read-only aggregate count of audit-event rows by scope nullability and actor type. It has not yet run. The next gate is to establish whether both-NULL events exist and define the permitted access model, then design/test policy expressions by table class and command. The 027 row-valued candidate remains limited to ordinary tenant+unit `academic_years`.

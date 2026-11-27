@@ -314,7 +314,8 @@ WHERE rolname IN (
     'sinau_poc',
     'sinau_context_owner',
     'sinau_context_issuer_poc',
-    'sinau_rls_test'
+    'sinau_rls_test',
+    'sinau_app_runtime_poc'
 )
 ORDER BY rolname;
 

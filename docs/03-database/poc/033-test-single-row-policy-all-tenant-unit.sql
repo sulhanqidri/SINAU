@@ -120,6 +120,13 @@ BEGIN
             v_identity_count;
     END IF;
 
+    IF pg_catalog.to_regprocedure(
+        'sinau_private.verify_context_token(text)'
+    ) IS NULL THEN
+        RAISE EXCEPTION
+            'SAFETY STOP: signed-context verifier function is missing';
+    END IF;
+
     IF NOT EXISTS (
         SELECT 1
         FROM public.tenants AS t
@@ -628,7 +635,7 @@ BEGIN
             true
         )::pg_catalog.int8;
 
-        IF v_rows <> 1 THEN
+        IF v_rows IS DISTINCT FROM 1 THEN
             RAISE EXCEPTION
                 'FAIL candidate policy SELECT on %: expected one own row, got %',
                 v_table, v_rows;
@@ -645,9 +652,14 @@ BEGIN
     WHERE p.oid =
         'sinau_private.verify_context_token(text)'::pg_catalog.regprocedure;
 
+    IF v_before IS NULL THEN
+        RAISE EXCEPTION
+            'FAIL candidate verifier count: baseline row is missing';
+    END IF;
+
     v_calls := v_after - v_before;
 
-    IF v_calls <> 12 THEN
+    IF v_calls IS DISTINCT FROM 12 THEN
         RAISE EXCEPTION
             'FAIL candidate verifier count: expected exactly 12 calls for 12 separate protected SELECTs, got %',
             v_calls;

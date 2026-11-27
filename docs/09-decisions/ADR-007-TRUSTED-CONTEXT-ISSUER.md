@@ -544,3 +544,12 @@ Script 026 was executed successfully with a valid synthetic token for XID 957. T
 This is now a measured behavior: **one protected SELECT triggers two verifier calls** under the existing policy. With a v2 verifier performing live authorization checks, those calls may consult authoritative state using different internal VOLATILE/SPI snapshots. A single coherent scope record is required for both comparisons.
 
 Script 027 has been prepared to temporarily replace the `academic_years` policy inside a transaction with a row-valued single-subquery comparison, `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`. It will inspect EXPLAIN, execute one protected SELECT, measure the actual verifier count, and ROLLBACK to restore the installed policy. It has not yet run. This candidate is not yet approved for other table classes, especially tenant-only tables and `audit_events` with nullable `unit_id`. Do not alter persistent script 007 until the test and full RLS policy matrix pass.
+
+
+## 25. Composite row-context policy measured once — 2026-11-27
+
+Script 027 passed on `sinau_design_poc` for `public.academic_years`. The transaction temporarily replaced the original two-subquery policy with `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`.
+
+EXPLAIN produced one InitPlan/Function Scan whose output contained both context fields; the protected SELECT returned one row; and the transaction-local counter reported exactly one verifier call (`2.623 ms`). The expected PASS notice appeared. ROLLBACK restored the original two-subquery policy, confirmed by the post-rollback `pg_policies` output.
+
+This validates the composite row-comparison candidate for the ordinary tenant+unit shape on `academic_years` only. It does not approve persistent installation or application to all tables. The next gate is a policy matrix covering tenant-only tables, `audit_events` with nullable `unit_id`, read/write operations, malformed/expired tokens, and cross-scope denial. Script 007 remains unchanged until that matrix passes.

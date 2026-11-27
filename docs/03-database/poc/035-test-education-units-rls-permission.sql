@@ -101,12 +101,14 @@ BEGIN
             v_policy_count;
     END IF;
 
-    IF NOT (
-        SELECT c.relrowsecurity AND c.relforcerowsecurity
+    IF NOT EXISTS (
+        SELECT 1
         FROM pg_catalog.pg_class AS c
         JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
         WHERE n.nspname = 'public'
           AND c.relname = 'education_units'
+          AND c.relrowsecurity
+          AND c.relforcerowsecurity
     ) THEN
         RAISE EXCEPTION
             'education_units must already have RLS ENABLE and FORCE';
@@ -184,6 +186,25 @@ BEGIN
             'Expected active synthetic A1 unit-member fixture is missing';
     END IF;
 
+    IF NOT EXISTS (
+        SELECT 1
+        FROM sinau_issuer_poc.poc_units
+        WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
+          AND unit_id = '10000000-0000-0000-0000-000000000001'
+          AND unit_status = 'active'
+    ) OR NOT EXISTS (
+        SELECT 1
+        FROM sinau_issuer_poc.poc_auth_sessions
+        WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+          AND session_status = 'active'
+          AND authenticated_at <= pg_catalog.clock_timestamp()
+          AND expires_at > pg_catalog.clock_timestamp()
+          AND revoked_at IS NULL
+    ) THEN
+        RAISE EXCEPTION
+            'Active synthetic unit catalogue/session state for actor 910...001 is missing';
+    END IF;
+
     RAISE NOTICE
         'PASS preflight: database, verifier, roles, original RLS policy, public unit fixtures, and signing key';
 END
@@ -219,6 +240,8 @@ BEGIN ISOLATION LEVEL READ COMMITTED;
 
 LOCK TABLE public.education_units
     IN ACCESS EXCLUSIVE MODE;
+
+SET LOCAL track_functions = 'pl';
 
 \echo '===== 1. CREATE ROLLBACK-ONLY TENANT ROLE/PERMISSION FIXTURES ====='
 

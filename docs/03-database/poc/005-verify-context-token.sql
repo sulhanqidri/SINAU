@@ -163,9 +163,11 @@ GRANT USAGE ON SCHEMA sinau_private TO sinau_rls_test;
 GRANT EXECUTE ON FUNCTION sinau_private.verify_context_token(pg_catalog.text)
     TO sinau_rls_test;
 
+-- Revoke the built-in global default EXECUTE grant for every future
+-- function created by sinau_context_owner. A schema-scoped REVOKE cannot
+-- remove PostgreSQL's global default PUBLIC EXECUTE privilege.
 ALTER DEFAULT PRIVILEGES
     FOR ROLE sinau_context_owner
-    IN SCHEMA sinau_private
     REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 
 COMMIT;

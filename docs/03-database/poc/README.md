@@ -457,8 +457,8 @@ Each negative case must raise the exact expected trigger message. A foreign-key 
 Download the SQL file from the exact commit SHA reported with this update (avoid a potentially stale cached branch URL), then run it only against the dedicated PoC database:
 
 \`\`\`bash
-# Replace VERIFIED_COMMIT_SHA with the commit SHA accompanying this script update.
-curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/VERIFIED_COMMIT_SHA/docs/03-database/poc/017-test-hardened-participant-triggers.sql' \
+# Replace 50b8e6555b5e3c5074c016d796cf4f9176e21da6 with the commit SHA accompanying this script update.
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/50b8e6555b5e3c5074c016d796cf4f9176e21da6/docs/03-database/poc/017-test-hardened-participant-triggers.sql' \
   -o /run/017-test-hardened-participant-triggers.sql
 
 sudo chown postgres:postgres /run/017-test-hardened-participant-triggers.sql
@@ -497,8 +497,8 @@ Script \`018-audit-authorization-freshness.sql\` is the next read-only inspectio
 Run only against \`sinau_design_poc\` as PostgreSQL administrator:
 
 \`\`\`bash
-# Replace VERIFIED_COMMIT_SHA with the commit SHA containing script 018.
-curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/VERIFIED_COMMIT_SHA/docs/03-database/poc/018-audit-authorization-freshness.sql' \
+# Replace 50b8e6555b5e3c5074c016d796cf4f9176e21da6 with the commit SHA containing script 018.
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/50b8e6555b5e3c5074c016d796cf4f9176e21da6/docs/03-database/poc/018-audit-authorization-freshness.sql' \
   -o /run/018-audit-authorization-freshness.sql
 
 sudo chown postgres:postgres /run/018-audit-authorization-freshness.sql
@@ -814,7 +814,7 @@ Script `022-audit-context-state-inventory.sql` inventories the installed authori
 Run on the SINAU PoC host:
 
 ```bash
-curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/VERIFIED_COMMIT_SHA/docs/03-database/poc/022-audit-context-state-inventory.sql' \
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/50b8e6555b5e3c5074c016d796cf4f9176e21da6/docs/03-database/poc/022-audit-context-state-inventory.sql' \
   -o /run/022-audit-context-state-inventory.sql
 
 sudo chown postgres:postgres /run/022-audit-context-state-inventory.sql
@@ -825,6 +825,6 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
   -f /run/022-audit-context-state-inventory.sql
 ```
 
-Replace `VERIFIED_COMMIT_SHA` with the commit containing this script. Preserve the output for review, but redact hostnames or other environment details if sharing publicly. The output is an inventory, not a pass/fail approval. In particular, catalog-recorded `pg_depend` entries may omit table references inside PL/pgSQL function bodies; review the displayed function definitions as well.
+Replace `50b8e6555b5e3c5074c016d796cf4f9176e21da6` with the commit containing this script. Preserve the output for review, but redact hostnames or other environment details if sharing publicly. The output is an inventory, not a pass/fail approval. In particular, catalog-recorded `pg_depend` entries may omit table references inside PL/pgSQL function bodies; review the displayed function definitions as well.
 
 The inventory must be checked against the live PoC host before proposing any DDL. Do not assume the repository's original fixture DDL exactly matches the installed database. PR #1 remains Open/Draft/unmerged; no verifier implementation is authorized by this audit.

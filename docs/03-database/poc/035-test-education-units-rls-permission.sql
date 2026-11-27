@@ -184,6 +184,24 @@ BEGIN
             'Expected public education_units fixtures tenant-A=2/tenant-B=1 are not present';
     END IF;
 
+    SELECT
+        pg_catalog.count(*) FILTER (
+            WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
+              AND unit_status = 'active'
+        ),
+        pg_catalog.count(*) FILTER (
+            WHERE tenant_id = '00000000-0000-0000-0000-000000000002'
+              AND unit_status = 'active'
+        )
+      INTO v_tenant_a_units, v_tenant_b_units
+      FROM sinau_issuer_poc.poc_units;
+
+    IF v_tenant_a_units <> 2 OR v_tenant_b_units <> 1 THEN
+        RAISE EXCEPTION
+            'Expected private synthetic unit catalogue active counts tenant-A=2/tenant-B=1; found %/%',
+            v_tenant_a_units, v_tenant_b_units;
+    END IF;
+
     IF NOT EXISTS (
         SELECT 1
         FROM sinau_issuer_poc.poc_unit_memberships
@@ -460,6 +478,9 @@ AS $unit_scope$
              OR tm.valid_until > pg_catalog.clock_timestamp()
          )
          AND tm.revoked_at IS NULL
+        -- v1 has no session identifier. This test can confirm that the actor
+        -- currently has an active session, but cannot bind/revoke this exact
+        -- token against one of several concurrent sessions.
         WHERE EXISTS (
             SELECT 1
             FROM sinau_issuer_poc.poc_auth_sessions AS s
@@ -472,10 +493,10 @@ AS $unit_scope$
     ),
     unit_member_scope AS (
         SELECT
-            at.tenant_id,
-            ARRAY[at.unit_id]::pg_catalog.uuid[] AS allowed_unit_ids
-        FROM active_tenant AS at
-        WHERE at.unit_id IS NOT NULL
+            tenant_ctx.tenant_id,
+            ARRAY[tenant_ctx.unit_id]::pg_catalog.uuid[] AS allowed_unit_ids
+        FROM active_tenant AS tenant_ctx
+        WHERE tenant_ctx.unit_id IS NOT NULL
           AND EXISTS (
               SELECT 1
               FROM sinau_issuer_poc.poc_unit_memberships AS um
@@ -483,9 +504,9 @@ AS $unit_scope$
                 ON pu.tenant_id = um.tenant_id
                AND pu.unit_id = um.unit_id
                AND pu.unit_status = 'active'
-              WHERE um.actor_id = at.actor_id
-                AND um.tenant_id = at.tenant_id
-                AND um.unit_id = at.unit_id
+              WHERE um.actor_id = tenant_ctx.actor_id
+                AND um.tenant_id = tenant_ctx.tenant_id
+                AND um.unit_id = tenant_ctx.unit_id
                 AND um.membership_status = 'active'
                 AND um.valid_from <= pg_catalog.clock_timestamp()
                 AND (
@@ -497,16 +518,16 @@ AS $unit_scope$
     ),
     tenant_admin_scope AS (
         SELECT
-            at.tenant_id,
+            tenant_ctx.tenant_id,
             ARRAY(
                 SELECT pu.unit_id
                 FROM sinau_issuer_poc.poc_units AS pu
-                WHERE pu.tenant_id = at.tenant_id
+                WHERE pu.tenant_id = tenant_ctx.tenant_id
                   AND pu.unit_status = 'active'
                 ORDER BY pu.unit_id
             )::pg_catalog.uuid[] AS allowed_unit_ids
-        FROM active_tenant AS at
-        WHERE at.unit_id IS NULL
+        FROM active_tenant AS tenant_ctx
+        WHERE tenant_ctx.unit_id IS NULL
           AND EXISTS (
               SELECT 1
               FROM sinau_education_units_query_poc.poc_tenant_membership_roles AS mr
@@ -516,8 +537,8 @@ AS $unit_scope$
                 ON rp.role_code = r.role_code
               JOIN sinau_education_units_query_poc.poc_permissions AS p
                 ON p.permission_code = rp.permission_code
-              WHERE mr.actor_id = at.actor_id
-                AND mr.tenant_id = at.tenant_id
+              WHERE mr.actor_id = tenant_ctx.actor_id
+                AND mr.tenant_id = tenant_ctx.tenant_id
                 AND mr.assignment_status = 'active'
                 AND mr.valid_from <= pg_catalog.clock_timestamp()
                 AND (

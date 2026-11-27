@@ -483,7 +483,7 @@ BEGIN
     IF v_rows <> 1 THEN RAISE EXCEPTION 'student_scores UPDATE failed'; END IF;
 
     UPDATE public.attendance_corrections
-       SET review_status = 'approved'
+       SET review_status = 'applied'
      WHERE id = 'bc000000-0000-0000-0000-000000000001';
     GET DIAGNOSTICS v_rows = ROW_COUNT;
     IF v_rows <> 1 THEN RAISE EXCEPTION 'attendance_corrections UPDATE failed'; END IF;

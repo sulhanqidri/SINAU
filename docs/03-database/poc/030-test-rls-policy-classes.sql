@@ -83,6 +83,8 @@ BEGIN
                AND id = '10000000-0000-0000-0000-000000000090')
            OR (tenant_id = '00000000-0000-0000-0000-000000000002'
                AND id = '20000000-0000-0000-0000-000000000090')
+           OR (tenant_id = '00000000-0000-0000-0000-000000000001'
+               AND code IN ('unit-a-rls-030', 'unit-a-rls-030-updated'))
     ) OR EXISTS (
         SELECT 1 FROM public.academic_years
         WHERE (tenant_id = '00000000-0000-0000-0000-000000000001'

@@ -1480,4 +1480,23 @@ rm -f /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ```
 
+### Script 027 execution result — PASS
+
+The user executed script 027 using a transaction-bound synthetic token for XID 958.
+
+Observed:
+- The temporary candidate policy used one row-valued subquery returning both `ctx.tenant_id` and `ctx.unit_id`.
+- EXPLAIN showed one InitPlan and one Function Scan on `current_verified_context()`; the index condition used both columns from the same InitPlan (`col1` and `col2`).
+- The protected SELECT returned exactly one row.
+- `pg_stat_xact_user_functions` recorded exactly one call to `sinau_private.verify_context_token(text)` (`total_time_ms=2.623`, `self_time_ms=2.623`).
+- The script reported `PASS: composite row comparison returned one row with exactly one verifier call`.
+- ROLLBACK restored the original installed policy; the post-rollback `pg_policies` output again showed the two original scalar subqueries for tenant and unit.
+
+**Conclusion:** for `academic_years`, the candidate reduces the verifier calls per protected SELECT from two to one while preserving the observed visible-row count. This result supports the candidate shape but does not approve permanent adoption or generalization to other table classes.
+
+### Remaining policy matrix before changing script 007
+
+Next inspect every RLS-protected table and classify it as tenant-only, tenant+unit, or special nullable-unit (`audit_events`). For each class, verify SELECT, INSERT, UPDATE, and DELETE behavior; malformed/expired token fail-closed behavior; and cross-tenant/cross-unit scope enforcement. The candidate must use one coherent verified-context row per policy check. Do not replace persistent script 007 yet.
+
+
 This candidate is not yet adopted. First test it, inspect its plan and actual count, and verify fail-closed behavior with malformed/expired tokens and cross-tenant/unit rows. This script covers only `academic_years`; it does not settle the null-unit exception for `audit_events`, tenant-only tables, or write policy semantics across every table. Do not modify persistent script 007 or install this candidate policy outside the disposable rollback-only probe.

@@ -4,9 +4,9 @@
 -- This script reads PostgreSQL catalogs only; it does not read fixture rows,
 -- token values, session hashes, key bytes, credentials, or application data.
 
-\\set ON_ERROR_STOP on
-\\pset pager off
-\\echo '===== SINAU POC — READ-ONLY CONTEXT STATE INVENTORY ====='
+\set ON_ERROR_STOP on
+\pset pager off
+\echo '===== SINAU POC — READ-ONLY CONTEXT STATE INVENTORY ====='
 
 BEGIN READ ONLY;
 
@@ -28,7 +28,7 @@ BEGIN
 END
 $guard$;
 
-\\echo '===== 1. RUNTIME AND DATABASE IDENTITY ====='
+\echo '===== 1. RUNTIME AND DATABASE IDENTITY ====='
 SELECT
     pg_catalog.current_database() AS database_name,
     current_user AS audit_role,
@@ -37,7 +37,7 @@ SELECT
     pg_catalog.current_setting('transaction_read_only') AS transaction_read_only,
     pg_catalog.current_setting('search_path') AS session_search_path;
 
-\\echo '===== 2. EXPECTED RELATION PRESENCE ====='
+\echo '===== 2. EXPECTED RELATION PRESENCE ====='
 WITH expected(schema_name, table_name) AS (
     VALUES
         ('sinau_issuer_poc', 'poc_identities'),
@@ -65,7 +65,7 @@ LEFT JOIN pg_catalog.pg_class AS c
  AND c.relname = e.table_name
 ORDER BY e.schema_name, e.table_name;
 
-\\echo '===== 3. COLUMN DEFINITIONS — NO ROW DATA ====='
+\echo '===== 3. COLUMN DEFINITIONS — NO ROW DATA ====='
 SELECT
     n.nspname AS schema_name,
     c.relname AS table_name,
@@ -98,7 +98,7 @@ WHERE (n.nspname, c.relname) IN (
   AND NOT a.attisdropped
 ORDER BY n.nspname, c.relname, a.attnum;
 
-\\echo '===== 4. CONSTRAINTS — PRIMARY, UNIQUE, FOREIGN KEY, CHECK ====='
+\echo '===== 4. CONSTRAINTS — PRIMARY, UNIQUE, FOREIGN KEY, CHECK ====='
 SELECT
     n.nspname AS schema_name,
     c.relname AS table_name,
@@ -131,7 +131,7 @@ WHERE (n.nspname, c.relname) IN (
 )
 ORDER BY n.nspname, c.relname, con.contype, con.conname;
 
-\\echo '===== 5. INDEXES — VALIDITY AND DEFINITIONS ====='
+\echo '===== 5. INDEXES — VALIDITY AND DEFINITIONS ====='
 SELECT
     n.nspname AS schema_name,
     tbl.relname AS table_name,
@@ -160,7 +160,7 @@ WHERE (n.nspname, tbl.relname) IN (
 )
 ORDER BY n.nspname, tbl.relname, i.indisprimary DESC, idx.relname;
 
-\\echo '===== 6. CONTEXT FUNCTIONS — METADATA ====='
+\echo '===== 6. CONTEXT FUNCTIONS — METADATA ====='
 WITH expected(schema_name, function_name, identity_args) AS (
     VALUES
         ('sinau_private', 'verify_context_token', 'text'),
@@ -190,7 +190,7 @@ LEFT JOIN pg_catalog.pg_proc AS p
  AND pg_catalog.pg_get_function_identity_arguments(p.oid) = e.identity_args
 ORDER BY e.schema_name, e.function_name;
 
-\\echo '===== 7. CONTEXT FUNCTION SOURCE — DEFINITIONS ONLY ====='
+\echo '===== 7. CONTEXT FUNCTION SOURCE — DEFINITIONS ONLY ====='
 SELECT
     n.nspname AS schema_name,
     p.proname AS function_name,
@@ -207,7 +207,7 @@ WHERE (n.nspname, p.proname) IN (
 )
 ORDER BY n.nspname, p.proname, p.oid::pg_catalog.regprocedure::pg_catalog.text;
 
-\\echo '===== 8. TABLE PRIVILEGES — EFFECTIVE CHECKS ====='
+\echo '===== 8. TABLE PRIVILEGES — EFFECTIVE CHECKS ====='
 WITH target_roles AS (
     SELECT oid, rolname
     FROM pg_catalog.pg_roles
@@ -247,7 +247,7 @@ FROM target_roles AS r
 CROSS JOIN target_tables AS t
 ORDER BY r.rolname, t.nspname, t.relname;
 
-\\echo '===== 9. FUNCTION EXECUTE PRIVILEGES ====='
+\echo '===== 9. FUNCTION EXECUTE PRIVILEGES ====='
 WITH target_roles AS (
     SELECT oid, rolname
     FROM pg_catalog.pg_roles
@@ -281,7 +281,7 @@ FROM target_roles AS r
 CROSS JOIN target_functions AS f
 ORDER BY r.rolname, f.nspname, f.proname, f.oid::pg_catalog.regprocedure::pg_catalog.text;
 
-\\echo '===== 10. ROLE ATTRIBUTES AND MEMBERSHIP ====='
+\echo '===== 10. ROLE ATTRIBUTES AND MEMBERSHIP ====='
 SELECT
     rolname,
     rolsuper,
@@ -327,7 +327,7 @@ WHERE member_role.rolname IN (
     )
 ORDER BY member_role.rolname, granted_role.rolname;
 
-\\echo '===== 11. RLS POLICY INVENTORY FOR PUBLIC TABLES ====='
+\echo '===== 11. RLS POLICY INVENTORY FOR PUBLIC TABLES ====='
 SELECT
     schemaname,
     tablename,
@@ -345,8 +345,8 @@ WHERE schemaname = 'public'
   )
 ORDER BY tablename, policyname;
 
-\\echo '===== 12. CATALOG-RECORDED FUNCTION DEPENDENCIES ====='
-\\echo 'Note: PL/pgSQL body references may not appear in pg_depend; compare function source above.'
+\echo '===== 12. CATALOG-RECORDED FUNCTION DEPENDENCIES ====='
+\echo 'Note: PL/pgSQL body references may not appear in pg_depend; compare function source above.'
 SELECT
     p.oid::pg_catalog.regprocedure AS function_signature,
     rn.nspname AS referenced_schema,
@@ -373,4 +373,4 @@ ORDER BY pn.nspname, p.proname, rn.nspname, rc.relname;
 
 ROLLBACK;
 
-\\echo '===== READ-ONLY CONTEXT STATE INVENTORY COMPLETE — ROLLED BACK ====='
+\echo '===== READ-ONLY CONTEXT STATE INVENTORY COMPLETE — ROLLED BACK ====='

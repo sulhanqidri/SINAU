@@ -255,3 +255,26 @@ Additional source-level observations:
 - The fixture tables currently contain no account, tenant-membership, or unit-membership generation columns. The token v2 generations and session claim remain proposals; no schema change is implied by this inventory.
 
 These facts are derived from repository source, not from the live PostgreSQL instance. Script 022 is the required runtime comparison and must be executed successfully before preparing any DDL. If the installed schema, constraints, indexes, owners, privileges, function definitions, or role memberships differ, record the difference and stop to reconcile it rather than assuming either side is correct.
+
+
+## 12. First live catalog inventory — 2026-11-27
+
+The first execution of read-only script 022 on the user's PostgreSQL host reported PostgreSQL `18.7 (Debian 18.7-1.pgdg13+2)`, database `sinau_design_poc`, current role `postgres`, and `transaction_read_only = on`. The script reached its final ROLLBACK marker.
+
+### Confirmed runtime facts
+
+- All expected issuer fixture relations, `sinau_private.context_keys`, and `public.tenants` existed.
+- No generation/epoch columns were present on the four authorization source tables.
+- `poc_auth_sessions.session_hash` is `bytea NOT NULL`, has a CHECK requiring 32 bytes, and is the session table's primary key. The row also includes `actor_id`, `session_status`, `authenticated_at`, `expires_at`, `revoked_at`, and `assurance_level`.
+- The seven reported primary-key indexes (six issuer fixture tables plus `context_keys`) were valid, ready, and live. No secondary indexes were reported for those tables.
+- The issuer fixture tables and `context_keys` are owned by `sinau_context_owner`; `public.tenants` is owned by `sinau_poc`.
+- The policy inventory returned 14 public policies using `current_verified_context()`. `education_units` is tenant-only; `audit_events` supports tenant-level rows where `unit_id IS NULL`.
+- The query role has no direct SELECT privilege on account/session/membership fixture tables or key storage and cannot execute the issuer validator. It can execute the verifier and accessor in the present PoC arrangement.
+- The role membership inventory shows `sinau_app_runtime_poc` has `SET` permission (but no inherited privileges) for both `sinau_context_issuer_poc` and `sinau_rls_test`. Its complete role attributes and effective privileges must be reviewed from the corrected audit before the role boundary is accepted.
+- No catalog-recorded `pg_depend` rows were returned for the inspected functions. PL/pgSQL body references may not be represented there; function definitions remain the source to inspect.
+
+### Audit-query defect
+
+The first script version did not map three function metadata rows because its `pg_get_function_identity_arguments()` string comparison did not match the installed signatures. Section 7 nevertheless printed definitions for the verifier and issuer functions, so blank metadata in section 6 must not be interpreted as missing functions.
+
+Script 022 has been corrected to resolve function overloads using `pronargs` and `proargtypes`, and to include `sinau_app_runtime_poc` in all role/privilege inventories. The corrected script must be re-run before using those metadata/role sections for design approval. The first run ended with ROLLBACK and did not change the database.

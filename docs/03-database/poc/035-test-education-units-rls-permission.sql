@@ -247,21 +247,36 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1
-        FROM sinau_issuer_poc.poc_units
-        WHERE tenant_id = '00000000-0000-0000-0000-000000000001'
-          AND unit_id = '10000000-0000-0000-0000-000000000001'
-          AND unit_status = 'active'
+        FROM sinau_issuer_poc.poc_identities
+        WHERE actor_id = '91000000-0000-0000-0000-000000000001'
+          AND account_status = 'active'
     ) OR NOT EXISTS (
         SELECT 1
-        FROM sinau_issuer_poc.poc_auth_sessions
+        FROM sinau_issuer_poc.poc_tenant_memberships
         WHERE actor_id = '91000000-0000-0000-0000-000000000001'
-          AND session_status = 'active'
-          AND authenticated_at <= pg_catalog.clock_timestamp()
-          AND expires_at > pg_catalog.clock_timestamp()
+          AND tenant_id = '00000000-0000-0000-0000-000000000001'
+          AND membership_status = 'active'
+          AND valid_from <= pg_catalog.clock_timestamp()
+          AND (valid_until IS NULL OR valid_until > pg_catalog.clock_timestamp())
           AND revoked_at IS NULL
     ) THEN
         RAISE EXCEPTION
-            'Active synthetic unit catalogue/session state for actor 910...001 is missing';
+            'Active synthetic account/tenant membership for actor 910...001 is missing';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM sinau_issuer_poc.poc_auth_sessions
+        WHERE session_hash = sinau_crypto.digest(
+            pg_catalog.convert_to(
+                'SINAU-POC-RLS035-UNIT-MEMBER-SESSION-NOT-A-REAL-CREDENTIAL',
+                'UTF8'
+            ),
+            'sha256'
+        )
+    ) THEN
+        RAISE EXCEPTION
+            'RLS-035 synthetic unit-member session hash collision';
     END IF;
 
     RAISE NOTICE
@@ -298,6 +313,16 @@ BEGIN ISOLATION LEVEL READ COMMITTED;
 
 LOCK TABLE public.education_units
     IN ACCESS EXCLUSIVE MODE;
+
+-- Serialize access to the synthetic authorization source rows used by this
+-- test. The fresh unit-member session below is inserted and rolled back here.
+LOCK TABLE
+    sinau_issuer_poc.poc_identities,
+    sinau_issuer_poc.poc_auth_sessions,
+    sinau_issuer_poc.poc_tenant_memberships,
+    sinau_issuer_poc.poc_unit_memberships,
+    sinau_issuer_poc.poc_units
+IN SHARE ROW EXCLUSIVE MODE;
 
 SET LOCAL track_functions = 'pl';
 
@@ -367,10 +392,41 @@ INSERT INTO sinau_education_units_query_poc.poc_tenant_role_permissions
 VALUES
     ('foundation_unit_admin', 'education_units.list_all');
 
--- The admin has an active tenant membership and explicit list_all grant.
--- Deliberately do not create any unit membership for this actor.
+-- Create a fresh, dedicated unit-member session for this test run.
+-- Script 010's original fixture session has a one-day expiry and may be stale
+-- when this later PoC runs. This synthetic session is transaction-local and
+-- is removed by the final ROLLBACK; it is not bound to a session claim in v1.
 RESET ROLE;
 
+INSERT INTO sinau_issuer_poc.poc_auth_sessions
+    (
+        session_hash,
+        actor_id,
+        session_status,
+        authenticated_at,
+        expires_at,
+        revoked_at,
+        assurance_level
+    )
+VALUES
+    (
+        sinau_crypto.digest(
+            pg_catalog.convert_to(
+                'SINAU-POC-RLS035-UNIT-MEMBER-SESSION-NOT-A-REAL-CREDENTIAL',
+                'UTF8'
+            ),
+            'sha256'
+        ),
+        '91000000-0000-0000-0000-000000000001',
+        'active',
+        pg_catalog.clock_timestamp() - INTERVAL '5 minutes',
+        pg_catalog.clock_timestamp() + INTERVAL '1 day',
+        NULL,
+        'mfa'
+    );
+
+-- The admin has an active tenant membership and explicit list_all grant.
+-- Deliberately do not create any unit membership for this actor.
 INSERT INTO sinau_issuer_poc.poc_identities
     (actor_id, account_status)
 VALUES

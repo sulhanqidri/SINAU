@@ -266,6 +266,16 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
+        FROM sinau_issuer_poc.poc_tenant_memberships
+        WHERE actor_id = '97000000-0000-0000-0000-000000000001'
+          AND tenant_id = '00000000-0000-0000-0000-000000000001'
+    ) THEN
+        RAISE EXCEPTION
+            'RLS-036 administrator tenant-membership fixture already exists';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
         FROM sinau_issuer_poc.poc_auth_sessions
         WHERE session_hash = sinau_crypto.digest(
             pg_catalog.convert_to(
@@ -277,6 +287,21 @@ BEGIN
     ) THEN
         RAISE EXCEPTION
             'RLS-036 synthetic unit-member session hash collision';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM sinau_issuer_poc.poc_auth_sessions
+        WHERE session_hash = sinau_crypto.digest(
+            pg_catalog.convert_to(
+                'SINAU-POC-RLS036-FOUNDATION-ADMIN-SESSION-NOT-A-REAL-CREDENTIAL',
+                'UTF8'
+            ),
+            'sha256'
+        )
+    ) THEN
+        RAISE EXCEPTION
+            'RLS-036 synthetic administrator session hash collision';
     END IF;
 
     RAISE NOTICE
@@ -1360,6 +1385,16 @@ BEGIN
 
     IF EXISTS (
         SELECT 1
+        FROM sinau_issuer_poc.poc_tenant_memberships
+        WHERE actor_id = '97000000-0000-0000-0000-000000000001'
+          AND tenant_id = '00000000-0000-0000-0000-000000000001'
+    ) THEN
+        RAISE EXCEPTION
+            'FAIL: rollback left synthetic administrator tenant membership behind';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
         FROM sinau_issuer_poc.poc_auth_sessions
         WHERE session_hash = sinau_crypto.digest(
             pg_catalog.convert_to(
@@ -1371,6 +1406,21 @@ BEGIN
     ) THEN
         RAISE EXCEPTION
             'FAIL: rollback left synthetic unit-member session behind';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM sinau_issuer_poc.poc_auth_sessions
+        WHERE session_hash = sinau_crypto.digest(
+            pg_catalog.convert_to(
+                'SINAU-POC-RLS036-FOUNDATION-ADMIN-SESSION-NOT-A-REAL-CREDENTIAL',
+                'UTF8'
+            ),
+            'sha256'
+        )
+    ) THEN
+        RAISE EXCEPTION
+            'FAIL: rollback left synthetic administrator session behind';
     END IF;
 
     RAISE NOTICE

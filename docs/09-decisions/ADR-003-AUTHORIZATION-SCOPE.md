@@ -72,9 +72,11 @@ The rollback-only issuer-side PoC (script 034) passed EU-01—EU-08. It confirme
 
 
 
-### Query-side RLS test prepared for education-unit enumeration
+### Query-side RLS evidence for education-unit enumeration — 2026-11-27
 
-Script 035 is prepared to test a SELECT-only RLS policy candidate that grants a unit member only the exact active unit, and grants tenant-wide listing only when a verified tenant-only context has the explicit `education_units.list_all` permission. It includes tenant-B isolation, malformed-token denial, and separate INSERT/UPDATE/DELETE denial checks, with exact policy restoration after ROLLBACK. Server execution is pending. This is not yet an accepted or deployed policy.
+Script 035 passed against the disposable `sinau_design_poc` database. The rollback-only SELECT-policy candidate passed all EU-RLS-01—EU-RLS-07 checks: a unit-scoped context saw only its exact unit; an ordinary tenant-only context without `education_units.list_all` saw no rows; an explicitly authorized tenant administrator saw only units in its own tenant; malformed context failed closed; and INSERT/UPDATE/DELETE remained denied. Four protected SELECTs caused exactly four verifier calls. ROLLBACK restored the exact original `education_units` policy set and removed all temporary objects and fixtures.
+
+This is query-side PoC evidence for the proposed visibility rule, not acceptance of a physical schema or deployed RLS policy. The helper uses private synthetic `poc_units` metadata to avoid RLS recursion; production still needs a trusted non-recursive unit-state lookup. The v1 token has no session identifier, so the helper can establish that an actor has an active session but cannot bind the token to one exact session among multiple concurrent sessions. Script 035 also does not test permission revocation after token issuance or cross-connection freshness. Those remain open security gates under ADR-007. ADR-003 remains Proposed; no production policy or migration is authorized.
 
 
 ### Platform support dan impersonation

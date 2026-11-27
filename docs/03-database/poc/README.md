@@ -1690,7 +1690,7 @@ Download and stage the pinned script:
 ~~~bash
 set -e
 
-DOMAIN_TEST_COMMIT='664a38580793e4bc813bcc4528eab16a3fe91efa'
+DOMAIN_TEST_COMMIT='13e4085e8ed2ee0f593efc9006c846318d5c2139'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$DOMAIN_TEST_COMMIT/docs/03-database/poc/032-test-domain-table-integrity.sql" \
   -o "$HOME/032-test-domain-table-integrity.sql"

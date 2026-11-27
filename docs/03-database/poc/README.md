@@ -1532,6 +1532,42 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
   -f /run/028-audit-rls-policy-table-matrix.sql
 ~~~
 
+### Script 028 execution result — PASS
+
+The user executed script 028 against `sinau_design_poc`. The read-only audit reported 14 public tables with tenant/unit scope columns:
+
+| Scope class | Count | Tables |
+|---|---:|---|
+| Tenant-only | 1 | `education_units` |
+| Tenant + unit, both NOT NULL | 12 | `academic_years`, `assessment_definitions`, `assessment_participants`, `attendance_corrections`, `attendance_record_revisions`, `attendance_records`, `attendance_session_participants`, `attendance_sessions`, `class_groups`, `student_class_placements`, `student_enrollments`, `student_scores` |
+| Tenant + unit, nullable | 1 | `audit_events` |
+
+All 14 scoped tables had RLS enabled and forced. No scoped table was missing ENABLE/FORCE, and no RLS-enabled public table was missing a policy. The 14 installed policies were permissive, targeted `sinau_rls_test`, and used command `ALL` with both USING and WITH CHECK expressions. `tenants` has neither scope column and remains outside RLS as the global registry. `education_units` uses only tenant scope. `audit_events` keeps the exception `(unit_id IS NULL OR unit_id = context.unit_id)`.
+
+### Important audit_events schema observation
+
+The metadata shows **both** `audit_events.tenant_id` and `audit_events.unit_id` are nullable. Source DDL `001-schema.sql` defines `CHECK (unit_id IS NULL OR tenant_id IS NOT NULL)`. This prohibits a unit-scoped row without a tenant, but it permits both columns to be NULL (SQL CHECK accepts UNKNOWN). The current RLS predicate still denies a row with `tenant_id IS NULL` to an ordinary tenant context because `tenant_id = context.tenant_id` is not TRUE. Do not interpret both-NULL rows as visible/global tenant events without an explicit authorization decision.
+
+Script `029-audit-audit-events-null-scope.sql` is now prepared as a read-only aggregate audit. It reports only row counts by scope-nullability and actor type, along with column nullability, check constraints, and the installed policy; it does not disclose audit payloads or actor identifiers. It has not yet been executed.
+
+Download and run script 029:
+
+~~~bash
+set -e
+AUDIT_COMMIT='d36e304ceb979de68479b54d3d26e983250509a3'
+curl -fL \
+  "https://raw.githubusercontent.com/sulhanqidri/SINAU/$AUDIT_COMMIT/docs/03-database/poc/029-audit-audit-events-null-scope.sql" \
+  -o "$HOME/029-audit-audit-events-null-scope.sql"
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/029-audit-audit-events-null-scope.sql" \
+  /run/029-audit-audit-events-null-scope.sql
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/029-audit-audit-events-null-scope.sql
+~~~
+
+Decision gate: establish whether both-NULL `audit_events` rows exist and what their intended visibility is. Preserve the current conservative behavior (not visible to tenant context) unless a separate global-audit authorization policy is explicitly designed and tested.
+
 Review all five output sections, especially scope class/nullability, exact USING/WITH CHECK expressions, scoped tables not ENABLE/FORCE, and special-table behavior. The script ends with ROLLBACK and an explicit read-only completion marker.
 
 **Gate:** do not change persistent script 007 until the complete inventory is reviewed and a per-class SELECT/INSERT/UPDATE/DELETE matrix is designed. The `academic_years` composite policy probe is validated only for that table and does not prove the candidate is appropriate for tenant-only or nullable-unit policies.

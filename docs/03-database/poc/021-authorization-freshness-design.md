@@ -310,3 +310,40 @@ Before any verifier DDL or application integration, explicitly choose and test o
 - remove/reduce the relevant `SET` memberships in a separately reviewed PoC role-model change and provide the required issuer/query capability through separately controlled database identities or another narrowly scoped mechanism.
 
 No role, membership, grant, schema, or function was changed by the focused query. The corrected full script 022 revision was not rerun as part of this one-row check; this direct query independently establishes the listed role attributes.
+
+
+## 14. Runtime SET ROLE capability test — 2026-11-27
+
+The follow-up test used a PostgreSQL `postgres` connection to simulate the runtime session identity inside two separate read-only transactions:
+
+```sql
+BEGIN READ ONLY;
+SET LOCAL SESSION AUTHORIZATION sinau_app_runtime_poc;
+SET LOCAL ROLE sinau_context_issuer_poc;
+-- session_user = sinau_app_runtime_poc
+-- current_user = sinau_context_issuer_poc
+ROLLBACK;
+
+BEGIN READ ONLY;
+SET LOCAL SESSION AUTHORIZATION sinau_app_runtime_poc;
+SET LOCAL ROLE sinau_rls_test;
+-- session_user = sinau_app_runtime_poc
+-- current_user = sinau_rls_test
+ROLLBACK;
+```
+
+Both `SET LOCAL ROLE` operations succeeded. In each test, `session_user` remained `sinau_app_runtime_poc`; `current_user` changed to the requested capability role. Both transactions ended with `ROLLBACK`.
+
+**Interpretation:** the role memberships are operational, not merely catalog entries: a session operating with the runtime identity can switch into both issuer and query roles. This confirms that the runtime principal can exercise the privileges of either role after the explicit switch. `rolinherit=false` does not prevent this action.
+
+**Test limitation:** the SQL session was opened as `postgres`, and `SET LOCAL SESSION AUTHORIZATION` was used to simulate the runtime session identity. This proves the subsequent `SET ROLE` permission path under that identity, but it does not verify authentication to PostgreSQL over the network using the runtime role's own credential, password/SCRAM configuration, `pg_hba.conf`, or application connection settings.
+
+No role, membership, grant, table, function, policy, or data was changed. Both transactions were read-only and rolled back.
+
+### Gate before verifier implementation
+
+The role-capability decision remains open. Do not begin verifier DDL or application integration until the threat model explicitly accepts one of the following:
+- the runtime credential is trusted to exercise both issuer and query capabilities, with SQL execution constrained accordingly; or
+- the `SET` memberships are reduced through a separately reviewed PoC role-model change, with issuer/query operations exposed through separately controlled identities or a narrower capability interface.
+
+If either membership is changed later, re-audit the effective privilege surface and rerun the role-switch negative/positive tests. ADR-007 remains Proposed; PR #1 remains Open, Draft, and unmerged.

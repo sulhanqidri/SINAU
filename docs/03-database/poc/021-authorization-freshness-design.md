@@ -278,3 +278,8 @@ The first execution of read-only script 022 on the user's PostgreSQL host report
 The first script version did not map three function metadata rows because its `pg_get_function_identity_arguments()` string comparison did not match the installed signatures. Section 7 nevertheless printed definitions for the verifier and issuer functions, so blank metadata in section 6 must not be interpreted as missing functions.
 
 Script 022 has been corrected to resolve function overloads using `pronargs` and `proargtypes`, and to include `sinau_app_runtime_poc` in all role/privilege inventories. The corrected script must be re-run before using those metadata/role sections for design approval. The first run ended with ROLLBACK and did not change the database.
+
+
+### Follow-up check still required — runtime role attributes
+
+The second audit run confirms `sinau_app_runtime_poc` has SET membership for `sinau_context_issuer_poc` and `sinau_rls_test`, with no inherited privileges through those memberships. The function/table effective privilege rows for the un-switched runtime role are false. However, the role-attribute SELECT in that run omitted `sinau_app_runtime_poc` due to a remaining script filter omission. The audit script has been corrected again; rerun the final pinned copy to establish whether this role can LOGIN and its remaining attributes. Do not infer its login capability from role membership alone.

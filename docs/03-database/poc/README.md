@@ -798,3 +798,33 @@ The proposed next design is documented in [021-authorization-freshness-design.md
 The existing primary keys are the starting point for point lookups: actor, session hash, actor/tenant membership, actor/tenant/unit membership, unit ownership, and key ID. Do not add status or epoch indexes speculatively; measure query plans and representative cardinalities first. A session `actor_id` index is only a candidate for bulk logout if the revoke-all query plan justifies it.
 
 **No implementation is included:** no SQL migration or verifier patch has been prepared or executed; no database, role, RLS policy, Laravel integration, production service, SQLRadius, or MikroTik has been changed. The v2 token format and generation columns remain proposals pending review. ADR-007 remains Proposed, and PR #1 must remain Open/Draft/unmerged.
+
+
+## 20. Read-only installed context-state inventory
+
+Script `022-audit-context-state-inventory.sql` inventories the installed authorization-source tables, columns, constraints, primary/unique/foreign-key indexes, function definitions and metadata, effective table/function privileges, role attributes/memberships, and RLS policies.
+
+**Safety properties:**
+- Hard-stops unless connected to `sinau_design_poc` as PostgreSQL superuser `postgres`.
+- Starts `BEGIN READ ONLY` and ends with `ROLLBACK`.
+- Reads PostgreSQL catalogs only; it does not read fixture rows, token values, session hashes, key bytes, credentials, or application records.
+- Does not create temporary objects or modify schema, data, roles, grants, policies, or functions.
+- Function source is included for review, but no secret/key contents are selected.
+
+Run on the SINAU PoC host:
+
+```bash
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/VERIFIED_COMMIT_SHA/docs/03-database/poc/022-audit-context-state-inventory.sql' \\
+  -o /run/022-audit-context-state-inventory.sql
+
+sudo chown postgres:postgres /run/022-audit-context-state-inventory.sql
+sudo chmod 600 /run/022-audit-context-state-inventory.sql
+
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \\
+  -d sinau_design_poc \\
+  -f /run/022-audit-context-state-inventory.sql
+```
+
+Replace `VERIFIED_COMMIT_SHA` with the commit containing this script. Preserve the output for review, but redact hostnames or other environment details if sharing publicly. The output is an inventory, not a pass/fail approval. In particular, catalog-recorded `pg_depend` entries may omit table references inside PL/pgSQL function bodies; review the displayed function definitions as well.
+
+The inventory must be checked against the live PoC host before proposing any DDL. Do not assume the repository's original fixture DDL exactly matches the installed database. PR #1 remains Open/Draft/unmerged; no verifier implementation is authorized by this audit.

@@ -1548,7 +1548,7 @@ All 14 scoped tables had RLS enabled and forced. No scoped table was missing ENA
 
 The metadata shows **both** `audit_events.tenant_id` and `audit_events.unit_id` are nullable. Source DDL `001-schema.sql` defines `CHECK (unit_id IS NULL OR tenant_id IS NOT NULL)`. This prohibits a unit-scoped row without a tenant, but it permits both columns to be NULL (SQL CHECK accepts UNKNOWN). The current RLS predicate still denies a row with `tenant_id IS NULL` to an ordinary tenant context because `tenant_id = context.tenant_id` is not TRUE. Do not interpret both-NULL rows as visible/global tenant events without an explicit authorization decision.
 
-Script `029-audit-audit-events-null-scope.sql` is now prepared as a read-only aggregate audit. It reports only row counts by scope-nullability and actor type, along with column nullability, check constraints, and the installed policy; it does not disclose audit payloads or actor identifiers. It has not yet been executed.
+Script `029-audit-audit-events-null-scope.sql` was executed successfully. Both `tenant_id` and `unit_id` are nullable. The validated check `unit_id IS NULL OR tenant_id IS NOT NULL` permits both-NULL rows while prohibiting a unit without a tenant. However, the table currently has zero rows: `total_rows=0`, both-NULL=0, tenant-only=0, unit-scoped=0, and invalid-by-check=0. The actor-type grouped query also returned zero rows. Therefore the data audit does not establish that global audit events exist or are needed; preserve the current tenant-scoped policy, which does not expose both-NULL rows to an ordinary tenant context.
 
 Download and run script 029:
 
@@ -1566,8 +1566,72 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
   -f /run/029-audit-audit-events-null-scope.sql
 ~~~
 
-Decision gate: establish whether both-NULL `audit_events` rows exist and what their intended visibility is. Preserve the current conservative behavior (not visible to tenant context) unless a separate global-audit authorization policy is explicitly designed and tested.
+The metadata/data gate is closed for this PoC snapshot: `audit_events` currently contains no rows. Its future both-NULL semantics remain a domain decision, not a demonstrated data requirement. Preserve the current conservative behavior (not visible to tenant context) unless a separate global-audit authorization policy is explicitly designed and tested.
 
 Review all five output sections, especially scope class/nullability, exact USING/WITH CHECK expressions, scoped tables not ENABLE/FORCE, and special-table behavior. The script ends with ROLLBACK and an explicit read-only completion marker.
 
 **Gate:** do not change persistent script 007 until the complete inventory is reviewed and a per-class SELECT/INSERT/UPDATE/DELETE matrix is designed. The `academic_years` composite policy probe is validated only for that table and does not prove the candidate is appropriate for tenant-only or nullable-unit policies.
+
+## 32. Transactional RLS read/write matrix for representative table classes
+
+Script `030-test-rls-policy-classes.sql` is a rollback-only behavioral test using three representative classes from inventory 028:
+- `education_units`: tenant-only (`tenant_id NOT NULL`, no unit column);
+- `academic_years`: tenant+unit (`tenant_id` and `unit_id NOT NULL`);
+- `audit_events`: nullable scope (`tenant_id` and `unit_id` nullable, with `CHECK (unit_id IS NULL OR tenant_id IS NOT NULL)`).
+
+It uses the fixed synthetic tenant A/B and unit A1/A2/B1 fixture IDs. It creates temporary test rows, exercises same-scope reads/writes, checks cross-tenant/unit isolation, checks that the tenant-only table sees both tenant-A units, and tests the audit-specific tenant-level row (`unit_id IS NULL`). It also checks that a both-NULL audit event is rejected by the current tenant-scoped WITH CHECK, and that empty/malformed tokens fail closed. All DML is performed inside one explicit transaction that ends with ROLLBACK; test IDs are preflight-checked so an existing row is never overwritten.
+
+**Important scope:** the script tests representative tables for the three policy classes; it does not insert into every complex attendance/assessment domain table, and it does not prove every business-specific FK/trigger invariant. Inventory 028 showed the other 11 tenant+unit tables share the same generated policy predicate, but a full domain-level regression suite remains required before a permanent global policy rewrite.
+
+Download and stage the tested revision:
+
+~~~bash
+set -e
+
+SIGNER_COMMIT='70b2f3ccdadf14f306ca77104b6a5b4fb35328b0'
+MATRIX_COMMIT='fc1040f26994f327c85e1851eb653e82b34360d2'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$SIGNER_COMMIT/docs/03-database/poc/019-sign-authorization-freshness-token.py" \
+  -o "$HOME/019-sign-authorization-freshness-token.py"
+chmod 700 "$HOME/019-sign-authorization-freshness-token.py"
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$MATRIX_COMMIT/docs/03-database/poc/030-test-rls-policy-classes.sql" \
+  -o "$HOME/030-test-rls-policy-classes.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/030-test-rls-policy-classes.sql" \
+  /run/030-test-rls-policy-classes.sql
+
+install -d -m 700 /run/sinau-poc-token-signer
+rm -f /run/authfreshness-context.token \
+  /run/sinau-poc-token-signer/authfreshness-context.token
+~~~
+
+Terminal A:
+
+~~~bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/030-test-rls-policy-classes.sql
+~~~
+
+When Terminal A prints the XID, sign a token for that exact XID in Terminal B:
+
+~~~bash
+python3 "$HOME/019-sign-authorization-freshness-token.py" XID_FROM_SESSION_A
+
+sudo install -o postgres -g postgres -m 600 \
+  /run/sinau-poc-token-signer/authfreshness-context.token \
+  /run/authfreshness-context.token
+~~~
+
+Press Enter in Terminal A. The script must report PASS for tenant-only, tenant+unit, audit-events nullable scope, and fail-closed checks, then finish with `ROLLBACK`.
+
+After completion, remove both tmpfs token files:
+
+~~~bash
+rm -f /run/authfreshness-context.token \
+  /run/sinau-poc-token-signer/authfreshness-context.token
+~~~
+
+**Gate:** do not make any persistent policy rewrite in script 007 until script 030 passes and the resulting policy matrix is reviewed. Even after it passes, the result is representative-class evidence, not a replacement for domain-level tests of every protected table.

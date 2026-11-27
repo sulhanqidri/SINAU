@@ -591,3 +591,12 @@ The domain inventory identifies composite FK relationships across academic, enro
 No permanent policy or verifier changes are authorized by this inventory. The current tenant+unit policy expression is repeated across all eleven tables and uses separate scalar subqueries to extract tenant and unit from the volatile verified-context accessor. The row-valued one-call form remains a candidate, not an approved rewrite. ADR-007 remains Proposed.
 
 The tenant-only `education_units` access model remains unresolved. A tenant administrator-wide capability is not present in the current v1 token or synthetic membership model. Do not treat tenant membership alone as proof of tenant-wide authority or widen this policy implicitly.
+
+
+## 30. Twelve-table row-valued policy probe prepared — 2026-11-27
+
+Script 032 passed on XID 963. Same-scope INSERT/SELECT/UPDATE/DELETE succeeded across the eleven domain tables; the deferred correction/revision FK validated when forced immediate; nine cross-unit UPDATE attempts were rejected by RLS; thirteen selected domain constraint violations were rejected; and the script ended with ROLLBACK.
+
+Script 033 is prepared to test the single-row `(tenant_id, unit_id)` policy candidate across all twelve ordinary tenant+unit relations. It replaces policies only inside a transaction, inserts one synthetic dependency chain under the RLS test role, measures exactly one verifier call for each of twelve separate protected SELECTs, exercises representative cross-unit WITH CHECK denials, and postflights restoration of the original two-subquery policies after ROLLBACK. It is not yet executed. Do not treat the candidate as adopted or alter script 007 until the actual output is reviewed.
+
+The probe excludes tenant-only `education_units` and nullable `audit_events`, whose authorization semantics remain distinct. ADR-007 remains Proposed; no production changes are authorized.

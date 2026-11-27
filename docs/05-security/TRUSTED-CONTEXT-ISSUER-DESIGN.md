@@ -307,3 +307,12 @@ Script 030 is prepared to exercise SELECT/INSERT/UPDATE/DELETE against one repre
 Script 030 completed successfully on the disposable `sinau_design_poc` database with transaction XID `962`. The transaction-bound token was accepted. The tenant-only `education_units`, tenant+unit `academic_years`, nullable-scope `audit_events`, and empty/malformed-token fail-closed sections all reported PASS. The transaction ended with `ROLLBACK` and the script's explicit completion marker; synthetic DML was not persisted and installed policies were not changed.
 
 This is representative-class evidence only. The test observed that a unit-A1 context can enumerate both tenant-A units in tenant-only `education_units`; whether that is intended for all unit members or should be limited by a tenant-administrator permission remains unresolved. Domain-specific regression coverage is still required for the other eleven tenant+unit tables and their FK/trigger invariants. Do not treat this test as approval for a persistent policy rewrite.
+
+
+## 20. Remaining domain table integrity inventory — 2026-11-27
+
+Script 031 completed as a READ ONLY catalog audit. All eleven remaining tenant+unit domain tables have RLS ENABLE and FORCE, with the expected isolation policy installed. It found 27 indexes and two enabled participant temporal triggers; both trigger functions remain SECURITY INVOKER with pinned `search_path=pg_catalog, pg_temp`. Their specific trigger regression was already validated by script 017.
+
+The main domain-integrity paths are composite foreign keys across the attendance and assessment chains, non-overlapping student placements, score/finalization checks, correction idempotency/status, revision sequencing, and a deferred correction-to-revision reference. Script 032 has been prepared to exercise these paths and same-scope CRUD across the eleven tables in a signed transaction that ends with ROLLBACK. It has not yet been run. No production schema, application data, or persistent policy change is authorized by this inventory.
+
+The `education_units` policy question remains separate: tenant-wide enumeration requires a trusted tenant-owner/admin capability that is not present in the current v1 token. Do not infer it from the tenant claim alone.

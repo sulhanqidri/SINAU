@@ -2,7 +2,7 @@
 
 - **Status:** Proposed — baseline kebijakan revocation disetujui untuk desain awal; implementasi dan penerimaan produksi masih menunggu seluruh security gate.
 - **Tanggal:** 2026-11-19
-- **Terakhir diperbarui:** 2026-11-26
+- **Terakhir diperbarui:** 2026-11-27
 - **Area:** Authentication, session, tenant/unit context, PostgreSQL RLS, connection lifecycle
 - **Terkait:** ADR-003, ADR-005, ADR-006, `TRUSTED-CONTEXT-ISSUER-DESIGN.md`, dan PostgreSQL PoC 005–011.
 
@@ -311,3 +311,69 @@ A read-only inventory showed the academic tables used by the participant trigger
 The script creates an empty temporary shadow, inserts a minimal synthetic tenant/unit/year/class/enrollment/placement chain, and executes the assessment and attendance triggers through valid INSERT/no-op UPDATE paths. It also verifies that each trigger rejects a participant whose class differs from the placement and a participant date outside the placement period. All fixture work is inside one explicit transaction ending in ROLLBACK.
 
 **Status:** script 017 is prepared but not yet executed on the PostgreSQL host. The trigger hardening is applied in `sinau_design_poc`; the regression gate remains open until every expected PASS is reported. ADR-007 remains Proposed.
+
+
+## 15. Authorization freshness and session-bound context token — design proposal (2026-11-27)
+
+### 15.1 New evidence
+
+The two-connection test recorded in PoC README section 18 completed all four valid READ COMMITTED scenarios. After Session B committed a change, Session A's next protected statement still saw the protected fixture and reported `FINDING REPRODUCED` for each source: account disabled, authentication session revoked, tenant membership revoked, and unit membership revoked. The exact synthetic rows were restored; the final read-only audit returned one matching active row and `PASS` for every source.
+
+This evidence confirms the installed PoC verifier does not enforce those four authorization-state changes on the next protected statement in the tested flow. It does not demonstrate a production exploit. The session scenario had only one active fixture session and therefore did not establish per-session isolation when an actor has multiple sessions.
+
+### 15.2 Recommended design for review — not yet accepted
+
+Recommend a hybrid model:
+
+1. **Live authoritative checks remain the source of truth.** Every protected statement must verify current account status, exact session status/expiry/revocation, tenant membership, and unit membership when applicable. No authorization result may be cached across protected statements.
+2. **Monotonic generations prevent resurrection.** Include account, tenant-membership, and unit-membership generations in the signed token and compare them with current authoritative rows. Revoke/regrant or disable/reenable must advance the relevant generation. Epochs supplement live state; they are not a replacement for it.
+3. **Bind one exact session.** Add a non-bearer SHA-256 session reference matching the stored server-side session record. A session reference is immutable and never reused. Revoking session A must leave session B eligible if account and membership state remain valid.
+4. **Keep the approved transaction policy.** Protected transactions remain `READ COMMITTED`; a protected statement beginning after a revocation commit must be denied. No cross-statement authorization cache is allowed. The policy does not forcibly cancel statements already in progress.
+
+Live checks alone do not satisfy the proposed "old token remains invalid after reactivation" test unless reactivation advances a generation or replaces the relevant identity. Epoch-only checks are also insufficient because a missed generation increment could leave stale access valid.
+
+### 15.3 Candidate v2 payload
+
+The current v1 contract has no session claim. The candidate v2 payload is:
+
+```text
+v2|audience|kid|actor_uuid|session_ref_hex|tenant_uuid|unit_uuid_or_dash|xid8|iat|exp|nonce_hex|account_epoch|tenant_membership_epoch|unit_membership_epoch|mac_hex
+```
+
+Every claim must be covered by the MAC and canonicalized. `session_ref_hex` is a 32-byte SHA-256 reference (64 lowercase hex characters) derived from a trusted server-side session reference; it is not a raw cookie or login bearer. The verifier must match both session reference and actor. The reference must never be reused. A separate session epoch is not required in the minimal proposal if the session reference is immutable and unique and the session state is checked live.
+
+For a tenant-only token, both the unit claim and unit generation use the canonical no-unit sentinel. Such a token must not satisfy unit-scoped policy. v1 must not be silently accepted as v2. The exact session-reference derivation, generation column names/types, token lifetime, and canonical field limits remain open.
+
+### 15.4 Verifier contract and privilege constraints
+
+The proposed verifier validates syntax, signature, audience, key status, expiry, XID, current account and generation, exact session and lifecycle, current tenant membership and generation, and unit membership/ownership/lifecycle and generation when the token is unit-scoped. It returns exactly one context only if all applicable checks succeed. Missing/invalid authorization returns no context; unexpected database/privilege failures abort the protected statement rather than falling back to unverified claims.
+
+The verifier continues to be invoked through `sinau_private.current_verified_context()` by RLS. The opaque `app.context_token` GUC remains only a carrier; unsigned tenant/unit GUCs must never determine RLS scope. Keep key and authorization tables inaccessible directly to runtime/query roles, keep function ownership and fixed `search_path` audited, and do not grant broad membership-table privileges as a shortcut. Application permission, delegation, resource relationship, and entitlement checks remain distinct from context membership.
+
+### 15.5 Indexes and performance
+
+Start with existing primary keys for exact lookups: `poc_identities(actor_id)`, `poc_auth_sessions(session_hash)`, `poc_tenant_memberships(actor_id, tenant_id)`, `poc_unit_memberships(actor_id, tenant_id, unit_id)`, `poc_units(tenant_id, unit_id)`, and `context_keys(key_id)`. Do not add low-selectivity status or redundant epoch indexes without `EXPLAIN (ANALYZE, BUFFERS)` evidence. An index on session `actor_id` is only a candidate for bulk logout if the revoke-all plan and data size justify it.
+
+Benchmark signature/XID/key validation, live lookups, generation comparisons, and full RLS separately. Use representative fixture cardinalities and 1/10/50/100 protected statements per transaction. Record median/P95/P99 latency, buffer hits/reads, CPU, query count, rows examined, and query plans. No performance claim or target is accepted until measured.
+
+### 15.6 Snapshot and race questions
+
+The installed verifier is `VOLATILE` and performs internal SQL reads. Do not assume its internal queries have the desired statement-snapshot behavior solely from the volatility label. Before implementation, test a deliberately long-running protected statement while another connection commits revocation. Required cases:
+
+- revocation committed before the protected statement begins: deny;
+- revocation committed while a statement is already running: no forced cancellation guarantee; characterize whether it completes or aborts;
+- the next protected statement after revocation commit: deny;
+- multi-row policy evaluation: detect unexpected mixed visibility within one statement.
+
+Do not change function volatility or snapshot strategy before this evidence and review. The completed 019/020 experiment tested only a revoke commit before the next separate protected SELECT.
+
+### 15.7 Next PoC gates
+
+1. Read-only inventory of exact installed functions, columns, constraints, grants, policies, dependencies, and query plans.
+2. Review and settle the session-reference and generation contracts.
+3. Propose guarded, disposable-only DDL for synthetic generation fields, if accepted.
+4. Implement a v2 verifier only in `sinau_design_poc`, including strict v1 rejection and least-privilege checks.
+5. Run multi-session isolation, four source revocations, reactivation/no-resurrection, wrong epoch, malformed/MAC/audience/XID, real RLS, in-flight race, connection reset, and benchmark tests.
+6. Review evidence and explicitly update ADR status before considering any application integration.
+
+**Status boundary:** this section is a design proposal, not an implementation approval. No SQL, table, role, credential, RLS policy, Laravel integration, production database, SQLRadius, or MikroTik change is authorized. ADR-007 remains **Proposed**. PR #1 must remain **Open, Draft, and unmerged**. See [PoC authorization-freshness design](../03-database/poc/021-authorization-freshness-design.md) for the complete proposal.

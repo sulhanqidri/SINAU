@@ -347,3 +347,40 @@ The role-capability decision remains open. Do not begin verifier DDL or applicat
 - the `SET` memberships are reduced through a separately reviewed PoC role-model change, with issuer/query operations exposed through separately controlled identities or a narrower capability interface.
 
 If either membership is changed later, re-audit the effective privilege surface and rerun the role-switch negative/positive tests. ADR-007 remains Proposed; PR #1 remains Open, Draft, and unmerged.
+
+
+## 15. Issuer capability effective-privilege audit — 2026-11-27
+
+The issuer capability audit was executed in a read-only transaction after simulating the runtime identity and switching to `sinau_context_issuer_poc`:
+
+- `session_user = sinau_app_runtime_poc`
+- `current_user = sinau_context_issuer_poc`
+- `sinau_issuer_poc` schema USAGE = true
+- `sinau_private` schema USAGE = false
+
+The OID-based catalog checks completed for all five relations:
+
+| Relation | SELECT | INSERT | UPDATE | DELETE | TRUNCATE |
+|---|---:|---:|---:|---:|---:|
+| `poc_auth_sessions` | false | false | false | false | false |
+| `poc_identities` | false | false | false | false | false |
+| `poc_tenant_memberships` | false | false | false | false | false |
+| `poc_unit_memberships` | false | false | false | false | false |
+| `sinau_private.context_keys` | false | false | false | false | false |
+
+The function checks returned:
+
+| Function | EXECUTE |
+|---|---:|
+| `sinau_issuer_poc.validate_context_request(text,uuid,uuid)` | true |
+| `sinau_issuer_poc.has_feature_entitlement(uuid,text)` | true |
+| `sinau_private.verify_context_token(text)` | false |
+| `sinau_private.current_verified_context()` | false |
+
+The audit transaction ended with `ROLLBACK`. No role, membership, grant, schema, function, policy, or row was modified.
+
+**Finding:** the issuer capability role has the intended direct separation in this inventory: it can use the issuer schema and execute the two issuer functions, but cannot directly read or modify authorization tables/key storage and cannot execute the verifier/accessor. The lack of `USAGE` on `sinau_private` is consistent with that separation.
+
+**Important transitive capability:** the earlier runtime-identity simulation established that `sinau_app_runtime_poc` can `SET ROLE` to `sinau_context_issuer_poc`. Consequently, the runtime session can reach the issuer functions through that explicit switch. This audit demonstrates separation between the capability roles, not isolation of the runtime login from issuer capabilities.
+
+**Scope limitation:** the check uses `has_table_privilege` and `has_function_privilege` against catalog OIDs; it inventories ACL-derived effective privileges for the current issuer role. It does not execute either SECURITY DEFINER issuer function, test application SQL restrictions, or authenticate a network connection as the runtime role. ADR-007 remains Proposed; no verifier implementation or production change is authorized.

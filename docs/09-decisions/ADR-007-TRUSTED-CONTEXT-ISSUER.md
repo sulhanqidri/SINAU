@@ -502,3 +502,20 @@ The separate `sinau_poc` login is the PoC database-owner/test identity and inher
 The existing same-connection PoC test 012 requires issuer → query → issuer role switches within one top-level XID. Therefore the current test architecture intentionally grants runtime SET membership to both NOLOGIN capability roles. The proposed threat model treats runtime as a trusted backend executor whose SQL is controlled by the application; it is not a security boundary against arbitrary SQL execution or SQL injection under that runtime identity. Removing these memberships without replacing the transaction/issuer/query architecture would invalidate the tested flow. This is a proposed interpretation, not a production role approval.
 
 Script 023 ended with ROLLBACK and changed no roles or grants.
+
+
+## 22. Default function EXECUTE privilege correction — 2026-11-27
+
+Script 023 returned zero `pg_default_acl` entries for `sinau_context_owner`. Review of installed setup source identified an ineffective schema-scoped default privilege command in script 005: a per-schema REVOKE cannot remove PostgreSQL's built-in global default EXECUTE grant to PUBLIC for newly created functions. The installed four context functions each have their own explicit PUBLIC EXECUTE revocation, so the finding concerns future functions created by the context owner.
+
+The official PostgreSQL 18 behavior is documented at [ALTER DEFAULT PRIVILEGES](https://www.postgresql.org/docs/18/sql-alterdefaultprivileges.html): per-schema default privileges are added to global defaults and cannot revoke a global default privilege. The corrected source scripts 005 and 010 now use a global command for `sinau_context_owner`:
+
+```sql
+ALTER DEFAULT PRIVILEGES
+    FOR ROLE sinau_context_owner
+    REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+```
+
+Script 024 is added to apply this single persistent default-ACL change to `sinau_design_poc`, confirm the global ACL entry, and create a temporary probe function to prove PUBLIC EXECUTE is absent while owner EXECUTE remains. The probe transaction rolls back. The script has not yet been executed by the user; this live database gate remains pending.
+
+No existing function grants, role memberships, schemas, tables, policies, or production objects are modified by the intended script 024 fix. ADR-007 remains Proposed.

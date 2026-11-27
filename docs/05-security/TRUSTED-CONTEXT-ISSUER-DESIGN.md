@@ -275,3 +275,12 @@ The user executed script 027 successfully against `sinau_design_poc`. The candid
 EXPLAIN showed one InitPlan/Function Scan for the accessor, the protected `academic_years` SELECT returned one row, and `pg_stat_xact_user_functions` recorded exactly one call to `verify_context_token(text)` (2.623 ms). The post-ROLLBACK policy inventory showed the original two-subquery policy restored.
 
 This proves the row-valued single-subquery shape can reduce verifier invocation count from two to one for this table and this SELECT. It is not yet a universal policy design. Tenant-only tables, `audit_events` where `unit_id IS NULL` is intentionally allowed, and INSERT/UPDATE/DELETE checks still require separate policy expressions and explicit denial tests. Do not update persistent script 007 based on this one table's SELECT result alone.
+
+
+## 16. RLS table-policy classification gate — 2026-11-27
+
+Script 027 validated the row-valued one-subquery policy for `academic_years` only: one InitPlan returned both scope fields, one row remained visible, exactly one verifier call was counted, and ROLLBACK restored the original policy.
+
+Script 028 has been added as a read-only public-schema inventory. It will classify tenant-only, tenant+unit, nullable-unit, and unscoped tables; report RLS ENABLE/FORCE and exact USING/WITH CHECK expressions; and highlight the special `tenants`, `education_units`, and `audit_events` handling. It has not yet been run.
+
+Do not generalize the candidate policy or alter script 007 until the full table inventory and a read/write matrix are reviewed. In particular, preserve tenant-level `audit_events` rows where `unit_id IS NULL`, and keep the global `tenants` registry outside this tenant isolation policy.

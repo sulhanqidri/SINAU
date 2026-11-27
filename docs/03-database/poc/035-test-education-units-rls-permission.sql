@@ -742,17 +742,22 @@ $token_guard$;
 
 \echo '===== 3A. EXPLAIN THE SELECT POLICY SUBPLAN ====='
 
-SELECT token_value AS rls035_explain_token
-FROM pg_temp.poc_education_units_context_tokens
-WHERE token_name = 'foundation-admin-tenant-only'
-\gset
+DO $load_explain_context$
+DECLARE
+    v_token pg_catalog.text;
+BEGIN
+    SELECT token_value INTO v_token
+    FROM pg_temp.poc_education_units_context_tokens
+    WHERE token_name = 'foundation-admin-tenant-only';
 
-SELECT (
-    pg_catalog.set_config('app.context_token', :'rls035_explain_token', true)
-    IS NOT NULL
-) AS admin_context_installed;
+    IF v_token IS NULL THEN
+        RAISE EXCEPTION 'Missing synthetic administrator token';
+    END IF;
 
-\unset rls035_explain_token
+    PERFORM pg_catalog.set_config('app.context_token', v_token, true);
+    RAISE NOTICE 'PASS: administrator context staged without printing its token';
+END
+$load_explain_context$;
 
 SET LOCAL ROLE sinau_rls_test;
 
@@ -777,17 +782,21 @@ WHERE p.oid =
 \echo '===== 4. TEST ROW VISIBILITY UNDER VERIFIED CONTEXT ====='
 
 -- EU-RLS-01: a unit-A1 member sees A1 only.
-SELECT token_value AS rls035_unit_token
-FROM pg_temp.poc_education_units_context_tokens
-WHERE token_name = 'ordinary-unit-a1'
-\gset
+DO $load_unit_member_context$
+DECLARE
+    v_token pg_catalog.text;
+BEGIN
+    SELECT token_value INTO v_token
+    FROM pg_temp.poc_education_units_context_tokens
+    WHERE token_name = 'ordinary-unit-a1';
 
-SELECT (
-    pg_catalog.set_config('app.context_token', :'rls035_unit_token', true)
-    IS NOT NULL
-) AS unit_context_installed;
+    IF v_token IS NULL THEN
+        RAISE EXCEPTION 'Missing synthetic unit-member token';
+    END IF;
 
-\unset rls035_unit_token
+    PERFORM pg_catalog.set_config('app.context_token', v_token, true);
+END
+$load_unit_member_context$;
 
 SET LOCAL ROLE sinau_rls_test;
 
@@ -828,18 +837,21 @@ $unit_member_visibility$;
 RESET ROLE;
 
 -- EU-RLS-02: a tenant-only member without list_all sees no unit rows.
-SELECT token_value AS rls035_ordinary_tenant_token
-FROM pg_temp.poc_education_units_context_tokens
-WHERE token_name = 'ordinary-tenant-only'
-\gset
+DO $load_ordinary_tenant_context$
+DECLARE
+    v_token pg_catalog.text;
+BEGIN
+    SELECT token_value INTO v_token
+    FROM pg_temp.poc_education_units_context_tokens
+    WHERE token_name = 'ordinary-tenant-only';
 
-SELECT (
-    pg_catalog.set_config(
-        'app.context_token', :'rls035_ordinary_tenant_token', true
-    ) IS NOT NULL
-) AS ordinary_tenant_context_installed;
+    IF v_token IS NULL THEN
+        RAISE EXCEPTION 'Missing synthetic ordinary tenant token';
+    END IF;
 
-\unset rls035_ordinary_tenant_token
+    PERFORM pg_catalog.set_config('app.context_token', v_token, true);
+END
+$load_ordinary_tenant_context$;
 
 SET LOCAL ROLE sinau_rls_test;
 
@@ -864,17 +876,21 @@ $ordinary_tenant_visibility$;
 RESET ROLE;
 
 -- EU-RLS-03: an admin with explicit tenant list_all sees A1/A2 only.
-SELECT token_value AS rls035_admin_token
-FROM pg_temp.poc_education_units_context_tokens
-WHERE token_name = 'foundation-admin-tenant-only'
-\gset
+DO $load_tenant_admin_context$
+DECLARE
+    v_token pg_catalog.text;
+BEGIN
+    SELECT token_value INTO v_token
+    FROM pg_temp.poc_education_units_context_tokens
+    WHERE token_name = 'foundation-admin-tenant-only';
 
-SELECT (
-    pg_catalog.set_config('app.context_token', :'rls035_admin_token', true)
-    IS NOT NULL
-) AS admin_context_installed;
+    IF v_token IS NULL THEN
+        RAISE EXCEPTION 'Missing synthetic administrator token';
+    END IF;
 
-\unset rls035_admin_token
+    PERFORM pg_catalog.set_config('app.context_token', v_token, true);
+END
+$load_tenant_admin_context$;
 
 SET LOCAL ROLE sinau_rls_test;
 
@@ -945,17 +961,21 @@ RESET ROLE;
 
 \echo '===== 5. CHECK SELECT-ONLY POLICY AND WRITE DENIAL ====='
 
-SELECT token_value AS rls035_write_admin_token
-FROM pg_temp.poc_education_units_context_tokens
-WHERE token_name = 'foundation-admin-tenant-only'
-\gset
+DO $load_write_admin_context$
+DECLARE
+    v_token pg_catalog.text;
+BEGIN
+    SELECT token_value INTO v_token
+    FROM pg_temp.poc_education_units_context_tokens
+    WHERE token_name = 'foundation-admin-tenant-only';
 
-SELECT (
-    pg_catalog.set_config('app.context_token', :'rls035_write_admin_token', true)
-    IS NOT NULL
-) AS admin_write_context_installed;
+    IF v_token IS NULL THEN
+        RAISE EXCEPTION 'Missing synthetic administrator token for write test';
+    END IF;
 
-\unset rls035_write_admin_token
+    PERFORM pg_catalog.set_config('app.context_token', v_token, true);
+END
+$load_write_admin_context$;
 
 SET LOCAL ROLE sinau_rls_test;
 

@@ -1201,6 +1201,21 @@ BEGIN
             'FAIL: rollback left synthetic administrator identity behind';
     END IF;
 
+    IF EXISTS (
+        SELECT 1
+        FROM sinau_issuer_poc.poc_auth_sessions
+        WHERE session_hash = sinau_crypto.digest(
+            pg_catalog.convert_to(
+                'SINAU-POC-RLS035-UNIT-MEMBER-SESSION-NOT-A-REAL-CREDENTIAL',
+                'UTF8'
+            ),
+            'sha256'
+        )
+    ) THEN
+        RAISE EXCEPTION
+            'FAIL: rollback left synthetic unit-member session behind';
+    END IF;
+
     RAISE NOTICE
         'PASS: ROLLBACK restored the exact original education_units policy and removed temporary schema/function/fixtures';
 END

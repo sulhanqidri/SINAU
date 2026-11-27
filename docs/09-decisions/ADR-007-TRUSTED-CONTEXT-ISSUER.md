@@ -431,3 +431,27 @@ Both transactions ended with `ROLLBACK`. No role or membership was modified. Thi
 This strengthens the threat-model finding: arbitrary SQL execution in a session operating as the runtime role can switch to either granted capability role and exercise the privileges of that role. This is not itself proof of an external exploit or production impact.
 
 Before implementation, the role model must explicitly choose whether the runtime credential is trusted with both capabilities. If not, reduce the SET memberships in a separately reviewed PoC change and provide another controlled capability path. If yes, document the trust assumption and re-audit the post-switch effective privilege surface. No verifier DDL or production change is authorized by this test. ADR-007 remains Proposed. PR #1 remains Open, Draft, and unmerged.
+
+
+## 19. Issuer capability effective-privilege audit — 2026-11-27
+
+The issuer audit ran in a read-only transaction after simulating `sinau_app_runtime_poc` as the session identity and switching to `sinau_context_issuer_poc`. It confirmed the issuer schema is usable while `sinau_private` is not:
+
+- `session_user=sinau_app_runtime_poc`
+- `current_user=sinau_context_issuer_poc`
+- issuer schema USAGE = true
+- private schema USAGE = false
+
+OID-based relation privilege checks returned false for SELECT, INSERT, UPDATE, DELETE, and TRUNCATE on all of the following: `poc_identities`, `poc_auth_sessions`, `poc_tenant_memberships`, `poc_unit_memberships`, and `sinau_private.context_keys`.
+
+Function EXECUTE checks returned:
+- true for `sinau_issuer_poc.validate_context_request(text,uuid,uuid)`;
+- true for `sinau_issuer_poc.has_feature_entitlement(uuid,text)`;
+- false for `sinau_private.verify_context_token(text)`;
+- false for `sinau_private.current_verified_context()`.
+
+The transaction ended with `ROLLBACK`; no role, membership, grant, schema, function, policy, or row was changed.
+
+This supports the intended direct least-privilege separation: the issuer capability can call its two functions but cannot directly read authorization/key tables or invoke the query/verifier capability. It does not isolate the runtime login from issuer capability, because the separately tested runtime session can `SET ROLE` to issuer. Arbitrary SQL through that runtime connection can therefore invoke the two issuer functions after switching. This remains a role-model threat-model decision, not an accepted production design.
+
+The audit used catalog OIDs to check ACL-derived privileges, and did not execute the SECURITY DEFINER functions or validate network authentication with the runtime credentials. ADR-007 remains Proposed; no implementation or production DDL is authorized by this evidence.

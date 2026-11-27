@@ -316,3 +316,10 @@ Script 031 completed as a READ ONLY catalog audit. All eleven remaining tenant+u
 The main domain-integrity paths are composite foreign keys across the attendance and assessment chains, non-overlapping student placements, score/finalization checks, correction idempotency/status, revision sequencing, and a deferred correction-to-revision reference. **Script 032 passed on transaction XID 963**: same-scope INSERT/SELECT/UPDATE/DELETE across all eleven relations; cross-unit UPDATE denial on nine relations without participant BEFORE UPDATE triggers; thirteen selected negative constraint cases; and explicit validation of the deferred correction-to-revision FK. The transaction ended with ROLLBACK. This is scoped PoC evidence, not production security acceptance or exhaustive business workflow coverage. No production schema, application data, or persistent policy change is authorized by this inventory.
 
 The `education_units` policy question remains separate: tenant-wide enumeration requires a trusted tenant-owner/admin capability that is not present in the current v1 token. Do not infer it from the tenant claim alone.
+
+
+## 21. Domain regression pass and all-table policy candidate — 2026-11-27
+
+Script 032 passed on transaction XID 963. It exercised same-scope CRUD across all eleven remaining tenant+unit tables, nine cross-unit UPDATE denials, thirteen selected CHECK/UNIQUE/EXCLUSION/FK-negative cases, deferred correction-to-revision FK validation, and ROLLBACK. This is scoped PoC evidence; it is not exhaustive application workflow coverage.
+
+Script 033 has been prepared to validate the row-valued one-subquery policy candidate on all twelve ordinary tenant+unit tables using one visible synthetic row per table and a measured target of exactly one verifier call per protected SELECT. It temporarily changes policies within one transaction and verifies that ROLLBACK restores all original two-subquery definitions. The script has not yet been executed. The tenant-only `education_units` capability model and nullable-scope `audit_events` policy are expressly excluded and remain separate authorization decisions.

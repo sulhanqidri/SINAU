@@ -1336,3 +1336,20 @@ Salin dan isi bagian ini setiap mengakhiri sesi:
 - Revocation in connection B must COMMIT so connection A can observe it. The exact fixture row is restored and committed after Session A rolls back. This is not an all-rollback transaction; it is a bounded reversible PoC experiment on synthetic fixture rows only. Do not run another case before the previous restore succeeds.
 - The existing token format carries actor/tenant/unit/XID but no session identifier. The session test is limited to the actor's single active fixture session and records an additional design requirement for exact per-session revocation.
 - Server execution of scripts 019/020 and the four concurrency scenarios is pending. No verifier/function/policy code was changed. No production database, role, service, SQLRadius, or MikroTik changes. ADR-007 remains Proposed.
+
+
+### Two-connection authorization freshness test completed — 2026-11-27
+
+- User executed the two-connection scripts 019/020 against `sinau_design_poc` under `READ COMMITTED`.
+- Each of the four valid runs used a token signed for the exact XID printed by Session A. Each baseline passed with exactly one tenant-A/unit-A1 academic-year row visible.
+- For each source table, Session B changed exactly one synthetic fixture row and committed the revocation before Session A's next protected SELECT:
+  - `poc_identities`: account disabled.
+  - `poc_auth_sessions`: the actor's single active synthetic session revoked.
+  - `poc_tenant_memberships`: tenant membership revoked.
+  - `poc_unit_memberships`: unit membership revoked.
+- All four Session A checks reported `FINDING REPRODUCED`: the next protected statement still saw one row after the corresponding revoke commit. These are behavior-level PoC findings for the installed verifier under the tested READ COMMITTED flow.
+- The four exact synthetic fixture rows were restored. Account identity, authentication session, tenant membership, and unit membership were all verified active; the final `BEGIN READ ONLY` audit showed `matching_rows = 1`, `active_rows = 1`, and `PASS` for all four. The read-only audit ended with `ROLLBACK`.
+- Both temporary token files in `/run` were removed. An earlier mismatched-XID attempt (Session A 934 vs signer 935) failed baseline and is excluded; the four recorded results used matching XIDs and passed baseline.
+- The current PoC token has no session identifier. The session test therefore demonstrates only the actor's single active synthetic session and does not establish per-session semantics for real actors with multiple sessions.
+- Next gate: design token/session binding and per-statement authorization freshness. Compare live authoritative-state checks with a carefully versioned authorization epoch, and specify READ COMMITTED race/snapshot semantics and query-cost tests. Do not change production schema, roles, RLS, Laravel integration, or services at this stage.
+- No production database `sinau`, production role `sinau_app`, SQLRadius, MikroTik, or production service was changed. ADR-007 remains Proposed; PR #1 remains Draft/open/unmerged.

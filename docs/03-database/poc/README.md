@@ -758,3 +758,27 @@ For every scenario, the order is: start Session A; copy its XID; create token; l
 - The session token does not carry a session ID. The current test fixture has one active session for actor 910...001; exact per-session revocation semantics require a session identifier or an authorization epoch in the eventual token contract.
 - This test is deliberately a PoC behavior experiment. It does not modify the verifier or RLS policies. It must only run against `sinau_design_poc`, never `sinau`, `sinau_app`, SQLRadius, or production services.
 - A `FINDING REPRODUCED` result is not an application exploit test. It is evidence that the current verifier does not enforce the chosen revocation semantics on a subsequent protected statement.
+
+
+## 18. Execution result — two-connection authorization-revocation test (2026-11-27)
+
+The four scenarios in section 17 were executed against `sinau_design_poc` under `READ COMMITTED`, using the same transaction XID for Session A and its signed PoC token. Each valid run passed the baseline assertion (exactly one tenant-A/unit-A1 academic-year row), then Session B committed one synthetic authorization-state revocation before Session A's next protected SELECT.
+
+**Observed result: all four scenarios reported `FINDING REPRODUCED`** — the next protected statement still saw one row after the corresponding revocation commit.
+
+| Authorization source | Session B mutation | Session A result | Fixture restoration |
+|---|---|---|---|
+| Global account identity | `account_status: active → disabled` | `FINDING REPRODUCED` | Restored to `active` |
+| Authentication session | `session_status: active → revoked` | `FINDING REPRODUCED` | Verified `active`, `revoked_at IS NULL` |
+| Tenant membership | `membership_status: active → revoked` | `FINDING REPRODUCED` | Restored to `active` |
+| Unit membership | `membership_status: active → revoked` | `FINDING REPRODUCED` | Restored to `active` |
+
+Each revoke/restore block asserted exactly one affected synthetic row. The final read-only audit returned `matching_rows = 1`, `active_rows = 1`, and `PASS` for all four fixtures. That audit ran under `BEGIN READ ONLY` and ended with `ROLLBACK`. Temporary token files were removed from `/run`.
+
+An earlier preliminary attempt with mismatched XIDs (Session A XID 934 vs signer XID 935) failed its baseline and is excluded from the four valid results. The successful runs used matching XIDs and passed baseline before each revocation.
+
+**Finding:** the installed PoC verifier does not enforce account, authentication-session, tenant-membership, or unit-membership revocation on the next protected statement in the tested READ COMMITTED flow. This is a PoC authorization-freshness finding, not a production exploit demonstration or production-security acceptance.
+
+**Limitations:** the PoC token has no session identifier. The session scenario tests only the single active synthetic session for actor `910...001`; it does not establish per-session revocation semantics for actors with multiple sessions. The experiment requires Session B's revocation commit to become visible, followed by a separately committed fixture restoration; it is not an all-rollback test.
+
+**Next gate:** design the token/session binding and live authorization freshness contract, then implement and retest only within `sinau_design_poc`. Compare per-statement authoritative-state checks with a carefully versioned authorization-epoch approach, including race/snapshot semantics and query cost. Do not modify production schemas, roles, RLS, or Laravel integration until the design and tests are reviewed. ADR-007 remains Proposed.

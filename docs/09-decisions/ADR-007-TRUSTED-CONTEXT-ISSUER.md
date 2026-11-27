@@ -553,3 +553,12 @@ Script 027 passed on `sinau_design_poc` for `public.academic_years`. The transac
 EXPLAIN produced one InitPlan/Function Scan whose output contained both context fields; the protected SELECT returned one row; and the transaction-local counter reported exactly one verifier call (`2.623 ms`). The expected PASS notice appeared. ROLLBACK restored the original two-subquery policy, confirmed by the post-rollback `pg_policies` output.
 
 This validates the composite row-comparison candidate for the ordinary tenant+unit shape on `academic_years` only. It does not approve persistent installation or application to all tables. The next gate is a policy matrix covering tenant-only tables, `audit_events` with nullable `unit_id`, read/write operations, malformed/expired tokens, and cross-scope denial. Script 007 remains unchanged until that matrix passes.
+
+
+## 26. RLS table/policy matrix is the next gate — 2026-11-27
+
+Script 027 passed for `public.academic_years`: one InitPlan/Function Scan returned both context fields, one protected SELECT returned one row, and exactly one verifier call was recorded (2.623 ms). The script rolled back and the original policy was visible afterward.
+
+Script 028 now provides a read-only inventory of every public table with tenant/unit scope columns or RLS enabled. It reports column nullability, ENABLE/FORCE status, exact policies and special handling for the global tenant registry, tenant-scoped education units, and nullable-unit audit events. The script has not yet been executed.
+
+The one-row candidate remains validated only for the ordinary tenant+unit `academic_years` case. No permanent policy change is authorized. Review script 028 output before defining the complete SELECT/INSERT/UPDATE/DELETE policy matrix and before any verifier-v2 DDL.

@@ -17,7 +17,6 @@
 DO $guard$
 DECLARE
     v_policy_count pg_catalog.int8;
-    v_has_unit_id pg_catalog.bool;
     v_identity_count pg_catalog.int8;
     v_verifier_oid pg_catalog.oid;
 BEGIN
@@ -53,15 +52,14 @@ BEGIN
             'SAFETY STOP: sinau_rls_test lacks SELECT on public.academic_years';
     END IF;
 
-    SELECT c.relhasoids IS NOT NULL
-      INTO v_has_unit_id
-      FROM pg_catalog.pg_class AS c
-      JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
-     WHERE n.nspname = 'public'
-       AND c.relname = 'academic_years'
-       AND c.relkind = 'r';
-
-    IF NOT FOUND THEN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_catalog.pg_class AS c
+        JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public'
+          AND c.relname = 'academic_years'
+          AND c.relkind = 'r'
+    ) THEN
         RAISE EXCEPTION
             'SAFETY STOP: public.academic_years does not exist as a table';
     END IF;
@@ -211,6 +209,7 @@ FROM public.academic_years
 \gset
 
 \echo 'Visible academic_years rows: ' :visible_rows
+SELECT pg_catalog.set_config('poc.audit_visible_rows', :'visible_rows', true);
 
 RESET ROLE;
 
@@ -233,7 +232,7 @@ DECLARE
     v_visible pg_catalog.int8;
     v_calls pg_catalog.int8;
 BEGIN
-    v_visible := :'visible_rows'::pg_catalog.int8;
+    v_visible := pg_catalog.current_setting('poc.audit_visible_rows', true)::pg_catalog.int8;
 
     SELECT COALESCE(s.calls, 0)
       INTO v_calls

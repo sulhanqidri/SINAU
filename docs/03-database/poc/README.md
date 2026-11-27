@@ -1941,7 +1941,7 @@ Download and stage:
 ~~~bash
 set -e
 
-EDUCATION_UNITS_FRESHNESS_COMMIT='fe53d75245358ee31dfa11e1d4a8cd52574c4f19'
+EDUCATION_UNITS_FRESHNESS_COMMIT='367e5984ff7691dc653a114f20ddbf5ab80701e9'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_FRESHNESS_COMMIT/docs/03-database/poc/036-test-education-units-permission-freshness.sql" \
   -o "$HOME/036-test-education-units-permission-freshness.sql"

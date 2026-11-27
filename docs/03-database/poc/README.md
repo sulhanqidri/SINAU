@@ -1858,7 +1858,7 @@ The helper derives actor/tenant/unit only from `sinau_private.current_verified_c
 - A non-null unit claim requires an active membership for that exact unit and an active synthetic unit catalogue row; only that unit ID is returned.
 - A null unit claim returns the tenant's active unit IDs only when the current tenant membership has the explicit `education_units.list_all` permission through an active tenant-role/permission mapping. Null unit alone returns no units.
 
-The permission fixture tables are private and are not directly readable by `sinau_rls_test`; that role receives EXECUTE only on the narrow query helper. Synthetic v1 contexts for the unit member, ordinary tenant-only member, and tenant administrator are signed inside the disposable transaction by the PostgreSQL administrator and bound to that transaction's XID. Tokens are kept out of query-role temporary-table access and are never printed.
+The permission fixture tables are private and are not directly readable by `sinau_rls_test`; that role receives EXECUTE only on the narrow query helper. Synthetic v1 contexts for the unit member, ordinary tenant-only member, and tenant administrator are signed inside the disposable transaction by the PostgreSQL administrator and bound to that transaction's XID. The script creates a fresh dedicated active session fixture for the existing unit-member actor inside the same transaction, because Script 010's original active session is deliberately valid for only one day and may be expired when this later test is run. The fresh fixture is covered by table locks and is explicitly checked absent after ROLLBACK. Tokens are kept out of query-role temporary-table access and are never printed.
 
 Expected assertions:
 - EU-RLS-01: a unit-A1 member sees A1 only; A2 and tenant B's B1 are hidden.
@@ -1876,7 +1876,7 @@ Download and stage the pinned script:
 ~~~bash
 set -e
 
-EDUCATION_UNITS_RLS_COMMIT='382e9668481a58d5c147370bc9bdffdf07d89401'
+EDUCATION_UNITS_RLS_COMMIT='eec0058e98f6d0cdc55e05c11162c3be09e7581f'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_RLS_COMMIT/docs/03-database/poc/035-test-education-units-rls-permission.sql" \
   -o "$HOME/035-test-education-units-rls-permission.sql"

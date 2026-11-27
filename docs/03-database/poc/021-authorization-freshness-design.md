@@ -231,3 +231,27 @@ A test is PASS only when the expected result, fixture restoration, and final rea
 7. Which key algorithm and custody model will be evaluated for production, separate from the HMAC PoC?
 
 Until these questions and test gates are resolved, token v2 is a proposal—not an implementation contract.
+
+
+## 11. Repository source inventory — not a live database result
+
+A source review of committed scripts `010-context-issuer-fixtures.sql`, `011-context-issuer-validation-tests.sql`, and `005-verify-context-token.sql` establishes the following **repository baseline only**:
+
+| Source table | Key in the fixture DDL | Relevant fields | Generation field in source DDL |
+|---|---|---|---|
+| `poc_identities` | PK `(actor_id)` | `account_status`, `created_at` | None |
+| `poc_auth_sessions` | PK `(session_hash)` | `actor_id`, status, authentication/expiry/revocation timestamps, assurance level | None |
+| `poc_tenant_memberships` | PK `(actor_id, tenant_id)` | status, valid-from/until, revoked-at | None |
+| `poc_unit_memberships` | PK `(actor_id, tenant_id, unit_id)` | status, valid-from/until, revoked-at | None |
+| `poc_units` | PK `(tenant_id, unit_id)` | `unit_status` | None |
+| `poc_feature_entitlements` | PK `(tenant_id, feature_code)` | entitlement status and validity period | Not part of context-membership freshness |
+
+Additional source-level observations:
+
+- `poc_auth_sessions.session_hash` is `bytea` with a 32-byte length check. The issuer validator hashes its supplied session token with SHA-256 and searches by that primary key; the actor is derived from the matching session row.
+- The fixture DDL defines no explicit secondary index for session `actor_id`. The exact session lookup is supported by `session_hash` PK. A bulk logout-by-actor index is a separate measured optimization, not a verifier prerequisite.
+- `validate_context_request()` is `VOLATILE SECURITY DEFINER` with fixed `search_path=pg_catalog, pg_temp`. It checks account/session state and tenant/unit membership at context-request time.
+- The installed v1 verifier source checks token syntax, HMAC, audience/database, time window, top-level XID, and signing-key status. Its token has no session claim and verifier body has no live references to the four authorization fixture tables.
+- The fixture tables currently contain no account, tenant-membership, or unit-membership generation columns. The token v2 generations and session claim remain proposals; no schema change is implied by this inventory.
+
+These facts are derived from repository source, not from the live PostgreSQL instance. Script 022 is the required runtime comparison and must be executed successfully before preparing any DDL. If the installed schema, constraints, indexes, owners, privileges, function definitions, or role memberships differ, record the difference and stop to reconcile it rather than assuming either side is correct.

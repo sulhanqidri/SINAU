@@ -99,8 +99,8 @@ IN SHARE ROW EXCLUSIVE MODE;
 
 \echo '===== 1. CREATE ROLLBACK-ONLY TENANT ROLE/PERMISSION FIXTURES ====='
 
-SET LOCAL ROLE sinau_context_owner;
-
+-- Create the temporary schema as the administrator, then let the
+-- context owner create its tables/functions inside the owned schema.
 CREATE SCHEMA sinau_education_units_poc
     AUTHORIZATION sinau_context_owner;
 
@@ -109,6 +109,8 @@ REVOKE ALL ON SCHEMA sinau_education_units_poc
 
 GRANT USAGE ON SCHEMA sinau_education_units_poc
     TO sinau_context_issuer_poc;
+
+SET LOCAL ROLE sinau_context_owner;
 
 CREATE TABLE sinau_education_units_poc.poc_tenant_roles (
     role_code pg_catalog.text PRIMARY KEY,

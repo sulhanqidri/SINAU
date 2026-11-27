@@ -284,3 +284,12 @@ Script 027 validated the row-valued one-subquery policy for `academic_years` onl
 Script 028 has been added as a read-only public-schema inventory. It will classify tenant-only, tenant+unit, nullable-unit, and unscoped tables; report RLS ENABLE/FORCE and exact USING/WITH CHECK expressions; and highlight the special `tenants`, `education_units`, and `audit_events` handling. It has not yet been run.
 
 Do not generalize the candidate policy or alter script 007 until the full table inventory and a read/write matrix are reviewed. In particular, preserve tenant-level `audit_events` rows where `unit_id IS NULL`, and keep the global `tenants` registry outside this tenant isolation policy.
+
+
+## 17. Scope inventory and audit_events nullability — 2026-11-27
+
+Script 028 completed as a read-only metadata audit on the disposable PoC. It found 14 public tenant/unit-scoped tables: `education_units` is tenant-only; twelve relations have both `tenant_id` and `unit_id` NOT NULL; and `audit_events` has both columns nullable. All 14 scoped tables have RLS enabled and forced, and no scoped table was missing a policy. All installed policies are permissive, target `sinau_rls_test`, and apply to ALL commands with USING and WITH CHECK. `tenants` remains the global registry outside RLS.
+
+The `audit_events` DDL in `001-schema.sql` allows both scope columns to be NULL while preventing a non-NULL unit with NULL tenant. The current tenant equality predicate excludes both-NULL rows from normal tenant visibility. Their intended use/access is unresolved. Do not treat them as tenant-level events or expand policy visibility without a separate decision.
+
+Script 029 is prepared to report aggregate row counts by audit-event scope nullability and actor type without disclosing event payloads or identifiers. After that audit, complete the per-class policy matrix before generalizing the `academic_years` row-subquery candidate.

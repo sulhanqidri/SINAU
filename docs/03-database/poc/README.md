@@ -1677,3 +1677,47 @@ Recommended authorization behavior for the multi-unit foundation and independent
 - No role may read units from another tenant. Creating, editing, deactivating, or transferring units should be governed by separate write capabilities rather than inferred from permission to list units.
 
 This is a design recommendation, not an approved policy. The current PoC issuer fixtures store tenant and unit membership status but no role/capability field. The v1 context exposes actor, tenant, and unit identifiers but no tenant-wide permission. Therefore, current context claims cannot safely distinguish a foundation administrator from an ordinary unit member. Before changing the `education_units` RLS predicate, the issuer design must add and validate a tenant-wide capability from authoritative membership/authorization state, and the verified context must expose it coherently. Do not infer this capability from a client-provided setting or from tenant membership alone.
+
+
+## 35. Rollback-only CRUD and domain-integrity regression for eleven tenant+unit tables
+
+Script `032-test-domain-table-integrity.sql` follows inventory 031. It creates a synthetic A1 academic dependency chain under the signed transaction context: class group, enrollment, placement, attendance session and participant, attendance record, assessment definition and participant, score, correction, and revision. It verifies same-scope SELECT/INSERT/UPDATE/DELETE across all eleven target tables, exercises cross-unit `WITH CHECK` denial on the nine tables without participant temporal triggers, and tests selected domain constraints: missing academic-year FK, unique student code, overlapping placement exclusion, assessment maximum, attendance session status, participant uniqueness, attendance status, score/workflow consistency, correction state/idempotency, revision number, and the deferred correction-to-revision FK.
+
+The two participant tables' temporal-trigger behavior remains covered by script 017; script 032 exercises their valid RLS CRUD path without duplicating its shadowing regression. The script uses reserved UUIDs/student codes/idempotency keys with a preflight collision check, takes transaction-scoped locks, installs the same XID-bound v1 synthetic token used by script 030, runs domain DML as `sinau_rls_test`, and ends with `ROLLBACK`. No fixture rows or persistent objects are intended to remain. This script has been authored and reviewed statically in the repository; it has **not yet been executed** against the PoC database.
+
+Download and stage the pinned script:
+
+~~~bash
+set -e
+
+DOMAIN_TEST_COMMIT='664a38580793e4bc813bcc4528eab16a3fe91efa'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$DOMAIN_TEST_COMMIT/docs/03-database/poc/032-test-domain-table-integrity.sql" \
+  -o "$HOME/032-test-domain-table-integrity.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/032-test-domain-table-integrity.sql" \
+  /run/032-test-domain-table-integrity.sql
+~~~
+
+Terminal A:
+
+~~~bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
+  -d sinau_design_poc \
+  -f /run/032-test-domain-table-integrity.sql
+~~~
+
+When the script prints its transaction XID, use a second terminal for the matching signed token:
+
+~~~bash
+python3 "$HOME/019-sign-authorization-freshness-token.py" XID_FROM_SESSION_A
+
+sudo install -o postgres -g postgres -m 600 \
+  /run/sinau-poc-token-signer/authfreshness-context.token \
+  /run/authfreshness-context.token
+~~~
+
+Return to Terminal A and press Enter only after the install command succeeds. Wait for `DOMAIN TABLE CRUD / INTEGRITY REGRESSION COMPLETE — ALL DML ROLLED BACK`. Then remove both temporary token files with `sudo rm -f --`.
+
+A failure in this script must be reviewed before any retry. Never change installed RLS policies or production databases to make the PoC pass.

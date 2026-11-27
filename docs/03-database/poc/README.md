@@ -933,3 +933,40 @@ The test connection itself was authenticated as `postgres`; the command `SET LOC
 ### Decision gate
 
 Do not change memberships or start verifier DDL based on this test alone. The threat model must choose whether the runtime credential is trusted with both capabilities. If not, propose a separately reviewed PoC role-model change and a controlled alternative path for the issuer and query functions. If yes, record the trust assumption and audit the effective privileges after each role switch. ADR-007 remains Proposed and PR #1 remains Open, Draft, and unmerged.
+
+
+## 24. Issuer capability effective-privilege audit — 2026-11-27
+
+The read-only audit ran after setting the session identity to `sinau_app_runtime_poc` and switching to `sinau_context_issuer_poc`. It reported:
+
+- `session_user = sinau_app_runtime_poc`
+- `current_user = sinau_context_issuer_poc`
+- schema `sinau_issuer_poc` USAGE: true
+- schema `sinau_private` USAGE: false
+
+The OID-based checks avoided resolving schema-qualified relation names as the issuer role and completed for all five relations:
+
+| Relation | SELECT | INSERT | UPDATE | DELETE | TRUNCATE |
+|---|---:|---:|---:|---:|---:|
+| `sinau_issuer_poc.poc_auth_sessions` | false | false | false | false | false |
+| `sinau_issuer_poc.poc_identities` | false | false | false | false | false |
+| `sinau_issuer_poc.poc_tenant_memberships` | false | false | false | false | false |
+| `sinau_issuer_poc.poc_unit_memberships` | false | false | false | false | false |
+| `sinau_private.context_keys` | false | false | false | false | false |
+
+Function EXECUTE results:
+
+| Function | EXECUTE |
+|---|---:|
+| `sinau_issuer_poc.validate_context_request(text,uuid,uuid)` | true |
+| `sinau_issuer_poc.has_feature_entitlement(uuid,text)` | true |
+| `sinau_private.verify_context_token(text)` | false |
+| `sinau_private.current_verified_context()` | false |
+
+The transaction ended with `ROLLBACK`; no catalog object or row was modified.
+
+**Interpretation:** direct issuer-role privileges match the intended capability split for the inspected relations/functions. The issuer can execute its two issuer functions, but cannot directly read or write the authorization fixture tables/key store and cannot execute the verifier/accessor.
+
+**Transitive runtime access:** because the earlier SET ROLE test succeeded, a session with runtime identity can explicitly assume the issuer role and then execute its two functions. Thus, this is role-to-role separation, not protection against arbitrary SQL running through a runtime connection that retains the SET membership.
+
+**Limitations:** this audit checks effective ACL privileges via catalog OIDs; it did not invoke the SECURITY DEFINER functions or test the actual network login path for the runtime credential.

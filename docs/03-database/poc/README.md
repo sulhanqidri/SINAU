@@ -567,7 +567,7 @@ sudo install -o postgres -g postgres -m 600 \
 5. After Session A reports ROLLBACK, run the matching restoration block in terminal B and COMMIT it. Remove the two tmpfs token files:
 
 ```bash
-rm -f /run/authfreshness-context.token \
+sudo rm -f -- /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ```
 
@@ -1356,7 +1356,7 @@ sudo install -o postgres -g postgres -m 600 \
   /run/026-audit-rls-verifier-call-count.sql
 
 install -d -m 700 /run/sinau-poc-token-signer
-rm -f /run/authfreshness-context.token \
+sudo rm -f -- /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ~~~
 
@@ -1397,7 +1397,7 @@ Press Enter in Terminal A. The script imports the token without displaying it, p
 After script 026 reports ROLLBACK, remove both token copies:
 
 ~~~bash
-rm -f /run/authfreshness-context.token \
+sudo rm -f -- /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ~~~
 
@@ -1443,7 +1443,7 @@ sudo install -o postgres -g postgres -m 600 \
   /run/027-test-single-row-context-policy.sql
 
 install -d -m 700 /run/sinau-poc-token-signer
-rm -f /run/authfreshness-context.token \
+sudo rm -f -- /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ```
 
@@ -1476,7 +1476,7 @@ Press Enter in Terminal A. Expected candidate evidence:
 After the script has rolled back, remove the token copies:
 
 ```bash
-rm -f /run/authfreshness-context.token \
+sudo rm -f -- /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ```
 
@@ -1589,7 +1589,7 @@ Download and stage the tested revision:
 set -e
 
 SIGNER_COMMIT='70b2f3ccdadf14f306ca77104b6a5b4fb35328b0'
-MATRIX_COMMIT='194bb25143fe0814d837824918ba87a1c4c7bc80'
+MATRIX_COMMIT='be9dc6e42a28cf31abcc8836f8091328f1ca3fca'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$SIGNER_COMMIT/docs/03-database/poc/019-sign-authorization-freshness-token.py" \
   -o "$HOME/019-sign-authorization-freshness-token.py"
@@ -1603,7 +1603,7 @@ sudo install -o postgres -g postgres -m 600 \
   /run/030-test-rls-policy-classes.sql
 
 install -d -m 700 /run/sinau-poc-token-signer
-rm -f /run/authfreshness-context.token \
+sudo rm -f -- /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ~~~
 
@@ -1630,7 +1630,7 @@ Press Enter in Terminal A. The script must report PASS for tenant-only, tenant+u
 After completion, remove both tmpfs token files:
 
 ~~~bash
-rm -f /run/authfreshness-context.token \
+sudo rm -f -- /run/authfreshness-context.token \
   /run/sinau-poc-token-signer/authfreshness-context.token
 ~~~
 

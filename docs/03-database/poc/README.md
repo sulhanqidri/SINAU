@@ -814,7 +814,7 @@ Script `022-audit-context-state-inventory.sql` inventories the installed authori
 Run on the SINAU PoC host:
 
 ```bash
-curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/50b8e6555b5e3c5074c016d796cf4f9176e21da6/docs/03-database/poc/022-audit-context-state-inventory.sql' \
+curl -fL 'https://raw.githubusercontent.com/sulhanqidri/SINAU/b82a94d7d0bf256aeddfcea75af322d88e4498bb/docs/03-database/poc/022-audit-context-state-inventory.sql' \
   -o /run/022-audit-context-state-inventory.sql
 
 sudo chown postgres:postgres /run/022-audit-context-state-inventory.sql
@@ -828,3 +828,26 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 \
 The download URL is pinned to the commit containing this script; run the command as shown. Preserve the output for review, but redact hostnames or other environment details if sharing publicly. The output is an inventory, not a pass/fail approval. In particular, catalog-recorded `pg_depend` entries may omit table references inside PL/pgSQL function bodies; review the displayed function definitions as well.
 
 The inventory must be checked against the live PoC host before proposing any DDL. Do not assume the repository's original fixture DDL exactly matches the installed database. PR #1 remains Open/Draft/unmerged; no verifier implementation is authorized by this audit.
+
+
+## 21. Runtime authorization-state inventory — 2026-11-27
+
+The user executed script 022 on the SINAU host. The output confirms PostgreSQL 18.7, database `sinau_design_poc`, role `postgres`, and `transaction_read_only = on`; the script reached its final ROLLBACK marker. This is a catalog inventory, not a verifier acceptance test.
+
+**Confirmed runtime structure:**
+- All eight expected relations were present: the six issuer fixture tables, `sinau_private.context_keys`, and `public.tenants`.
+- The four authorization source tables have no generation/epoch columns: `poc_identities`, `poc_auth_sessions`, `poc_tenant_memberships`, and `poc_unit_memberships`.
+- `poc_auth_sessions.session_hash` is `bytea NOT NULL`, constrained to 32 bytes and is the primary key. Its row also stores `actor_id`, session status, authenticated/expiry/revocation timestamps, and assurance level.
+- Primary-key indexes on the six issuer fixture tables and `context_keys` were all valid, ready, and live. No secondary indexes were reported for those tables.
+- The issuer fixture relations and `context_keys` are owned by `sinau_context_owner`; `public.tenants` is owned by `sinau_poc`.
+- All 14 listed public RLS policies use `sinau_private.current_verified_context()`. `education_units` is tenant-scoped; `audit_events` retains the special tenant-level NULL-unit rule.
+- Effective privilege output showed `sinau_rls_test` cannot directly SELECT the issuer membership/session tables or key store and cannot execute the issuer validator. It can execute the verifier and accessor required by the current invoker accessor chain.
+- The role membership catalog showed `sinau_app_runtime_poc` can SET ROLE to both `sinau_context_issuer_poc` and `sinau_rls_test` (`set_option = true`, `inherit_option = false`). The corrected script now inventories this runtime role's attributes and effective privileges explicitly; inspect that output before accepting the role boundary.
+- The `pg_depend` query returned no rows for these PL/pgSQL/SQL function dependencies. This is not proof of no dependencies: review the function source, as the script warns.
+
+**Audit script defect discovered and corrected:**
+- The first run's function metadata lookup used `pg_get_function_identity_arguments()` with an assumed type-only string. That predicate did not match the installed verifier/issuer functions, even though section 7 displayed their definitions. The first output's blank metadata rows for those functions are therefore an audit-query defect, not evidence that those functions were absent.
+- Script 022 now matches function overloads using `pronargs` and `proargtypes`, and includes `sinau_app_runtime_poc` in privilege/role inventories. Re-run the corrected, pinned script before relying on the function metadata and runtime-role sections.
+- No database/schema/role/privilege/RLS change was made by either audit run. The first run ended with ROLLBACK. Do not proceed to DDL until the corrected audit is reviewed.
+
+The raw first-run output is not treated as a full audit pass because the function metadata section was incomplete. The corrected run is still required.

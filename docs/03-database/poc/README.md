@@ -1816,7 +1816,7 @@ Download and stage the pinned script:
 ~~~bash
 set -e
 
-EDUCATION_UNITS_POC_COMMIT='1dcc494f0b930793858d56549b7450c79e1c129a'
+EDUCATION_UNITS_POC_COMMIT='46b5c810ee0b78f70dac0989dcaaaf9cafd7e4b8'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_POC_COMMIT/docs/03-database/poc/034-test-education-units-tenant-permission.sql" \
   -o "$HOME/034-test-education-units-tenant-permission.sql"

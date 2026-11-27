@@ -507,3 +507,12 @@ Observed:
 **Finding:** the candidate row-comparison shape reduces measured verifier calls from two to one for `academic_years` while preserving the observed result. It is a validated disposable candidate for this table shape, not yet a persistent change or universal RLS policy. `audit_events` must preserve tenant-level rows with `unit_id IS NULL`; tenant-only tables and write operations need separate expressions/tests.
 
 Next gate: build and execute a complete policy matrix covering all tenant-scoped tables, SELECT/INSERT/UPDATE/DELETE, malformed/expired tokens, cross-tenant/unit attempts, tenant-only relations, and the nullable-unit audit-events case. Do not modify persistent script 007 or start verifier v2 DDL until this matrix and the final claim/epoch contract are reviewed.
+
+
+## 21. RLS policy matrix inventory prepared — 2026-11-27
+
+Script 027 passed for `public.academic_years` on XID 958. EXPLAIN showed one InitPlan/Function Scan returning both `tenant_id` and `unit_id`; the protected SELECT returned one row; and the transaction-local function counter recorded exactly one verifier call (`total_time_ms=2.623`, `self_time_ms=2.623`). The candidate policy was limited to the open transaction. ROLLBACK restored the original two-subquery policy, as confirmed by the final `pg_policies` output.
+
+Script 028 has been added as a read-only catalog inventory to classify all public tables with `tenant_id`/`unit_id`, identify nullability, list exact RLS USING/WITH CHECK expressions and ENABLE/FORCE status, and inspect the special `tenants`, `education_units`, and `audit_events` relations. It has not yet been executed.
+
+Next gate: execute and review script 028, then design a per-class SELECT/INSERT/UPDATE/DELETE test matrix. The candidate one-row comparison is validated only for ordinary tenant+unit-scoped `academic_years`; do not update persistent script 007 or begin verifier v2 DDL until tenant-only, nullable-unit, malformed-token, cross-scope, and write checks have been separately reviewed.

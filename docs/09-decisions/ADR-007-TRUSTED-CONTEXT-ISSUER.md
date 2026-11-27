@@ -455,3 +455,29 @@ The transaction ended with `ROLLBACK`; no role, membership, grant, schema, funct
 This supports the intended direct least-privilege separation: the issuer capability can call its two functions but cannot directly read authorization/key tables or invoke the query/verifier capability. It does not isolate the runtime login from issuer capability, because the separately tested runtime session can `SET ROLE` to issuer. Arbitrary SQL through that runtime connection can therefore invoke the two issuer functions after switching. This remains a role-model threat-model decision, not an accepted production design.
 
 The audit used catalog OIDs to check ACL-derived privileges, and did not execute the SECURITY DEFINER functions or validate network authentication with the runtime credentials. ADR-007 remains Proposed; no implementation or production DDL is authorized by this evidence.
+
+
+## 20. Query capability effective-privilege audit — 2026-11-27
+
+The query audit ran in a read-only transaction after simulating `sinau_app_runtime_poc` as the session identity and switching to `sinau_rls_test`. It confirmed:
+
+- `session_user=sinau_app_runtime_poc`
+- `current_user=sinau_rls_test`
+- issuer schema USAGE = false
+- private schema USAGE = true
+
+OID-based relation privilege checks returned false for SELECT, INSERT, UPDATE, DELETE, and TRUNCATE on all four authorization fixture tables (`poc_identities`, `poc_auth_sessions`, `poc_tenant_memberships`, and `poc_unit_memberships`) and on `sinau_private.context_keys`.
+
+Function EXECUTE checks returned:
+- false for `sinau_issuer_poc.validate_context_request(text,uuid,uuid)`;
+- false for `sinau_issuer_poc.has_feature_entitlement(uuid,text)`;
+- true for `sinau_private.verify_context_token(text)`;
+- true for `sinau_private.current_verified_context()`.
+
+The transaction ended with `ROLLBACK`; no role, membership, grant, schema, function, policy, or row was changed.
+
+This supports the intended direct least-privilege split: the query capability can use the private verifier/accessor chain but cannot directly read authorization/key tables or invoke issuer functions. Combined with the issuer audit, the two capability roles have distinct schema/function access and no direct table access to the inspected authorization sources or key store.
+
+The runtime login is not isolated from query capability, because the separately tested runtime session can `SET ROLE` to `sinau_rls_test`. A runtime connection retaining this membership can therefore invoke the verifier/accessor functions after switching. This remains a role-model threat-model decision, not an accepted production design.
+
+The audit used catalog OIDs to check ACL-derived privileges. It did not invoke the verifier/accessor functions, exhaustively test RLS data operations, or validate network authentication with the runtime credentials. ADR-007 remains Proposed; no implementation or production DDL is authorized by this evidence.

@@ -1918,3 +1918,45 @@ Remaining limits:
 - The helper uses private synthetic `poc_units` metadata to avoid RLS recursion. Production still needs a trusted, non-recursive unit-state lookup.
 - Script 035 does not test permission revocation after token issuance, cross-connection authorization freshness, or real Laravel/request integration. These remain separate gates under ADR-007.
 - ADR-003 and ADR-007 remain Proposed; no production migration, persistent RLS policy, or production role change is authorized.
+
+
+## 42. Per-statement education-unit permission state re-evaluation — script 036
+
+Script `036-test-education-units-permission-freshness.sql` extends the successful Script 035 scenario to check whether the query-side helper re-reads mutable tenant-role and permission state between protected SELECT statements while the signed context token and top-level XID remain unchanged.
+
+In addition to the four Script 035 visibility cases, the probe:
+- Revokes the synthetic administrator's tenant-role assignment, then requires the next protected SELECT to return zero units (EU-RLS-08).
+- Restores that role assignment, then requires the same context to regain only tenant-A listing (EU-RLS-09).
+- Removes the role-to-`education_units.list_all` permission mapping, then requires the next protected SELECT to return zero units (EU-RLS-10).
+- Restores the permission mapping, then requires the same context to regain tenant-A listing (EU-RLS-11).
+- Requires exactly eight verifier calls for eight protected SELECT statements, one call per statement.
+- Retains the SELECT-only write-denial checks and exact policy-restoration postflight.
+
+**Scope boundary:** these changes are performed by the test owner inside one `READ COMMITTED` transaction. They test statement-to-statement re-evaluation of the synthetic role/permission source by the helper, not a revocation committed by a second connection. They do not close the existing cross-connection freshness gap for account/session/membership, do not bind the token to an exact authentication session, and do not prove the production implementation.
+
+Pinned script commit: `fe53d75245358ee31dfa11e1d4a8cd52574c4f19`.
+
+Download and stage:
+
+~~~bash
+set -e
+
+EDUCATION_UNITS_FRESHNESS_COMMIT='fe53d75245358ee31dfa11e1d4a8cd52574c4f19'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_FRESHNESS_COMMIT/docs/03-database/poc/036-test-education-units-permission-freshness.sql" \\
+  -o "$HOME/036-test-education-units-permission-freshness.sql"
+
+sudo install -o postgres -g postgres -m 600 \\
+  "$HOME/036-test-education-units-permission-freshness.sql" \\
+  /run/036-test-education-units-permission-freshness.sql
+~~~
+
+Run only against `sinau_design_poc` as PostgreSQL administrator:
+
+~~~bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \\
+  -d sinau_design_poc \\
+  -f /run/036-test-education-units-permission-freshness.sql
+~~~
+
+Require EU-RLS-01—EU-RLS-11, the eight-call verifier assertion, all three write denials, `ROLLBACK`, exact original-policy restoration, temporary schema/function/session removal, and the final freshness-probe completion marker. If any assertion fails, retain the first error and do not alter the installed policy. Do not run against `sinau`, use `sinau_app`, or modify SQLRadius/MikroTik.

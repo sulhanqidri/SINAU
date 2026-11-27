@@ -396,3 +396,8 @@ The catalog output confirmed:
 **Audit limitation:** the first script's section 6 function metadata query did not match verifier/issuer overloads because of an incorrect `pg_get_function_identity_arguments()` predicate. Section 7 displayed their installed definitions, so those blank rows do not mean the functions are absent. Script 022 was corrected to match by argument count and type OIDs and to include the runtime role in role/privilege inventories. Re-run the corrected script before relying on the affected metadata and role sections.
 
 This inventory is read-only evidence, not security acceptance. No schema, data, role, grant, policy, verifier, application, or production object was changed. ADR-007 remains **Proposed**.
+
+
+### Runtime role attribute query correction
+
+The second audit run confirmed `sinau_app_runtime_poc` is a member with SET permission to both `sinau_context_issuer_poc` and `sinau_rls_test`, without inherited privileges via those memberships. Its direct effective table/function privileges are false. The role-attribute query in that run omitted this one role because its filter list was not updated. The audit script has now been corrected again; rerun the final pinned script before deciding whether this role is login-capable. No role or membership was changed.

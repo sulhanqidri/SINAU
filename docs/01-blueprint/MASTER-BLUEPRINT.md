@@ -1,98 +1,236 @@
 # SINAU Master Blueprint
 
-**Status:** Draft baseline — perlu validasi kebutuhan rinci  
-**Tanggal:** 2026-11-18
+**Status:** Draft baseline — belum final dan masih memerlukan validasi kebutuhan rinci  
+**Versi:** 0.2.0  
+**Tanggal checkpoint:** 2026-11-18  
+**Tracker pekerjaan:** [PROJECT-PROGRESS.md](../00-governance/PROJECT-PROGRESS.md)  
+**Katalog kelengkapan:** [BLUEPRINT-CATALOG.md](BLUEPRINT-CATALOG.md)
+
+> Dokumen ini menetapkan arah produk dan peta sistem tingkat tertinggi. Spesifikasi rinci per domain, proses, API, data, otorisasi, UX, keamanan, dan operasi harus ditulis pada dokumen turunannya. Jangan menganggap daftar domain sebagai persetujuan bahwa semuanya masuk MVP.
 
 ## 1. Visi
 
-Menjadi platform digital terpadu yang membantu sekolah dan madrasah mengelola proses pendidikan, administrasi, komunikasi, dan tata kelola dalam satu sistem yang aman dan mudah digunakan.
+Menjadi platform digital terpadu yang membantu sekolah dan madrasah mengelola proses pendidikan, administrasi, komunikasi, dan tata kelola dalam satu sistem yang aman, mudah digunakan, dapat dikonfigurasi, serta berkembang secara bertahap.
 
-## 2. Sasaran pengguna
+**Prinsip produk:** Satu Platform, Seluruh Kebutuhan Pendidikan.
 
-- Pengelola/platform operator SaaS.
-- Yayasan atau pengelola beberapa lembaga.
+## 2. Cakupan lembaga
+
+Baseline cakupan:
+- Sekolah umum: SD, SMP, SMA, dan SMK.
+- Madrasah: MI, MTs, MA, dan MAK.
+- RA/PAUD merupakan calon perluasan; tidak otomatis termasuk MVP.
+
+Perbedaan jenis lembaga, jenjang, kurikulum, struktur mata pelajaran, penilaian, pelaporan, dan regulasi harus dimodelkan secara eksplisit dan berversi. Jangan mengasumsikan seluruh sekolah umum dan madrasah mempunyai proses yang identik.
+
+## 3. Aktor dan pengguna
+
+### 3.1 Aktor platform
+- Platform owner / super administrator.
+- Platform operations dan customer support dengan akses terbatas, disetujui, dan diaudit.
+- Tim billing/subscription dan compliance sesuai pemisahan tugas.
+
+### 3.2 Aktor tenant dan unit
+- Pemilik/pengelola yayasan atau foundation.
+- Pengelola tenant mandiri (independent provider).
 - Kepala sekolah/kepala madrasah dan wakil.
-- Tata usaha/operator.
-- Guru dan wali kelas.
+- Operator/admin lembaga dan tata usaha.
+- Guru, wali kelas, guru BK, dan tenaga kependidikan.
 - Bendahara dan staf keuangan.
-- Pustakawan dan pengelola aset.
+- Pustakawan, pengelola aset, dan staf pendukung.
 - Siswa/peserta didik.
 - Orang tua/wali.
-- Pengawas atau pihak lain sesuai kewenangan dan dasar akses.
+- Pengawas atau pihak eksternal yang memperoleh akses sah dan terbatas.
 
-## 3. Model organisasi
+Satu identitas pengguna dapat memiliki beberapa membership tenant/unit. Hak akses selalu ditentukan oleh membership, role, relationship, konteks aktif, dan kebijakan server; bukan hanya oleh akun login atau menu UI.
 
-Model konseptual awal:
+## 4. Model organisasi dan tenant
 
-`Platform SINAU → Tenant/Pelanggan → Unit Pendidikan → Periode Operasional`
+Model konseptual:
 
-Tenant dapat berupa yayasan atau lembaga pelanggan yang menaungi satu atau beberapa unit. Unit dapat berupa SD/SMP/SMA/SMK atau MI/MTs/MA/MAK. Model final harus mendukung juga pelanggan yang hanya memiliki satu sekolah tanpa memaksakan struktur yayasan.
+`Platform SINAU → Tenant/Pelanggan → Education Unit → Periode Operasional`
 
-Pengguna dapat memperoleh akses ke lebih dari satu tenant/unit jika ditetapkan secara eksplisit dan diaudit.
+- `foundation`: tenant pelanggan berupa yayasan/badan penyelenggara yang dapat memiliki satu atau banyak unit pendidikan.
+- `independent_provider`: tenant pelanggan langsung untuk sekolah/madrasah mandiri tanpa membuat yayasan fiktif.
+- Tenant adalah batas kontrak, billing, entitlement, konfigurasi pelanggan, dan isolasi data.
+- Education unit adalah batas operasional lembaga pendidikan.
+- Jenis lembaga dan jenjang melekat pada education unit, bukan pada tenant.
+- Satu pengguna dapat memiliki tenant membership dan unit membership yang berbeda; akses lintas tenant/unit harus eksplisit dan diaudit.
+- Kuota unit mengikuti entitlement paket, bukan semata-mata tipe tenant.
+- Verification status dipisahkan dari subscription/billing status.
+- Downgrade tidak boleh menghapus unit atau data secara otomatis.
 
-## 4. Domain kemampuan produk
+Detail normatif berada pada ADR-001 sampai ADR-004 dan spesifikasi tenant lifecycle.
 
-1. Platform core, tenant, langganan, konfigurasi, dan akses.
-2. Data referensi pendidikan dan profil lembaga.
-3. Penerimaan peserta didik baru (PPDB/PMB sesuai konteks lembaga).
-4. Data peserta didik, orang tua/wali, dan riwayat enrollment.
-5. Tahun ajaran, semester, kalender, kurikulum, kelas, dan rombongan belajar.
-6. Guru, pegawai, dan sumber daya manusia.
-7. Jadwal, presensi, kegiatan belajar, tugas, penilaian, dan rapor.
-8. Keuangan sekolah: tagihan, pembayaran, kas, jurnal, anggaran, dan laporan.
-9. Kesiswaan, bimbingan, prestasi, pelanggaran, dan kegiatan.
-10. Surat masuk/keluar, disposisi, persetujuan, arsip, dan tanda tangan elektronik melalui penyedia sah.
-11. RKS/RKT/RKAS atau perencanaan lembaga sesuai ketentuan yang berlaku.
-12. Perpustakaan, inventaris, dan aset.
-13. Portal guru, siswa, dan orang tua/wali.
-14. Notifikasi, komunikasi, dashboard, laporan, ekspor, dan audit.
+## 5. Domain kemampuan produk
 
-Domain ini adalah peta perencanaan, bukan janji bahwa semua modul dibuat sekaligus.
+Peta domain berikut adalah inventaris cakupan potensial. Prioritas MVP ditetapkan di `docs/02-requirements/MVP-SCOPE.md` setelah validasi.
 
-## 5. Prinsip multi-jenis lembaga
+### 5.1 Platform SaaS dan tenant administration
+- Tenant onboarding, verifikasi, lifecycle, suspension/reactivation.
+- Education unit provisioning dan entitlement.
+- Paket, subscription, billing, invoicing, payment, usage metering.
+- Tenant settings, branding/configuration, feature entitlement.
+- Platform operations, support access, audit, incident.
 
-- Satu core product dengan konfigurasi jenis lembaga dan jenjang.
-- Perbedaan kurikulum dan pelaporan dimodelkan tanpa mengunci pada satu kurikulum.
-- Modul atau field khusus hanya diaktifkan ketika relevan.
-- Data referensi dan aturan memiliki sumber serta versi.
-- Pengalaman pengguna menampilkan istilah yang sesuai konteks lembaga jika memang berbeda.
+### 5.2 Master data pendidikan
+- Profil lembaga, identitas, legalitas, struktur organisasi.
+- Kalender pendidikan, tahun ajaran, semester, periode.
+- Jenis lembaga, jenjang, program/konsentrasi, ruang, fasilitas.
+- Kurikulum, struktur kurikulum, mapel, referensi nilai dan status.
+- Register regulasi dan referensi resmi yang memiliki versi/tanggal efektif.
 
-## 6. Model bisnis SaaS
+### 5.3 Penerimaan dan siklus peserta didik
+- PPDB/PMB, gelombang, pendaftaran, seleksi, daftar ulang.
+- Identitas peserta didik dan hubungan orang tua/wali.
+- Enrollment per unit/periode, kelas/rombel, mutasi, cuti/nonaktif, kelulusan, alumni.
+- Dokumen, persetujuan, riwayat dan audit perubahan data.
 
-Rencana awal: langganan per tenant dengan paket dan batas penggunaan yang dapat dikonfigurasi, misalnya jumlah peserta didik, unit, pengguna, penyimpanan, dan modul. Detail harga, paket, kuota, trial, billing, dan penagihan belum disahkan.
+### 5.4 Akademik dan pembelajaran
+- Kurikulum dan struktur pembelajaran.
+- Rombongan belajar, wali kelas, mata pelajaran, penugasan guru.
+- Jadwal pelajaran, ruang, kalender, kegiatan belajar.
+- Presensi, izin/sakit, koreksi dan rekap.
+- Materi, tugas, asesmen, rubrik, nilai, remedial.
+- Rapor, transkrip, arsip hasil belajar, pengesahan dan koreksi.
+- Kebutuhan khusus SMK/MAK seperti program keahlian, praktik dan PKL bila masuk scope.
 
-## 7. Prinsip teknis
+### 5.5 SDM dan tata kelola pegawai
+- Data guru/pegawai, jabatan, unit, status kepegawaian.
+- Penugasan mengajar, beban kerja, kompetensi dan dokumen.
+- Presensi pegawai, cuti/izin dan proses terkait sesuai scope.
+- Evaluasi kinerja atau pengembangan profesional bila disetujui.
 
-- Modular monolith terlebih dahulu.
-- API versioning untuk integrasi dan aplikasi mobile.
-- Database relational dengan constraint integritas.
-- Queue untuk pekerjaan lama dan integrasi; setiap job harus tenant-aware.
-- Object storage privat untuk dokumen.
-- Logging, monitoring, backup, restore, dan audit sejak awal.
-- Hindari ketergantungan vendor yang menghambat portabilitas tanpa alasan.
+### 5.6 Kesiswaan dan dukungan peserta didik
+- Bimbingan konseling, pembinaan, pelanggaran, prestasi.
+- Ekstrakurikuler, organisasi, kegiatan, beasiswa dan bantuan.
+- Layanan inklusi/dukungan khusus dengan akses dan privasi yang ketat jika disetujui.
 
-Stack teknologi final ditetapkan dalam ADR setelah validasi kebutuhan, kompatibilitas versi, biaya, dukungan, dan keamanan.
+### 5.7 Keuangan dan sumber daya
+- Tagihan, pembayaran, potongan, beasiswa, tunggakan, rekonsiliasi.
+- Kas/bank, jurnal, anggaran, laporan keuangan dan audit.
+- Pengadaan, perencanaan, persetujuan, RKS/RKT/RKAS bila relevan.
+- Perpustakaan, inventaris, aset, lokasi, pemeliharaan dan mutasi.
 
-## 8. Kualitas dan kriteria keberhasilan
+### 5.8 Administrasi, komunikasi dan layanan
+- Surat masuk/keluar, nomor surat, disposisi, persetujuan, arsip.
+- Dokumen privat, template, retensi dan tanda tangan elektronik melalui penyedia sah.
+- Pengumuman, notifikasi, pesan, agenda dan komunikasi wali.
+- Portal/dasbor untuk guru, siswa, orang tua/wali dan pimpinan.
+- Laporan, analitik, ekspor, impor, pencarian dan audit.
 
-- Tidak ada akses lintas tenant yang tidak sah.
-- Alur akademik dan administrasi tervalidasi oleh pengguna sekolah umum dan madrasah.
-- Data historis dapat ditelusuri.
-- UI konsisten dan responsif.
-- Proses penting mempunyai audit trail.
+## 6. Prinsip lintas domain
+
+Setiap spesifikasi modul harus menyatakan:
+1. Tujuan, pengguna, masalah yang diselesaikan, dan batas scope.
+2. Prasyarat, aktor, role, tenant/unit scope, dan periode aktif.
+3. Alur normal, alternatif, penolakan, pembatalan, koreksi, dan kegagalan.
+4. Aturan bisnis, status/lifecycle, approval dan pemisahan tugas.
+5. Data ownership, relasi, constraint, audit dan retention.
+6. API/event, integrasi, job async, retry, idempotency, dan failure handling.
+7. UI/screen, validasi, empty/loading/error/success states dan aksesibilitas.
+8. Laporan, ekspor/impor, notifikasi dan kebutuhan pencarian.
+9. Acceptance criteria, test cases, risiko, dependensi dan sumber regulasi.
+
+Tidak boleh ada modul yang membuat akses data lintas tenant/unit melalui asumsi dari ID record, parameter request, cache key, file URL, atau job payload.
+
+## 7. Model bisnis SaaS
+
+Arah awal adalah subscription per tenant dengan paket/entitlement yang dapat mengatur jumlah unit, peserta didik, pengguna, storage, dan modul. Harga, masa trial, billing cycle, pajak, payment provider, grace period selain keputusan onboarding yang sudah diterima, serta kebijakan overage belum final.
+
+Verification status dan subscription status adalah dua state machine berbeda. Suspend karena verifikasi, suspend karena billing, pembatalan, downgrade, dan reaktivasi harus memiliki sebab, kewenangan, dampak akses, serta prosedur pemulihan yang jelas.
+
+## 8. Prinsip arsitektur dan teknologi
+
+- Modular monolith sebagai arah awal; batas modul dan ownership data harus jelas.
+- PostgreSQL 18 telah dipilih sebagai database utama melalui ADR-006.
+- Shared database/shared schema dengan tenant_id/unit_id, composite FK/unique, tenant context dan authorization default-deny adalah baseline MVP sesuai ADR-002/003.
+- PostgreSQL RLS dievaluasi sebagai defense-in-depth, bukan pengganti authorization aplikasi.
+- Laravel 13 + Vue 3 + Inertia + Tailwind adalah rekomendasi PoC di ADR-005, belum stack final sampai kompatibilitas, versi runtime/dependency, keamanan, dan maintainability dibuktikan.
+- API versioning untuk integrasi dan klien lain.
+- Queue untuk proses panjang; semua job tenant-aware, idempotent jika perlu, retry-safe, dan memiliki failure handling.
+- Cache, search, export, scheduler, storage, dan notifikasi wajib tenant-aware.
+- Object storage untuk dokumen privat dengan otorisasi sebelum akses.
+- Logging, metrics, tracing, alerting, backup, restore, dan audit sejak awal.
+- Hindari ketergantungan vendor tanpa alasan, kontrak, dan rencana exit yang jelas.
+
+## 9. Keamanan, privasi, dan kepercayaan
+
+- Least privilege, default deny, server-side authorization, MFA sesuai risiko.
+- Tenant isolation dan unit isolation diuji pada seluruh jalur data.
+- Privileged support access memerlukan alasan, persetujuan sesuai kebijakan, waktu terbatas, dan audit.
+- Data anak/peserta didik, wali, pegawai, nilai, kesehatan/dukungan khusus, dan keuangan memerlukan klasifikasi dan perlindungan sesuai sensitivitas.
+- Data pribadi diminimalkan; consent/legal basis, retention, correction, export, dan deletion ditetapkan sesuai hukum dan kebutuhan.
+- Secret tidak boleh masuk repository atau log.
+- Perubahan nilai yang disahkan, transaksi, persetujuan dan dokumen resmi harus dapat diaudit.
+- Klaim kepatuhan terhadap regulasi tidak boleh dibuat sebelum sumber resmi dan implementasi diverifikasi.
+
+## 10. Pengalaman pengguna dan desain
+
+- Satu design system dengan design tokens dan komponen bersama.
+- Konteks tenant, unit, tahun ajaran/semester aktif terlihat jelas.
+- Navigasi dan fitur mengikuti role, scope, jenis lembaga, jenjang, dan entitlement.
+- Desktop, tablet, dan mobile harus diperhitungkan.
+- Form, tabel, pencarian, filter, pagination, notifikasi, dialog, dan status konsisten.
+- Accessibility, keyboard navigation, contrast, label, dan error message merupakan persyaratan.
+- Sekolah umum dan madrasah dapat menggunakan istilah/konfigurasi yang sesuai tanpa membuat produk terpisah.
+
+## 11. Integrasi dan interoperabilitas
+
+Semua integrasi harus memiliki pemilik, tujuan, dasar akses/data, kontrak, sandbox, credential handling, timeout, retry, idempotency, reconciliation, monitoring, dan fallback. Kandidat integrasi dapat mencakup layanan pendidikan/pemerintah yang resmi, payment gateway, email/SMS/WhatsApp, tanda tangan elektronik, penyimpanan, dan sistem akuntansi. Tidak ada integrasi yang dianggap tersedia atau disetujui sebelum ada spesifikasi dan validasi.
+
+## 12. Pelaporan dan analitik
+
+Laporan harus ditentukan per aktor, unit, tenant, periode, dan tujuan. Ekspor harus memeriksa authorization, meminimalkan data, memiliki audit trail, dan tidak membocorkan data tenant lain. Angka laporan keuangan dan akademik harus memiliki definisi serta sumber data yang konsisten.
+
+## 13. Operasional, deployment, dan continuity
+
+Target operasi mencakup:
+- Environment terpisah untuk local/development, CI, preproduction, dan production.
+- Deployment online yang idempotent dan offline melalui release bundle terversi.
+- Konfigurasi dan secret di luar repository.
+- Migration gate, backup sebelum perubahan berisiko, health-check, rollback/forward-fix.
+- Backup terenkripsi, restore drill, PITR bila disepakati, RPO/RTO dan disaster recovery.
+- Monitoring aplikasi, database, queue, storage, uptime, security events, dan kapasitas.
+- Runbook upgrade, patch, incident response, support, dan data retention.
+
+Skrip deployment belum dibuat; dibuat setelah kontrak aplikasi dan environment ditetapkan.
+
+## 14. Kualitas dan kriteria keberhasilan
+
+- Tidak ada akses lintas tenant/unit yang tidak sah.
+- Alur utama divalidasi oleh pengguna sekolah umum dan madrasah.
+- Data historis dapat ditelusuri dan dikoreksi melalui prosedur sah.
+- Proses sensitif memiliki audit trail.
+- Proses asynchronous/integrasi aman terhadap retry dan duplikasi.
+- UI konsisten, responsif, dan dapat diakses.
 - Backup dapat dipulihkan melalui uji restore.
-- Integrasi dan proses async aman terhadap retry/duplikasi.
 - Modul dapat dirilis bertahap tanpa merusak modul lain.
+- Requirement dapat ditelusuri ke acceptance criteria dan test evidence.
 
-## 9. Hal yang belum diputuskan
+## 15. Keputusan yang sudah diterima dan yang masih terbuka
 
-- Stack final dan versi runtime/framework.
-- Jenis dan strategi database final.
-- Struktur tenant/yayasan/unit final.
-- Paket SaaS dan billing.
-- Design tokens final dan identitas visual.
-- Modul MVP dan prioritas peluncuran.
-- Integrasi pemerintah, payment gateway, tanda tangan elektronik, dan layanan eksternal.
-- Model deployment, SLA, retensi, serta pemulihan bencana.
+### Sudah diterima
+- PostgreSQL 18 sebagai database utama (ADR-006).
+- Model foundation dan independent_provider (ADR-001).
+- Shared database/shared schema sebagai baseline MVP dengan gerbang PoC (ADR-002).
+- Baseline identity/membership/authorization default-deny (ADR-003; implementasi masih perlu PoC).
+- Onboarding/verifikasi/entitlement unit sesuai ADR-004.
 
-Setiap keputusan final harus dicatat dalam ADR atau spesifikasi yang sesuai.
+### Masih perlu validasi atau keputusan
+- Final stack dan versi runtime/dependency.
+- Prioritas MVP dan modul release pertama.
+- Detail subscription, paket, harga, billing, trial, payment, overage.
+- Detail domain model, logical/physical ERD, data dictionary dan lifecycle.
+- Authorization matrix rinci dan support access workflow.
+- API/event, auth/session, queue/cache, search, storage, notification.
+- UX prototype, design tokens dan brand direction.
+- Integrasi eksternal dan regulatory register.
+- Deployment, observability, backup/restore, RPO/RTO, SLA dan support model.
+
+## 16. Dokumen turunan dan cara melanjutkan
+
+Master blueprint harus dibaca bersama [Blueprint Catalog](BLUEPRINT-CATALOG.md), [Project Progress Tracker](../00-governance/PROJECT-PROGRESS.md), requirements, database, security, design system, education domain, testing, operations, dan ADR.
+
+**Next action saat ini:** audit dokumen repository dan lengkapi spesifikasi bisnis/proses/modul secara berurutan. Jangan mulai migration domain produksi atau implementasi modul sebelum Phase 1 dan gerbang PoC yang tercantum dalam tracker disetujui.
+

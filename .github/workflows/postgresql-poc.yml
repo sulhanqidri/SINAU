@@ -1,0 +1,40 @@
+name: PostgreSQL 18 isolation PoC
+
+on:
+  pull_request:
+    paths:
+      - "poc/database-isolation/postgresql/**"
+      - ".github/workflows/postgresql-poc.yml"
+  workflow_dispatch:
+
+jobs:
+  postgres-poc:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: sinau_poc
+          POSTGRES_USER: sinau_poc
+          POSTGRES_PASSWORD: sinau_poc_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sinau_poc -d sinau_poc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: sinau_poc
+      PGPASSWORD: sinau_poc_ci_only
+      PGDATABASE: sinau_poc
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show PostgreSQL version
+        run: psql -X -v ON_ERROR_STOP=1 -c "SELECT version();"
+      - name: Create PoC schema and fixtures
+        run: psql -X -v ON_ERROR_STOP=1 -f poc/database-isolation/postgresql/schema-and-fixtures.sql
+      - name: Verify tenant and unit constraints
+        run: psql -X -v ON_ERROR_STOP=1 -f poc/database-isolation/postgresql/verify-constraints.sql

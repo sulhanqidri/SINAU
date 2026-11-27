@@ -1,0 +1,351 @@
+# Trusted Backend Context Issuer — SINAU
+
+**Status:** proposed technical design for the isolated PostgreSQL PoC; not a production implementation or approval.  
+**Date:** 2026-11-19  
+**Scope:** backend authentication-to-database-context boundary for tenant/unit RLS.  
+**Related:** ADR-003, ADR-004, ADR-007, BP-PLT-05, TENANT-ISOLATION-TEST-PLAN.md, and PostgreSQL PoC scripts 007–011.
+
+## 0. Implementation decision record
+
+The implementation-neutral session, database-role, same-connection XID, transaction-local context, and connection-pool contract is tracked in [ADR-007](../09-decisions/ADR-007-TRUSTED-CONTEXT-ISSUER.md). ADR-007 is Proposed; this design document does not override the unresolved authentication, key-custody, role-switching, or in-flight revocation decisions.
+
+## 1. Purpose
+
+The trusted context issuer is the only backend component allowed to turn an authenticated application principal plus a requested tenant/unit scope into a short-lived database context token.
+
+The current PoC has proved that PostgreSQL can verify a signed, audience-bound, time-limited, top-level-transaction-bound token and use its verified tenant/unit claims inside RLS policies. It has **not** yet proved that a real authenticated user is entitled to receive those claims. The current Python signer still uses fixed synthetic identity/scope values and must not be used as an application issuer.
+
+This design closes that missing conceptual boundary. It does not create production migrations or decide the final authentication framework.
+
+## 2. Normative source rules
+
+The issuer must preserve the existing SINAU baseline:
+
+- A global user identity is not a grant to any tenant or unit.
+- A user can have more than one tenant membership.
+- Tenant membership does not automatically grant access to every education unit.
+- Unit membership is an explicit grant for a specific unit.
+- Membership, role/permission, tenant lifecycle, unit lifecycle, verification, subscription, and entitlement are separate state dimensions.
+- Role names alone are not sufficient; permissions are evaluated with scope and resource relationship.
+- User, tenant, unit, membership, and role changes must be auditable. Revocation must invalidate subsequent access and associated session/cache grants.
+- Context selectors from a route, request body, query string, cookie, or header are hints only. The server must prove the grant independently.
+
+These are baseline requirements, not permission to assume that every open policy question has already been decided.
+
+## 3. Trust boundary and responsibilities
+
+### Trusted inputs
+
+1. **Authenticated principal:** an immutable server-side principal produced by the authentication/session middleware after credential validation. It contains the globally authenticated user ID and authentication assurance/session metadata.
+2. **Requested tenant and unit:** selectors chosen by the user or route. They are untrusted until checked against membership.
+3. **Database transaction:** the same PostgreSQL connection and top-level transaction that will execute tenant-scoped queries.
+4. **Signing key:** supplied to the backend issuer through a dedicated secret-management path. It must not be sent by a browser/client, written to logs, or committed to Git.
+
+### Responsibilities
+
+| Component | Responsibility | Must not do |
+|---|---|---|
+| Authentication middleware | Validate login/session/MFA and produce authenticated principal | Accept actor ID from request payload as authenticated identity |
+| Context issuer | Validate principal, requested scope, membership and lifecycle gates; sign transaction-bound claims | Grant scope just because the caller knows a tenant/unit UUID |
+| Application authorization/policy layer | Evaluate permission, role scope, delegation ceiling and resource relationships | Treat a valid context token as proof of every action permission |
+| Entitlement evaluator | Enforce feature/quota/plan rules on relevant operations | Convert entitlement into a user membership or role |
+| PostgreSQL verifier + RLS | Authenticate token claims and constrain rows to verified tenant/unit scope | Replace application authorization, resource-level checks, or audit |
+| Audit service | Record context selection, grant/rejection, membership/role changes and sensitive actions | Store bearer token, HMAC key, password, or session secret |
+
+## 4. Issuance contract
+
+Conceptual interface:
+
+**issueContext(authenticatedPrincipal, requestedTenantId, requestedUnitId?, transaction)**
+
+The implementation must receive authenticatedPrincipal from trusted server-side middleware. It must not accept a free-form actor/user ID as proof of identity.
+
+### Required validation order
+
+1. **Authentication validity**
+   - Principal exists and is authenticated.
+   - Global account is active and not locked/disabled.
+   - Authentication session is active, not expired, and not revoked.
+   - Sensitive operations apply the configured MFA/assurance policy.
+2. **Tenant membership**
+   - The principal has an active tenant membership for the requested tenant.
+   - valid_from is less than or equal to server time.
+   - valid_until is null or later than server time.
+   - Membership is not suspended, revoked, or expired.
+3. **Tenant lifecycle**
+   - Tenant exists and is in a lifecycle state that permits the requested operation.
+   - Pending-verification, suspended, and closed states follow their separately approved access policies. Do not equate verification, subscription, or tenant status.
+4. **Unit scope, when requested**
+   - The unit exists and belongs to the requested tenant.
+   - The unit is in a lifecycle state that permits the requested operation.
+   - The principal has an active unit membership for that exact tenant/unit pair, with a valid effective period.
+   - Tenant membership alone is insufficient for a unit-scoped token.
+5. **Role/permission**
+   - The application policy layer confirms the required permission at the correct platform/tenant/unit scope.
+   - Delegation ceiling prevents an inviter/admin from granting a role or permission above their authority.
+   - Teacher/class, guardian/child, student/self, and other resource relationships are checked at the use case/resource layer.
+6. **Entitlement**
+   - For operations governed by a plan or quota, the backend separately checks the current entitlement before executing the operation.
+   - Entitlement is not embedded as a broad authorization grant in the tenant/unit context token. A valid context token does not imply that a feature is paid for or enabled.
+7. **Transaction binding**
+   - Begin the database transaction on the connection that will run the protected query.
+   - Allocate/record that transaction's top-level XID.
+   - Validate membership and scope using the trusted backend/database path.
+   - Sign a new token for that exact XID. Never cache or reuse a token in another transaction or connection.
+8. **Install context**
+   - Set app.context_token transaction-locally (set_config(..., true) or equivalent SET LOCAL).
+   - Run protected SQL on the same connection/transaction.
+   - Commit or roll back. Transaction-local context must disappear at the boundary.
+9. **Audit and response**
+   - Record actor, scope, result, reason code, correlation ID, timestamp, and relevant policy version.
+   - Never log the token, session secret, MAC key, password, or raw credential.
+
+A failure at any validation stage must fail closed and must not execute a protected query or produce a partially scoped context.
+
+## 5. Tenant-level versus unit-level context
+
+- **Tenant-level context** uses a null unit claim. It is appropriate only for explicitly tenant-scoped operations whose permission allows them. It must not reveal unit-scoped academic rows.
+- **Unit-level context** includes one concrete unit ID and requires active membership in that exact unit plus membership in its parent tenant.
+- A tenant admin does not automatically receive academic data access across units. Explicit per-unit grants or narrowly defined tenant-level operations are required.
+- Cross-tenant unit transfer is not a context switch; it remains a separate high-impact workflow with its own approval, ownership, audit, and data-integrity rules.
+
+The current PoC policy treats a null unit claim as no match for ordinary unit-scoped rows; audit_events has a separately defined tenant-level row rule. Verify these special cases in policy tests before treating them as final product policy.
+
+## 6. Token contract and transaction lifecycle
+
+The current PoC v1 token fields are:
+
+**v1 | audience | kid | actor_uuid | tenant_uuid | unit_uuid_or_dash | xid8 | iat | exp | nonce_hex | mac_hex**
+
+Constraints already tested in PostgreSQL PoC:
+
+- Exact audience/database match.
+- Canonical lowercase UUID and hexadecimal fields.
+- Canonical decimal XID and timestamps (no leading zeros except the value zero).
+- 16-byte nonce and 32-byte HMAC-SHA256.
+- Maximum lifetime 300 seconds; the test signer defaults to 240 seconds.
+- Verification requires the same allocated top-level transaction XID.
+- Only active/not-yet-revoked key IDs are accepted.
+
+Issuer rules:
+
+- Generate a fresh random nonce and MAC for every transaction context.
+- Sign only after the transaction XID exists.
+- Keep the token in application memory or a narrowly scoped transaction-local parameter; never return it to the browser.
+- Do not put the token in query logs, tracing spans, exceptions, debug dumps, database audit payloads, or application telemetry.
+- A token is a bearer credential for its bound transaction. A same-transaction holder may reuse it until transaction end/expiry; it is not a single-query token.
+- The v1 HMAC key is shared between signer and verifier. Production key custody must be reviewed; asymmetric signing (backend private key, database public key) should be evaluated before production if DBA/DB compromise is in the threat model.
+
+## 7. Membership revocation and transaction semantics
+
+The PoC currently authenticates token claims but does not query membership state on each RLS evaluation. Therefore a membership revoked after context issuance may not invalidate an already-open transaction's token.
+
+Proposed minimum semantics for review:
+
+- A newly starting transaction must not receive context after membership/session revocation has committed.
+- An already-running request transaction may finish only within the short request/transaction timeout and token expiry, unless product/security policy requires immediate interruption.
+- Revocation must invalidate subsequent transactions and related server sessions/cache grants.
+- If immediate revocation within an open transaction is required, the design must add a current authorization epoch/revocation check to token verification (or an equivalent database-enforced mechanism), and test the locking/isolation race. Do not claim immediate revocation based only on the present PoC.
+
+This in-flight transaction policy remains a decision for security/product review.
+
+## 8. Database and service boundaries
+
+The repository's ADR-003 defines conceptual entities including users, tenant_memberships, unit_memberships, permissions, roles, tenant_membership_roles, and unit_membership_roles. The current 001-schema.sql PoC does not implement this identity/membership model. These entities must not be presumed to exist in sinau_design_poc.
+
+Before an executable membership issuer PoC is built, create isolated synthetic fixtures in a dedicated PoC schema or tables. The fixtures must include:
+
+- active and disabled global identities;
+- active, suspended, revoked, expired, and not-yet-valid tenant memberships;
+- active and revoked unit memberships;
+- units whose tenant_id does not match the selected tenant;
+- sessions that are active, expired, and revoked;
+- an explicit separation between membership and an entitlement/feature gate.
+
+The fixture must be synthetic, must not copy real people, and must not alter the accepted product schema or production database.
+
+
+
+### Current synthetic PoC fixture implementation
+
+The database-only synthetic membership-validation experiment is prepared in:
+
+- `docs/03-database/poc/010-context-issuer-fixtures.sql` (type qualification fix commit `b51f2227187482c623664f14dfd09ad2ac8db042`; verified blob `c415e7a2a1a56722d1b371f99c1585669f38ef4f`). It creates private synthetic identities, hashed session fixtures, tenant memberships, unit memberships, an active/inactive private unit catalog, and separate feature entitlements. It also creates a NOLOGIN issuer-test role and a narrow SECURITY DEFINER validator. The validator accepts a synthetic session bearer and requested tenant/unit; it resolves actor identity from the stored hash and has no caller-supplied actor_id parameter. The corrected script was executed successfully in `sinau_design_poc`.
+- `docs/03-database/poc/011-context-issuer-validation-tests.sql` (private-schema privilege-test fix commit `4c6ced509d65a84c345b47eab8bb9e67a5b0c6a4`; verified blob `f31c3a8ec405e0ea82bc8bdb24a8c9f9a80bbb65`). It tests active access, revoked unit grant, revoked tenant membership, tenant-only context, disabled global identity, revoked/expired session, future/suspended/expired tenant membership, expired unit membership, inactive unit, tenant/unit mismatch, entitlement separation, and least-privilege restrictions for the RLS query role. The corrected file was executed successfully; all ISS-01—ISS-14 tests and the final query-role privilege test passed, then the test transaction rolled back.
+- The role grant from `sinau_poc` to `sinau_context_issuer_poc` is only a test convenience for role switching. It is not a production role design.
+- The unit catalog is private synthetic fixture metadata rather than a query against `public.education_units`. That table is FORCE-RLS protected; the validator must not bypass its policy before a signed context is installed.
+- Session strings in the fixture/test files are fixed, public synthetic values; they are not real user credentials and must never be reused for application login.
+
+**Execution status (2026-11-19):** Both corrected scripts were executed against `sinau_design_poc` only. Script 010 installed the synthetic fixtures and reported the validator as owned by `sinau_context_owner`, `SECURITY DEFINER`, VOLATILE, PARALLEL UNSAFE, with fixed `search_path=pg_catalog, pg_temp`; issuer EXECUTE is granted while PUBLIC/query-role execution and direct fixture/key-table access are denied. Script 011 passed ISS-01 through ISS-14, including fail-closed handling for unknown/empty session credentials, and passed the final privilege check proving `sinau_rls_test` cannot execute the validator, read membership/key fixtures, or mutate memberships. The script ended with `ROLLBACK` and `CONTEXT ISSUER VALIDATION TESTS PASSED`. This is verified synthetic database membership-validation only. The validator is not a token signer; it does not authenticate a real browser session, validate final permission/delegation/resource relationship rules, apply the final tenant/unit lifecycle policy, or create an RLS context token. The actual application issuer remains unimplemented pending the approved authentication stack and least-privilege runtime connection design.
+
+### Least-privilege requirements
+
+- The web/application database role must not own protected tables, be superuser, have BYPASSRLS, or inherit an administrative role.
+- The signing key must not be readable by the ordinary SQL role or end user. The backend process receives it only through a dedicated secret channel.
+- Membership lookup must use parameterized queries and a narrowly scoped service contract.
+- The RLS verifier may read key material only through its restricted security-definer function; the request role must not read the key table or execute raw HMAC directly.
+- Do not grant the test role or ordinary SQL clients permission to insert/update membership, sessions, roles, or entitlement fixtures.
+- Keep the issuer's database role, query role, and administrative migration role distinct in the design. Do not collapse them for convenience in production.
+
+## 9. Threat and abuse cases
+
+| Threat | Required control | Test evidence |
+|---|---|---|
+| Client submits another actor ID | Actor comes only from authenticated server principal | Forged actor field is ignored/rejected |
+| Client changes tenant_id or unit_id | Treat selectors as hints; query active membership | Unauthorized tenant/unit selection rejected |
+| Tenant membership mistaken for all unit access | Require explicit unit membership | Tenant member without unit grant cannot receive unit context |
+| Revoked/expired membership reused | Validate status and effective dates per new transaction; invalidate cache/session | Revoked/expired cases rejected |
+| Session replay after logout | Session active/revocation/expiry check | Revoked session cannot obtain new context |
+| Tenant/unit disabled | Lifecycle policy check | Inactive scope cannot receive ordinary operational context |
+| Role escalation through invitation | Delegation ceiling and scoped permission | Above-ceiling grant rejected |
+| Entitlement treated as permission | Separate feature/quota evaluator | Role without entitlement and entitlement without role both fail as appropriate |
+| Token stolen/replayed | Short TTL, XID binding, no browser exposure, no logs | Cross-transaction replay rejected |
+| Secret disclosure | Secret manager, permissions, key rotation, no logs | File/secret access tests and rotation drill |
+| SQL role bypass | Separate non-owner/no-BYPASSRLS runtime role | Role/catalog privilege tests |
+| Membership revoked mid-transaction | Explicit in-flight policy or authorization epoch | Concurrent revoke/use test |
+
+## 10. Additional acceptance matrix for a real backend issuer
+
+The database-only synthetic membership fixture tests in `011-context-issuer-validation-tests.sql` have passed, but they are not an end-to-end application issuer. The matrix below is a separate set of acceptance requirements for the eventual real backend integration; none of these application-level cases is established by the synthetic fixture result alone. The real backend issuer must not be marked complete until these cases have actual PostgreSQL/backend output:
+
+| ID | Scenario | Expected |
+|---|---|---|
+| APP-ISS-01 | Active user + active tenant membership + active unit membership | Unit token issued |
+| APP-ISS-02 | Active tenant membership but no unit membership | Unit token denied |
+| APP-ISS-03 | Tenant membership suspended/revoked/expired/not-yet-valid | Denied |
+| APP-ISS-04 | Unit membership revoked/expired/not-yet-valid | Denied |
+| APP-ISS-05 | Global user disabled/locked | Denied |
+| APP-ISS-06 | Authentication session expired/revoked | Denied |
+| APP-ISS-07 | Unit belongs to another tenant | Denied without revealing foreign tenant information |
+| APP-ISS-08 | Tenant-level request with active tenant membership and unit null | Tenant-only context issued, subject to permission |
+| APP-ISS-09 | Caller supplies forged actor ID distinct from authenticated principal | Supplied actor ID ignored; actual principal used |
+| APP-ISS-10 | Feature entitlement missing/expired | Relevant feature operation denied separately; context alone does not grant the feature |
+| APP-ISS-11 | Membership revoked after prior transaction | New transaction cannot obtain context |
+| APP-ISS-12 | Token is copied to another top-level XID | Database verifier rejects it |
+| APP-ISS-13 | Request role attempts to read signing key or mutate membership | Permission denied |
+| APP-ISS-14 | Context transaction rolls back and connection is reused | Context absent in next transaction |
+
+## 11. Decisions still required before production
+
+1. Final authentication/session technology and how server-side authenticated principals are represented.
+2. Final identity/membership physical schema, including effective-dated uniqueness and concurrent revocation.
+3. Tenant/unit lifecycle access matrix for pending verification, suspension, closure, billing restriction, and restricted data export.
+4. Permission inheritance/delegation rules and resource-level relationships.
+5. Entitlement policy for restricted operations and downgrade behavior.
+6. In-flight transaction semantics for membership revocation.
+7. HMAC versus asymmetric signing and production key-management/KMS rotation.
+8. Runtime database role and pooler topology, including whether the same connection is guaranteed through XID allocation, context installation, and protected queries.
+
+## 12. Non-goals and safety boundary
+
+- This document does not implement login, MFA, a user-facing session endpoint, RBAC, billing, or entitlement.
+- This document does not authorize production schema/migrations or make Laravel/Vue/Inertia a final stack decision.
+- The current synthetic signer must remain PoC-only.
+- Any executable test must run only against sinau_design_poc, with synthetic fixtures and explicit rollback/cleanup.
+- Never touch application database sinau, role sinau_app, SQLRadius, or MikroTik as part of this PoC.
+- PR #1 stays Draft/open and must not be merged without explicit approval.
+
+
+## 13. Runtime capability-role boundary and default function ACL — 2026-11-27
+
+The read-only runtime audit 023 confirms the PoC runtime login can SET ROLE only to the NOLOGIN issuer and query capability roles, with no inherited role path and no ADMIN OPTION. It cannot SET ROLE to the context owner, `sinau_poc`, or `postgres`. It has no direct schema USAGE/CREATE on private schemas and no direct EXECUTE on the context functions. The separate `sinau_poc` login is a PoC database-owner/test identity with inherited issuer/query capability; it is not an application runtime identity.
+
+The existing same-connection issuer → query → issuer test needs the runtime SET memberships to preserve one top-level XID. The proposed model therefore treats runtime as a trusted backend executor whose SQL is only generated by controlled application code. This model does not protect against arbitrary SQL or SQL injection in a runtime session, which can explicitly assume either capability role. A different role topology would require a separately designed issuer/query connection flow and new XID-continuity tests.
+
+The 023 audit also found no stored default-ACL row for `sinau_context_owner`. Source scripts 005 and 010 were corrected to use a global default function EXECUTE revoke. Script 024 was then executed successfully against `sinau_design_poc`: the global ACL now contains owner EXECUTE only, the four existing context functions remain non-executable by PUBLIC, and a newly created probe had owner EXECUTE=true/PUBLIC EXECUTE=false before its transaction rolled back. The final check confirmed the global default ACL persisted while the probe did not. This closes the default-function-ACL PoC gate only.
+
+PostgreSQL 18 documents that VOLATILE functions obtain a fresh snapshot for each internal query, while STABLE/IMMUTABLE functions use the calling query snapshot. The rollback-only two-connection probe in script 025 passed with observed sequence `active|disabled`; the synthetic identity fixture was restored and audited as exactly one active row and zero disabled rows. This confirms the documented VOLATILE/SPI behavior in this PoC. Script 026 has now been executed: EXPLAIN showed two InitPlans and the transaction-local counter recorded exactly two verifier calls for one protected SELECT. Script 027 is the next rollback-only candidate test for a single row-valued context subquery. The proposed verifier-v2 strategy is to retrieve key status and all authoritative authorization-state rows with one joined SELECT so that the verifier evaluates them from one coherent SPI statement snapshot. The live tests must still characterize revoke-before-check, revoke-during-check, and revoke-after-check behavior through actual RLS policies.
+
+This section records PoC evidence and a proposed boundary only. It does not approve production role grants, SQL execution pathways, verifier implementation, or backend integration.
+
+
+## 14. RLS verifier invocation count and candidate policy — 2026-11-27
+
+The user ran script 026 against the disposable PoC. For one protected `SELECT count(*) FROM public.academic_years`, EXPLAIN showed two separate InitPlans, one for `tenant_id` and one for `unit_id`, each running a Function Scan on `current_verified_context()`. The transaction-local function counter recorded two calls to `sinau_private.verify_context_token(text)`; the query returned one visible row and the transaction rolled back.
+
+This confirms the current policy evaluates the VOLATILE verified-context accessor twice for one SELECT. In a future verifier that performs live account/session/membership/key-state lookups, separate calls could use different internal snapshots. A policy must therefore expose tenant and unit claims from one coherent context result rather than separate scalar subqueries.
+
+Script 027 passed as a rollback-only test of the candidate row-valued subquery for `academic_years`: `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`. It produced one InitPlan and exactly one verifier call; ROLLBACK restored the original policy. This candidate does not yet settle tenant-only tables or the `audit_events` nullable-unit exception, nor does it approve a persistent change to script 007.
+
+
+## 15. Composite row-context policy probe — PASS for academic_years — 2026-11-27
+
+The user executed script 027 successfully against `sinau_design_poc`. The candidate policy temporarily compared `(tenant_id, unit_id)` to a single subquery returning both claims from `current_verified_context()`.
+
+EXPLAIN showed one InitPlan/Function Scan for the accessor, the protected `academic_years` SELECT returned one row, and `pg_stat_xact_user_functions` recorded exactly one call to `verify_context_token(text)` (2.623 ms). The post-ROLLBACK policy inventory showed the original two-subquery policy restored.
+
+This proves the row-valued single-subquery shape can reduce verifier invocation count from two to one for this table and this SELECT. It is not yet a universal policy design. Tenant-only tables, `audit_events` where `unit_id IS NULL` is intentionally allowed, and INSERT/UPDATE/DELETE checks still require separate policy expressions and explicit denial tests. Do not update persistent script 007 based on this one table's SELECT result alone.
+
+
+## 16. RLS table-policy classification gate — 2026-11-27
+
+Script 027 validated the row-valued one-subquery policy for `academic_years` only: one InitPlan returned both scope fields, one row remained visible, exactly one verifier call was counted, and ROLLBACK restored the original policy.
+
+Script 028 has been added as a read-only public-schema inventory. It will classify tenant-only, tenant+unit, nullable-unit, and unscoped tables; report RLS ENABLE/FORCE and exact USING/WITH CHECK expressions; and highlight the special `tenants`, `education_units`, and `audit_events` handling. It has not yet been run.
+
+Do not generalize the candidate policy or alter script 007 until the full table inventory and a read/write matrix are reviewed. In particular, preserve tenant-level `audit_events` rows where `unit_id IS NULL`, and keep the global `tenants` registry outside this tenant isolation policy.
+
+
+## 17. Scope inventory and audit_events nullability — 2026-11-27
+
+Script 028 completed as a read-only metadata audit on the disposable PoC. It found 14 public tenant/unit-scoped tables: `education_units` is tenant-only; twelve relations have both `tenant_id` and `unit_id` NOT NULL; and `audit_events` has both columns nullable. All 14 scoped tables have RLS enabled and forced, and no scoped table was missing a policy. All installed policies are permissive, target `sinau_rls_test`, and apply to ALL commands with USING and WITH CHECK. `tenants` remains the global registry outside RLS.
+
+The `audit_events` DDL in `001-schema.sql` allows both scope columns to be NULL while preventing a non-NULL unit with NULL tenant. The current tenant equality predicate excludes both-NULL rows from normal tenant visibility. Their intended use/access is unresolved. Do not treat them as tenant-level events or expand policy visibility without a separate decision.
+
+Script 029 is prepared to report aggregate row counts by audit-event scope nullability and actor type without disclosing event payloads or identifiers. After that audit, complete the per-class policy matrix before generalizing the `academic_years` row-subquery candidate.
+
+
+## 18. audit_events empty-data finding and representative policy test — 2026-11-27
+
+Script 029 reported zero rows in `audit_events` across all categories: no both-NULL rows, no tenant-only rows, and no tenant+unit rows. Metadata confirms both scope columns are nullable and the check constraint allows both to be NULL but prohibits a non-NULL unit when tenant is NULL. The current RLS policy still requires a tenant match, so both-NULL records would not be visible to a normal tenant context. Do not broaden access without a distinct system/global audit policy requirement.
+
+Script 030 is prepared to exercise SELECT/INSERT/UPDATE/DELETE against one representative table from each scope class and to check cross-scope and malformed-token denials. It has not yet been run. The test is transactional and rolls back its synthetic rows. It records that a unit-A1 context currently sees both tenant-A rows in tenant-only `education_units`; whether this enumeration is intended for every unit member or only tenant administrators remains an authorization decision. A pass will validate only these representative cases; all domain-specific attendance and assessment tables still require their own business-invariant regression coverage.
+
+
+## 19. Representative RLS read/write matrix execution — 2026-11-27
+
+Script 030 completed successfully on the disposable `sinau_design_poc` database with transaction XID `962`. The transaction-bound token was accepted. The tenant-only `education_units`, tenant+unit `academic_years`, nullable-scope `audit_events`, and empty/malformed-token fail-closed sections all reported PASS. The transaction ended with `ROLLBACK` and the script's explicit completion marker; synthetic DML was not persisted and installed policies were not changed.
+
+This is representative-class evidence only. The test observed that a unit-A1 context can enumerate both tenant-A units in tenant-only `education_units`; whether that is intended for all unit members or should be limited by a tenant-administrator permission remains unresolved. Domain-specific regression coverage is still required for the other eleven tenant+unit tables and their FK/trigger invariants. Do not treat this test as approval for a persistent policy rewrite.
+
+
+## 20. Remaining domain table integrity inventory — 2026-11-27
+
+Script 031 completed as a READ ONLY catalog audit. All eleven remaining tenant+unit domain tables have RLS ENABLE and FORCE, with the expected isolation policy installed. It found 27 indexes and two enabled participant temporal triggers; both trigger functions remain SECURITY INVOKER with pinned `search_path=pg_catalog, pg_temp`. Their specific trigger regression was already validated by script 017.
+
+The main domain-integrity paths are composite foreign keys across the attendance and assessment chains, non-overlapping student placements, score/finalization checks, correction idempotency/status, revision sequencing, and a deferred correction-to-revision reference. **Script 032 passed on transaction XID 963**: same-scope INSERT/SELECT/UPDATE/DELETE across all eleven relations; cross-unit UPDATE denial on nine relations without participant BEFORE UPDATE triggers; thirteen selected negative constraint cases; and explicit validation of the deferred correction-to-revision FK. The transaction ended with ROLLBACK. This is scoped PoC evidence, not production security acceptance or exhaustive business workflow coverage. No production schema, application data, or persistent policy change is authorized by this inventory.
+
+The `education_units` policy question remains separate: tenant-wide enumeration requires a trusted tenant-owner/admin capability that is not present in the current v1 token. Do not infer it from the tenant claim alone.
+
+
+## 21. Domain regression pass and all-table policy candidate — 2026-11-27
+
+Script 032 passed on transaction XID 963. It exercised same-scope CRUD across all eleven remaining tenant+unit tables, nine cross-unit UPDATE denials, thirteen selected CHECK/UNIQUE/EXCLUSION/FK-negative cases, deferred correction-to-revision FK validation, and ROLLBACK. This is scoped PoC evidence; it is not exhaustive application workflow coverage.
+
+Script 033 has been prepared to validate the row-valued one-subquery policy candidate on all twelve ordinary tenant+unit tables using one visible synthetic row per table and a measured target of exactly one verifier call per protected SELECT. It temporarily changes policies within one transaction and verifies that ROLLBACK restores all original two-subquery definitions. The script has not yet been executed. The tenant-only `education_units` capability model and nullable-scope `audit_events` policy are expressly excluded and remain separate authorization decisions.
+
+## 15. Explicit tenant capability for education-unit enumeration — 2026-11-27
+
+The tenant-only `education_units` policy must not equate tenant membership or a non-null tenant claim with permission to enumerate every unit. The proposed authorization rule is:
+- A unit-scoped context may see only the unit identified by its verified unit claim.
+- An actor may enumerate all units in a tenant only when their active tenant membership has an explicit tenant-scope `education_units.list_all` permission.
+- The permission is separate from `education_units.manage`, unit academic-data permissions, and feature entitlement.
+- Membership, role assignment, role status, and effective dates must all be valid at the decision point; missing or ambiguous grants deny access.
+
+The existing v1 token format has no permission/purpose claim. Therefore validating `education_units.list_all` only when a tenant-level token is issued is not, by itself, sufficient evidence for a generic query-side RLS policy: the query policy must be able to distinguish a tenant context that carries this capability from an ordinary tenant-only context, or must perform a trusted current permission check based on the verified actor/tenant context. A client-writable GUC or caller-supplied actor/tenant identifier is not an acceptable substitute.
+
+Script `034-test-education-units-tenant-permission.sql` has been prepared to test the issuer-side part of this rule using synthetic tenant roles and explicit role-permission mappings. It tests that a tenant administrator with `education_units.list_all` can pass the permission gate without a unit membership, while an ordinary unit member, a suspended tenant member, a foreign-tenant request, an unknown session, and an unregistered permission fail. It also verifies that the query role cannot read the permission fixtures or invoke the issuer helper. **Script 034 has not yet been executed.**
+
+A separate query-side policy test remains mandatory. It must establish that a unit-A1 context sees only A1, a tenant administrator with the explicit capability sees tenant A's units, tenant membership without the capability sees no sibling units, cross-tenant rows stay hidden, and write permissions remain separate. Do not change the installed `education_units` policy or script 007 until that test passes and the access rule is approved. ADR-003 and ADR-007 remain Proposed; no production changes are authorized by this design note.
+ 
+## 16. Script 034 result: issuer-side unit-list permission — 2026-11-27
+
+Script 034 passed EU-01—EU-08 on the disposable PostgreSQL PoC. The explicit tenant permission `education_units.list_all` was required; it did not imply `education_units.manage`. Ordinary tenant/unit membership, suspended tenant membership, tenant-A grant reuse against tenant B, unknown session credentials, and unknown permission codes did not grant access. Least-privilege checks passed and all temporary state was rolled back.
+
+The result does not prove RLS row filtering. The v1 token contains no permission claim, so a null unit claim is not sufficient to enumerate a tenant's units. The query-side gate must use the actor/tenant/scope from a verified token and a trusted current permission check; it must not accept a client-writable capability GUC or caller-supplied actor ID. Keep the installed RLS policy unchanged until a rollback-only query-side test passes.
+ 
+## 17. Query-side RLS policy probe for education-unit enumeration — 2026-11-27
+
+Script 034 passed the issuer-side explicit permission gate. Script 035 has been prepared for the distinct query-side test: a narrow SECURITY DEFINER helper owned by `sinau_context_owner` derives verified actor/tenant/unit context, checks current synthetic membership and tenant-role permission state, and returns the allowed unit IDs for a candidate SELECT-only RLS policy. The policy grants one exact unit to a valid unit context, and tenant-wide unit IDs only to a tenant-only context with `education_units.list_all`; tenant-only context without that grant and malformed tokens return no units. It also tests that the SELECT policy does not imply INSERT/UPDATE/DELETE and measures one verifier call per protected SELECT.
+
+The helper uses a private synthetic unit catalogue because querying `public.education_units` from its own RLS policy would be recursive. This is a test fixture, not a production catalogue strategy. The v1 token still lacks a session identifier: the helper can confirm the actor currently has some active session, but cannot prove the exact token session remains active if the actor has multiple sessions. The first Script 035 attempt stopped at preflight because Script 010's original synthetic unit-member session uses a one-day expiry and was stale by the time of execution. No test transaction began and no data/policy changes were made. The corrected Script 035 creates a fresh dedicated session inside the rollback-only transaction and verifies its removal after ROLLBACK. **The corrected script has not yet been executed.** No permanent RLS policy, verifier, token, role, or production schema change is authorized.

@@ -516,6 +516,6 @@ ALTER DEFAULT PRIVILEGES
     REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
 ```
 
-Script 024 is added to apply this single persistent default-ACL change to `sinau_design_poc`, confirm the global ACL entry, and create a temporary probe function to prove PUBLIC EXECUTE is absent while owner EXECUTE remains. The probe transaction rolls back. The script has not yet been executed by the user; this live database gate remains pending.
+Script 024 was executed successfully against `sinau_design_poc`. The global function default ACL is now `{sinau_context_owner=X/sinau_context_owner}` and contains no PUBLIC EXECUTE. All four existing context functions retained their explicit owner/capability grants and have `public_can_execute=false`. The temporary probe function was created with owner EXECUTE and no PUBLIC EXECUTE, then removed by ROLLBACK. The final persistence audit confirmed the global default ACL remains and the probe function does not. This closes the default-function-ACL PoC gate; it does not approve production ACLs.
 
 No existing function grants, role memberships, schemas, tables, policies, or production objects are modified by the intended script 024 fix. ADR-007 remains Proposed.

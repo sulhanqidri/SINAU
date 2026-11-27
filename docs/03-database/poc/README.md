@@ -1934,7 +1934,7 @@ In addition to the four Script 035 visibility cases, the probe:
 
 **Scope boundary:** these changes are performed by the test owner inside one `READ COMMITTED` transaction. They test statement-to-statement re-evaluation of the synthetic role/permission source by the helper, not a revocation committed by a second connection. They do not close the existing cross-connection freshness gap for account/session/membership, do not bind the token to an exact authentication session, and do not prove the production implementation.
 
-Pinned script commit: `fe53d75245358ee31dfa11e1d4a8cd52574c4f19`.
+Pinned script commit: `367e5984ff7691dc653a114f20ddbf5ab80701e9`.
 
 Download and stage:
 
@@ -1959,4 +1959,4 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \
   -f /run/036-test-education-units-permission-freshness.sql
 ~~~
 
-Require EU-RLS-01—EU-RLS-11, the eight-call verifier assertion, all three write denials, `ROLLBACK`, exact original-policy restoration, temporary schema/function/session removal, and the final freshness-probe completion marker. If any assertion fails, retain the first error and do not alter the installed policy. Do not run against `sinau`, use `sinau_app`, or modify SQLRadius/MikroTik.
+Require EU-RLS-01—EU-RLS-11, the eight-call verifier assertion, all three write denials, `ROLLBACK`, exact original-policy restoration, temporary schema/function removal, absence of both synthetic session hashes, and the final freshness-probe completion marker. If any assertion fails, retain the first error and do not alter the installed policy. Do not run against `sinau`, use `sinau_app`, or modify SQLRadius/MikroTik.

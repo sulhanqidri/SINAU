@@ -558,3 +558,12 @@ The catalog review confirms the main domain-integrity targets: composite foreign
 The policy inventory also confirms the current tenant+unit policy shape is repeated across all eleven tables: tenant and unit claims are extracted through separate scalar subqueries to `current_verified_context()`. The row-valued one-call candidate from script 027 remains a candidate only; do not persistently alter script 007 based only on metadata similarity. Wait for script 032 execution and complete review.
 
 **Separate authorization decision:** `education_units` remains tenant-only and exposes both tenant-A units to an A1-scoped token. The current issuer fixture and v1 token do not encode tenant-wide role/capability. Keep the proposed owner/tenant-admin-wide enumeration versus unit-member-limited enumeration as NOT ADOPTED until the issuer's authoritative role/capability contract is designed and tested.
+
+
+## 25. All-table row-valued RLS candidate probe prepared — 2026-11-27
+
+Script 032 passed on transaction XID 963. It validated same-scope INSERT/SELECT/UPDATE/DELETE across all eleven remaining tenant+unit relations; cross-unit UPDATE WITH CHECK denial on the nine tables without participant BEFORE UPDATE triggers; thirteen selected negative domain constraint cases; explicit deferred correction-to-revision FK validation with `SET CONSTRAINTS ... IMMEDIATE`; and final ROLLBACK. This closes the authored eleven-table CRUD/integrity regression scope, not every SINAU business workflow.
+
+Script 033 has now been prepared to validate the row-valued single-subquery policy candidate across all twelve ordinary tenant+unit relations (`academic_years` plus the eleven tables from 031). It temporarily replaces the twelve policies inside one transaction, creates a valid A1 synthetic dependency chain under `sinau_rls_test`, executes one protected SELECT per table, and asserts twelve visible fixture rows and exactly twelve `verify_context_token(text)` calls. It then tests representative cross-unit INSERT/UPDATE denial and verifies after ROLLBACK that all twelve original two-subquery policies were restored. Script 033 has not yet been executed; no candidate generalization is validated until its output is reviewed.
+
+The candidate explicitly excludes tenant-only `education_units` and nullable-scope `audit_events`. Do not modify persistent script 007. The tenant-wide capability required to distinguish foundation administrators from ordinary unit members remains absent from the current v1 context and issuer fixtures.

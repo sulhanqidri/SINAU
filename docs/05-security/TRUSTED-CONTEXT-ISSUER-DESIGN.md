@@ -293,3 +293,10 @@ Script 028 completed as a read-only metadata audit on the disposable PoC. It fou
 The `audit_events` DDL in `001-schema.sql` allows both scope columns to be NULL while preventing a non-NULL unit with NULL tenant. The current tenant equality predicate excludes both-NULL rows from normal tenant visibility. Their intended use/access is unresolved. Do not treat them as tenant-level events or expand policy visibility without a separate decision.
 
 Script 029 is prepared to report aggregate row counts by audit-event scope nullability and actor type without disclosing event payloads or identifiers. After that audit, complete the per-class policy matrix before generalizing the `academic_years` row-subquery candidate.
+
+
+## 18. audit_events empty-data finding and representative policy test — 2026-11-27
+
+Script 029 reported zero rows in `audit_events` across all categories: no both-NULL rows, no tenant-only rows, and no tenant+unit rows. Metadata confirms both scope columns are nullable and the check constraint allows both to be NULL but prohibits a non-NULL unit when tenant is NULL. The current RLS policy still requires a tenant match, so both-NULL records would not be visible to a normal tenant context. Do not broaden access without a distinct system/global audit policy requirement.
+
+Script 030 is prepared to exercise SELECT/INSERT/UPDATE/DELETE against one representative table from each scope class and to check cross-scope and malformed-token denials. It has not yet been run. The test is transactional and rolls back its synthetic rows. A pass will validate only these representative cases; all domain-specific attendance and assessment tables still require their own business-invariant regression coverage.

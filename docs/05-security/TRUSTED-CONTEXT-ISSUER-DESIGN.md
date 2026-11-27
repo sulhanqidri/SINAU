@@ -323,3 +323,17 @@ The `education_units` policy question remains separate: tenant-wide enumeration 
 Script 032 passed on transaction XID 963. It exercised same-scope CRUD across all eleven remaining tenant+unit tables, nine cross-unit UPDATE denials, thirteen selected CHECK/UNIQUE/EXCLUSION/FK-negative cases, deferred correction-to-revision FK validation, and ROLLBACK. This is scoped PoC evidence; it is not exhaustive application workflow coverage.
 
 Script 033 has been prepared to validate the row-valued one-subquery policy candidate on all twelve ordinary tenant+unit tables using one visible synthetic row per table and a measured target of exactly one verifier call per protected SELECT. It temporarily changes policies within one transaction and verifies that ROLLBACK restores all original two-subquery definitions. The script has not yet been executed. The tenant-only `education_units` capability model and nullable-scope `audit_events` policy are expressly excluded and remain separate authorization decisions.
+
+## 15. Explicit tenant capability for education-unit enumeration — 2026-11-27
+
+The tenant-only `education_units` policy must not equate tenant membership or a non-null tenant claim with permission to enumerate every unit. The proposed authorization rule is:
+- A unit-scoped context may see only the unit identified by its verified unit claim.
+- An actor may enumerate all units in a tenant only when their active tenant membership has an explicit tenant-scope `education_units.list_all` permission.
+- The permission is separate from `education_units.manage`, unit academic-data permissions, and feature entitlement.
+- Membership, role assignment, role status, and effective dates must all be valid at the decision point; missing or ambiguous grants deny access.
+
+The existing v1 token format has no permission/purpose claim. Therefore validating `education_units.list_all` only when a tenant-level token is issued is not, by itself, sufficient evidence for a generic query-side RLS policy: the query policy must be able to distinguish a tenant context that carries this capability from an ordinary tenant-only context, or must perform a trusted current permission check based on the verified actor/tenant context. A client-writable GUC or caller-supplied actor/tenant identifier is not an acceptable substitute.
+
+Script `034-test-education-units-tenant-permission.sql` has been prepared to test the issuer-side part of this rule using synthetic tenant roles and explicit role-permission mappings. It tests that a tenant administrator with `education_units.list_all` can pass the permission gate without a unit membership, while an ordinary unit member, a suspended tenant member, a foreign-tenant request, an unknown session, and an unregistered permission fail. It also verifies that the query role cannot read the permission fixtures or invoke the issuer helper. **Script 034 has not yet been executed.**
+
+A separate query-side policy test remains mandatory. It must establish that a unit-A1 context sees only A1, a tenant administrator with the explicit capability sees tenant A's units, tenant membership without the capability sees no sibling units, cross-tenant rows stay hidden, and write permissions remain separate. Do not change the installed `education_units` policy or script 007 until that test passes and the access rule is approved. ADR-003 and ADR-007 remain Proposed; no production changes are authorized by this design note.

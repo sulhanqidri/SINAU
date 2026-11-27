@@ -409,6 +409,8 @@ $admin_fixture_guard$;
 -- statement snapshot. It never trusts caller-provided actor/tenant claims.
 -- Unit context: only the explicitly active unit membership is returned.
 -- Tenant context: all active tenant units are returned only with list_all.
+SET LOCAL ROLE sinau_context_owner;
+
 CREATE FUNCTION sinau_private.current_verified_education_unit_scope_poc()
 RETURNS TABLE (
     tenant_id pg_catalog.uuid,
@@ -708,6 +710,24 @@ BEGIN
 END
 $token_guard$;
 
+\echo '===== 3A. EXPLAIN THE SELECT POLICY SUBPLAN ====='
+
+SET LOCAL ROLE sinau_rls_test;
+
+SELECT (
+    pg_catalog.set_config(
+        'app.context_token',
+        pg_catalog.current_setting('poc.education_units.admin_context_token', true),
+        true
+    ) IS NOT NULL
+) AS admin_context_installed;
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT pg_catalog.count(*)
+FROM public.education_units;
+
+RESET ROLE;
+
 CREATE TEMP TABLE poc_education_units_verifier_baseline (
     calls pg_catalog.int8 NOT NULL
 ) ON COMMIT DROP;
@@ -870,11 +890,7 @@ BEGIN
 
     PERFORM pg_catalog.set_config(
         'app.context_token',
-        (
-            SELECT token_value
-            FROM pg_temp.poc_education_units_context_tokens
-            WHERE token_name = 'foundation-admin-tenant-only'
-        ),
+        pg_catalog.current_setting('poc.education_units.admin_context_token', true),
         true
     );
 

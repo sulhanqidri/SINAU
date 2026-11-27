@@ -1849,3 +1849,49 @@ Require all EU-01 through EU-08 assertions, the privilege-boundary PASS, `ROLLBA
 The script completed `ROLLBACK`; postflight confirmed the temporary schema, helper function, identity, session, membership, role, and permission fixtures were removed. No RLS policy, token format, permanent role, grant, or application object was changed.
 
 This closes only the **issuer-side permission semantics** test. It does not yet prove RLS row visibility on `public.education_units`. The query-side test must still prove that a unit-scoped token sees only its own unit, an ordinary tenant-only context without the permission sees no sibling units, a tenant-only context with the explicit permission sees only units in that tenant, and write operations remain separately denied. The installed `education_units` policy remains unchanged.
+ 
+## 40. Query-side RLS enforcement for education_units — script 035
+
+Script `035-test-education-units-rls-permission.sql` is prepared as a rollback-only query-side test. It temporarily replaces the single existing `education_units` ALL policy with a SELECT-only policy whose predicate compares `(tenant_id, id)` against the allowed unit set returned by a narrow `SECURITY DEFINER` function owned by `sinau_context_owner`.
+
+The helper derives actor/tenant/unit only from `sinau_private.current_verified_context()`. In one SQL statement it validates active account and tenant membership, checks that the actor has an active session, and then selects one of two paths:
+- A non-null unit claim requires an active membership for that exact unit and an active synthetic unit catalogue row; only that unit ID is returned.
+- A null unit claim returns the tenant's active unit IDs only when the current tenant membership has the explicit `education_units.list_all` permission through an active tenant-role/permission mapping. Null unit alone returns no units.
+
+The permission fixture tables are private and are not directly readable by `sinau_rls_test`; that role receives EXECUTE only on the narrow query helper. Synthetic v1 contexts for the unit member, ordinary tenant-only member, and tenant administrator are signed inside the disposable transaction by the PostgreSQL administrator and bound to that transaction's XID. Tokens are kept out of query-role temporary-table access and are never printed.
+
+Expected assertions:
+- EU-RLS-01: a unit-A1 member sees A1 only; A2 and tenant B's B1 are hidden.
+- EU-RLS-02: an ordinary tenant-only context without `education_units.list_all` sees zero units.
+- EU-RLS-03: the tenant administrator with explicit `education_units.list_all` sees A1 and A2, but not B1.
+- EU-RLS-04: a malformed token sees zero units.
+- EU-RLS-05—EU-RLS-07: the SELECT-only policy does not grant INSERT, UPDATE, or DELETE.
+- Four protected SELECT statements cause exactly four calls to `verify_context_token(text)`, one per statement.
+- ROLLBACK restores the exact original `education_units` policy set and removes the temporary schema, helper, rows, role/permission fixtures, signed tokens, and test state.
+
+**Limitations to preserve:** the existing v1 token has no session identifier. The candidate helper can check that the actor currently has an active session, but cannot bind the token to one exact session where an actor has multiple sessions. The private `poc_units` catalog is synthetic metadata used to avoid querying FORCE-RLS `public.education_units` from inside its own policy; production must design a trusted non-recursive unit-state lookup. This script is query-side PoC evidence only, not final authorization architecture, production DDL, or approval to replace the installed policy. ADR-003 and ADR-007 remain Proposed.
+
+Download and stage the pinned script:
+
+~~~bash
+set -e
+
+EDUCATION_UNITS_RLS_COMMIT='df37661518c31053042f7a54265ffe12c15f3735'
+
+curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$EDUCATION_UNITS_RLS_COMMIT/docs/03-database/poc/035-test-education-units-rls-permission.sql" \
+  -o "$HOME/035-test-education-units-rls-permission.sql"
+
+sudo install -o postgres -g postgres -m 600 \
+  "$HOME/035-test-education-units-rls-permission.sql" \
+  /run/035-test-education-units-rls-permission.sql
+~~~
+
+Execute only against `sinau_design_poc` as PostgreSQL administrator:
+
+~~~bash
+sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \
+  -d sinau_design_poc \
+  -f /run/035-test-education-units-rls-permission.sql
+~~~
+
+Require all EU-RLS-01—EU-RLS-07 notices, the four-call verifier assertion, ROLLBACK, exact policy-restoration postflight, and the final completion marker. No terminal-B signer is required; script 035 signs synthetic token fixtures inside its own disposable transaction. Do not run it against `sinau`, use `sinau_app`, or modify SQLRadius/MikroTik.

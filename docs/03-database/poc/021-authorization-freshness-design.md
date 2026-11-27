@@ -384,3 +384,38 @@ The audit transaction ended with `ROLLBACK`. No role, membership, grant, schema,
 **Important transitive capability:** the earlier runtime-identity simulation established that `sinau_app_runtime_poc` can `SET ROLE` to `sinau_context_issuer_poc`. Consequently, the runtime session can reach the issuer functions through that explicit switch. This audit demonstrates separation between the capability roles, not isolation of the runtime login from issuer capabilities.
 
 **Scope limitation:** the check uses `has_table_privilege` and `has_function_privilege` against catalog OIDs; it inventories ACL-derived effective privileges for the current issuer role. It does not execute either SECURITY DEFINER issuer function, test application SQL restrictions, or authenticate a network connection as the runtime role. ADR-007 remains Proposed; no verifier implementation or production change is authorized.
+
+
+## 16. Query capability effective-privilege audit — 2026-11-27
+
+The query capability audit was executed in a read-only transaction after simulating the runtime session identity and switching to `sinau_rls_test`. It reported:
+
+- `session_user = sinau_app_runtime_poc`
+- `current_user = sinau_rls_test`
+- `sinau_issuer_poc` schema USAGE = false
+- `sinau_private` schema USAGE = true
+
+OID-based table privilege checks returned false for SELECT, INSERT, UPDATE, DELETE, and TRUNCATE on all inspected relations:
+
+- `sinau_issuer_poc.poc_identities`
+- `sinau_issuer_poc.poc_auth_sessions`
+- `sinau_issuer_poc.poc_tenant_memberships`
+- `sinau_issuer_poc.poc_unit_memberships`
+- `sinau_private.context_keys`
+
+Function EXECUTE results:
+
+| Function | EXECUTE |
+|---|---:|
+| `sinau_issuer_poc.validate_context_request(text,uuid,uuid)` | false |
+| `sinau_issuer_poc.has_feature_entitlement(uuid,text)` | false |
+| `sinau_private.verify_context_token(text)` | true |
+| `sinau_private.current_verified_context()` | true |
+
+The transaction ended with `ROLLBACK`. No role, membership, grant, schema, function, policy, or row was modified.
+
+**Finding:** the query capability role has the intended direct separation in this inventory: it can use the private verifier schema and execute the verifier/accessor chain, but it cannot directly read or modify the authorization tables or key store, and cannot execute issuer functions. Together with the issuer audit in section 15, this is consistent with the intended separation between issuer and query capabilities.
+
+**Important transitive capability:** the earlier runtime-identity simulation established that `sinau_app_runtime_poc` can `SET ROLE` to `sinau_rls_test`. Consequently, a runtime session can reach the verifier/accessor functions through that explicit role switch. The direct separation between issuer and query roles does not isolate the runtime login from either capability while these SET memberships remain.
+
+**Scope limitation:** the check used `has_table_privilege` and `has_function_privilege` against catalog OIDs. It inventories ACL-derived effective privileges for the switched query role; it did not invoke the verifier/accessor, test all data paths through RLS, or authenticate a network connection as the runtime role. ADR-007 remains Proposed; no verifier implementation or production change is authorized.

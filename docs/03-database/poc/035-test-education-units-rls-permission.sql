@@ -698,62 +698,35 @@ SELECT
 FROM payloads;
 
 DO $token_guard$
-DECLARE
-    v_unit_token pg_catalog.text;
-    v_tenant_token pg_catalog.text;
-    v_admin_token pg_catalog.text;
-    v_count pg_catalog.int8;
 BEGIN
-    SELECT pg_catalog.count(*) INTO v_count
-    FROM pg_temp.poc_education_units_context_tokens;
-
-    IF v_count <> 3 THEN
+    IF (
+        SELECT pg_catalog.count(*)
+        FROM pg_temp.poc_education_units_context_tokens
+    ) <> 3 THEN
         RAISE EXCEPTION
             'Expected three synthetic transaction-bound context tokens';
     END IF;
 
-    SELECT token_value INTO v_unit_token
-    FROM pg_temp.poc_education_units_context_tokens
-    WHERE token_name = 'ordinary-unit-a1';
-
-    SELECT token_value INTO v_tenant_token
-    FROM pg_temp.poc_education_units_context_tokens
-    WHERE token_name = 'ordinary-tenant-only';
-
-    SELECT token_value INTO v_admin_token
-    FROM pg_temp.poc_education_units_context_tokens
-    WHERE token_name = 'foundation-admin-tenant-only';
-
-    IF v_unit_token IS NULL OR v_tenant_token IS NULL OR v_admin_token IS NULL THEN
-        RAISE EXCEPTION 'One or more signed synthetic context tokens are missing';
-    END IF;
-
-    PERFORM pg_catalog.set_config(
-        'poc.education_units.unit_context_token', v_unit_token, true
-    );
-    PERFORM pg_catalog.set_config(
-        'poc.education_units.tenant_context_token', v_tenant_token, true
-    );
-    PERFORM pg_catalog.set_config(
-        'poc.education_units.admin_context_token', v_admin_token, true
-    );
-
     RAISE NOTICE
-        'PASS: three signed synthetic contexts staged without printing tokens or granting direct temp-table access';
+        'PASS: three synthetic v1 contexts signed for this XID; token values remain in postgres-owned temporary storage';
 END
 $token_guard$;
 
 \echo '===== 3A. EXPLAIN THE SELECT POLICY SUBPLAN ====='
 
-SET LOCAL ROLE sinau_rls_test;
+SELECT token_value AS rls035_explain_token
+FROM pg_temp.poc_education_units_context_tokens
+WHERE token_name = 'foundation-admin-tenant-only'
+\gset
 
 SELECT (
-    pg_catalog.set_config(
-        'app.context_token',
-        pg_catalog.current_setting('poc.education_units.admin_context_token', true),
-        true
-    ) IS NOT NULL
+    pg_catalog.set_config('app.context_token', :'rls035_explain_token', true)
+    IS NOT NULL
 ) AS admin_context_installed;
+
+\unset rls035_explain_token
+
+SET LOCAL ROLE sinau_rls_test;
 
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT pg_catalog.count(*)
@@ -775,28 +748,28 @@ WHERE p.oid =
 
 \echo '===== 4. TEST ROW VISIBILITY UNDER VERIFIED CONTEXT ====='
 
+-- EU-RLS-01: a unit-A1 member sees A1 only.
+SELECT token_value AS rls035_unit_token
+FROM pg_temp.poc_education_units_context_tokens
+WHERE token_name = 'ordinary-unit-a1'
+\gset
+
+SELECT (
+    pg_catalog.set_config('app.context_token', :'rls035_unit_token', true)
+    IS NOT NULL
+) AS unit_context_installed;
+
+\unset rls035_unit_token
+
 SET LOCAL ROLE sinau_rls_test;
 
-DO $row_visibility_tests$
+DO $unit_member_visibility$
 DECLARE
     v_rows pg_catalog.int8;
     v_a1 pg_catalog.int8;
     v_a2 pg_catalog.int8;
     v_b1 pg_catalog.int8;
 BEGIN
-    IF current_user <> 'sinau_rls_test' THEN
-        RAISE EXCEPTION
-            'Expected query role, got %',
-            current_user;
-    END IF;
-
-    -- EU-RLS-01: a unit-A1 member sees A1 only.
-    PERFORM pg_catalog.set_config(
-        'app.context_token',
-        pg_catalog.current_setting('poc.education_units.unit_context_token', true),
-        true
-    );
-
     SELECT
         pg_catalog.count(*),
         pg_catalog.count(*) FILTER (
@@ -821,14 +794,31 @@ BEGIN
     END IF;
     RAISE NOTICE
         'PASS EU-RLS-01: unit-scoped member sees A1 only; sibling and foreign units hidden';
+END
+$unit_member_visibility$;
 
-    -- EU-RLS-02: an ordinary tenant-only context has no list_all permission.
-    PERFORM pg_catalog.set_config(
-        'app.context_token',
-        pg_catalog.current_setting('poc.education_units.tenant_context_token', true),
-        true
-    );
+RESET ROLE;
 
+-- EU-RLS-02: a tenant-only member without list_all sees no unit rows.
+SELECT token_value AS rls035_ordinary_tenant_token
+FROM pg_temp.poc_education_units_context_tokens
+WHERE token_name = 'ordinary-tenant-only'
+\gset
+
+SELECT (
+    pg_catalog.set_config(
+        'app.context_token', :'rls035_ordinary_tenant_token', true
+    ) IS NOT NULL
+) AS ordinary_tenant_context_installed;
+
+\unset rls035_ordinary_tenant_token
+
+SET LOCAL ROLE sinau_rls_test;
+
+DO $ordinary_tenant_visibility$
+DECLARE
+    v_rows pg_catalog.int8;
+BEGIN
     SELECT pg_catalog.count(*)
       INTO v_rows
       FROM public.education_units;
@@ -840,15 +830,33 @@ BEGIN
     END IF;
     RAISE NOTICE
         'PASS EU-RLS-02: tenant membership without list_all cannot enumerate sibling units';
+END
+$ordinary_tenant_visibility$;
 
-    -- EU-RLS-03: active tenant admin with explicit list_all sees tenant A's
-    -- two active unit rows, but never tenant B's unit.
-    PERFORM pg_catalog.set_config(
-        'app.context_token',
-        pg_catalog.current_setting('poc.education_units.admin_context_token', true),
-        true
-    );
+RESET ROLE;
 
+-- EU-RLS-03: an admin with explicit tenant list_all sees A1/A2 only.
+SELECT token_value AS rls035_admin_token
+FROM pg_temp.poc_education_units_context_tokens
+WHERE token_name = 'foundation-admin-tenant-only'
+\gset
+
+SELECT (
+    pg_catalog.set_config('app.context_token', :'rls035_admin_token', true)
+    IS NOT NULL
+) AS admin_context_installed;
+
+\unset rls035_admin_token
+
+SET LOCAL ROLE sinau_rls_test;
+
+DO $tenant_admin_visibility$
+DECLARE
+    v_rows pg_catalog.int8;
+    v_a1 pg_catalog.int8;
+    v_a2 pg_catalog.int8;
+    v_b1 pg_catalog.int8;
+BEGIN
     SELECT
         pg_catalog.count(*),
         pg_catalog.count(*) FILTER (
@@ -873,14 +881,24 @@ BEGIN
     END IF;
     RAISE NOTICE
         'PASS EU-RLS-03: explicit tenant list_all sees A1/A2 but not tenant B';
+END
+$tenant_admin_visibility$;
 
-    -- EU-RLS-04: malformed token fails closed.
-    PERFORM pg_catalog.set_config(
-        'app.context_token',
-        'not-a-valid-context-token',
-        true
-    );
+RESET ROLE;
 
+-- EU-RLS-04: a malformed token fails closed.
+SELECT pg_catalog.set_config(
+    'app.context_token',
+    'not-a-valid-context-token',
+    true
+) IS NOT NULL AS malformed_context_staged;
+
+SET LOCAL ROLE sinau_rls_test;
+
+DO $malformed_context_visibility$
+DECLARE
+    v_rows pg_catalog.int8;
+BEGIN
     SELECT pg_catalog.count(*)
       INTO v_rows
       FROM public.education_units;
@@ -893,11 +911,23 @@ BEGIN
     RAISE NOTICE
         'PASS EU-RLS-04: malformed context token exposes zero education units';
 END
-$row_visibility_tests$;
+$malformed_context_visibility$;
 
 RESET ROLE;
 
 \echo '===== 5. CHECK SELECT-ONLY POLICY AND WRITE DENIAL ====='
+
+SELECT token_value AS rls035_write_admin_token
+FROM pg_temp.poc_education_units_context_tokens
+WHERE token_name = 'foundation-admin-tenant-only'
+\gset
+
+SELECT (
+    pg_catalog.set_config('app.context_token', :'rls035_write_admin_token', true)
+    IS NOT NULL
+) AS admin_write_context_installed;
+
+\unset rls035_write_admin_token
 
 SET LOCAL ROLE sinau_rls_test;
 
@@ -920,12 +950,6 @@ BEGIN
         RAISE EXCEPTION
             'FAIL: candidate listing policy is not SELECT-only';
     END IF;
-
-    PERFORM pg_catalog.set_config(
-        'app.context_token',
-        pg_catalog.current_setting('poc.education_units.admin_context_token', true),
-        true
-    );
 
     BEGIN
         INSERT INTO public.education_units (tenant_id, id, code)

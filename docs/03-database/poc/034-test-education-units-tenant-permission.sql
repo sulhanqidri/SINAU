@@ -272,6 +272,22 @@ VALUES
         NULL
     );
 
+DO $admin_fixture_guard$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM sinau_issuer_poc.poc_unit_memberships AS um
+        WHERE um.actor_id = '97000000-0000-0000-0000-000000000001'
+          AND um.tenant_id = '00000000-0000-0000-0000-000000000001'
+    ) THEN
+        RAISE EXCEPTION
+            'RLS-034 admin fixture must not have a unit membership';
+    END IF;
+    RAISE NOTICE
+        'PASS: tenant administrator fixture has no unit membership; scope is tenant-only';
+END
+$admin_fixture_guard$;
+
 \echo '===== 3. CREATE NARROW ISSUER-SIDE PERMISSION CHECK ====='
 
 CREATE FUNCTION sinau_education_units_poc.has_tenant_permission(
@@ -456,20 +472,11 @@ BEGIN
     RAISE NOTICE
         'PASS EU-07: unregistered/out-of-contract permission code fails closed';
 
-    -- EU-08: tenant-level capability does not require unit membership.
-    -- Actor 970 intentionally has tenant membership and role grant, but no
-    -- row in poc_unit_memberships. The earlier EU-01 success proves this.
-    IF EXISTS (
-        SELECT 1
-        FROM sinau_issuer_poc.poc_unit_memberships AS um
-        WHERE um.actor_id = '97000000-0000-0000-0000-000000000001'
-          AND um.tenant_id = '00000000-0000-0000-0000-000000000001'
-    ) THEN
-        RAISE EXCEPTION
-            'FAIL EU-08: administrator fixture unexpectedly has a unit membership';
-    END IF;
+    -- EU-08: actor 970 has no unit membership (verified by the fixture
+    -- guard before switching to the issuer role). EU-01 nevertheless passed
+    -- using only active tenant membership plus the explicit tenant permission.
     RAISE NOTICE
-        'PASS EU-08: explicit tenant-scope permission works without inventing a unit membership';
+        'PASS EU-08: explicit tenant-scope permission works without a unit membership';
 END
 $permission_tests$;
 

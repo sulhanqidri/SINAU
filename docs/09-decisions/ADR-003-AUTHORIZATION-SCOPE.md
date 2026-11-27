@@ -65,6 +65,12 @@ For the tenant-only `education_units` relation, the recommended authorization ba
 
 This is a proposed policy baseline, not an accepted physical schema or deployed RLS policy. The PoC must validate the issuer-side explicit permission and then separately prove query-side RLS enforcement. The current v1 context token carries actor, tenant, unit, and transaction claims but no permission claim; therefore a generic tenant-level token alone must not be treated as proof of `education_units.list_all`.
 
+
+### Script 034 issuer-side evidence
+
+The rollback-only issuer-side PoC (script 034) passed EU-01—EU-08. It confirmed the explicit `education_units.list_all` tenant permission is independent from `education_units.manage`, ordinary unit/tenant membership does not grant tenant-wide enumeration, suspended membership and cross-tenant requests deny, and unknown credentials/permission codes fail closed. All temporary fixtures were removed by ROLLBACK. Query-side RLS enforcement remains untested; this is evidence for the permission rule only, not approval of the physical schema or policy.
+
+
 ### Platform support dan impersonation
 Akses operator platform ke data pelanggan bersifat istimewa, terbatas waktu, berdasarkan alasan/tiket, disetujui sesuai kebijakan, diberi indikator UI, dan seluruh tindakan diaudit. Impersonation tidak boleh menjadi jalan pintas untuk melewati audit.
 

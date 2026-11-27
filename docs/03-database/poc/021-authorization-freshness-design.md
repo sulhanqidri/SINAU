@@ -490,3 +490,20 @@ Observed:
 Script `027-test-single-row-context-policy.sql` has been added as a rollback-only candidate test for `academic_years`. It temporarily replaces the original policy in an open transaction with `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`, executes one protected SELECT, counts verifier calls, and rolls back to restore the original policy. It has not yet been executed.
 
 **Important limitation:** this candidate handles the ordinary tenant+unit-scoped shape only. It is not yet approved for tenant-only tables or `audit_events`, whose nullable `unit_id` means tenant-level audit rows are intentionally allowed. All write checks, malformed-token paths, and cross-tenant/unit cases must also be revalidated before changing persistent script 007.
+
+
+## 20. Composite row-context policy probe — PASS for academic_years — 2026-11-27
+
+The user executed script 027 inside a transaction in `sinau_design_poc` using a v1 token bound to XID 958. The script temporarily dropped/recreated `sinau_rls_isolation` on `public.academic_years` with the row-valued comparison `(tenant_id, unit_id) = (SELECT ctx.tenant_id, ctx.unit_id FROM sinau_private.current_verified_context() AS ctx)`.
+
+Observed:
+- EXPLAIN produced one InitPlan with one Function Scan on `current_verified_context()` returning both `tenant_id` and `unit_id`.
+- The index condition consumed both values from the same InitPlan (`col1` and `col2`).
+- One protected SELECT returned exactly one visible row.
+- The transaction-local function counter reported exactly one `verify_context_token(text)` call (`total_time_ms=2.623`, `self_time_ms=2.623`).
+- The script printed the expected PASS notice.
+- After ROLLBACK, the post-rollback catalog query showed the original policy with its two scalar subqueries restored.
+
+**Finding:** the candidate row-comparison shape reduces measured verifier calls from two to one for `academic_years` while preserving the observed result. It is a validated disposable candidate for this table shape, not yet a persistent change or universal RLS policy. `audit_events` must preserve tenant-level rows with `unit_id IS NULL`; tenant-only tables and write operations need separate expressions/tests.
+
+Next gate: build and execute a complete policy matrix covering all tenant-scoped tables, SELECT/INSERT/UPDATE/DELETE, malformed/expired tokens, cross-tenant/unit attempts, tenant-only relations, and the nullable-unit audit-events case. Do not modify persistent script 007 or start verifier v2 DDL until this matrix and the final claim/epoch contract are reviewed.

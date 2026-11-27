@@ -1895,3 +1895,26 @@ sudo -u postgres psql -X -v ON_ERROR_STOP=1 -P pager=off \
 ~~~
 
 Require all EU-RLS-01—EU-RLS-07 notices, the four-call verifier assertion, ROLLBACK, exact policy-restoration postflight, and the final completion marker. No terminal-B signer is required; script 035 signs synthetic token fixtures inside its own disposable transaction. Do not run it against `sinau`, use `sinau_app`, or modify SQLRadius/MikroTik.
+
+
+## 41. Script 035 execution result — 2026-11-27
+
+**Execution result: PASS** against the disposable database `sinau_design_poc`, executed as PostgreSQL administrator using `ON_ERROR_STOP=1`.
+
+- Preflight passed, including the original tenant-only `education_units` policy, public/private synthetic unit fixtures, verifier, roles, and signing key.
+- The rollback-only tenant role/permission fixtures and the narrow `SECURITY DEFINER` query helper were created successfully. The query role received EXECUTE on the helper but no direct read access to the permission source tables.
+- EU-RLS-01 passed: the A1 unit member saw A1 only; sibling unit A2 and tenant B's B1 were hidden.
+- EU-RLS-02 passed: an ordinary tenant-only member without `education_units.list_all` saw zero rows.
+- EU-RLS-03 passed: a tenant administrator with explicit `education_units.list_all` saw A1 and A2, but not tenant B's B1.
+- EU-RLS-04 passed: malformed context exposed zero rows.
+- The four protected SELECT statements caused exactly four calls to `verify_context_token(text)`—one per statement. The counter was checked before the DML-denial probes.
+- EU-RLS-05, EU-RLS-06, and EU-RLS-07 passed: the SELECT-only candidate did not grant INSERT, UPDATE, or DELETE.
+- The script completed `ROLLBACK`. Postflight confirmed exact restoration of the original `education_units` policy set and removal of the temporary schema/function, fixtures, and fresh synthetic session. The final completion marker was printed.
+
+This closes the **query-side visibility and write-denial test for this synthetic candidate**. It does not approve replacing the installed policy, a permanent role/schema design, or production deployment.
+
+Remaining limits:
+- The v1 context token has no session identifier. The helper establishes that the actor has an active session, but it cannot bind that token to one exact session when multiple sessions exist.
+- The helper uses private synthetic `poc_units` metadata to avoid RLS recursion. Production still needs a trusted, non-recursive unit-state lookup.
+- Script 035 does not test permission revocation after token issuance, cross-connection authorization freshness, or real Laravel/request integration. These remain separate gates under ADR-007.
+- ADR-003 and ADR-007 remain Proposed; no production migration, persistent RLS policy, or production role change is authorized.

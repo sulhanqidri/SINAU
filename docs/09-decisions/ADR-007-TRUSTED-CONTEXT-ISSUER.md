@@ -481,3 +481,24 @@ This supports the intended direct least-privilege split: the query capability ca
 The runtime login is not isolated from query capability, because the separately tested runtime session can `SET ROLE` to `sinau_rls_test`. A runtime connection retaining this membership can therefore invoke the verifier/accessor functions after switching. This remains a role-model threat-model decision, not an accepted production design.
 
 The audit used catalog OIDs to check ACL-derived privileges. It did not invoke the verifier/accessor functions, exhaustively test RLS data operations, or validate network authentication with the runtime credentials. ADR-007 remains Proposed; no implementation or production DDL is authorized by this evidence.
+
+
+## 21. Runtime role boundary audit — 2026-11-27
+
+The read-only runtime boundary script 023 completed on `sinau_design_poc` and reported these role attributes:
+
+| Role | LOGIN | INHERIT | SUPERUSER | BYPASSRLS |
+|---|---:|---:|---:|---:|
+| `sinau_app_runtime_poc` | true | false | false | false |
+| `sinau_context_issuer_poc` | false | false | false | false |
+| `sinau_rls_test` | false | true | false | false |
+| `sinau_context_owner` | false | false | false | false |
+| `sinau_poc` | true | true | false | false |
+
+Membership inventory confirms runtime has SET-only (not inherited) membership in issuer and query, no ADMIN OPTION, and no other reachable role in the recursive SET graph. Runtime has no inherited-role paths, no direct USAGE/CREATE in the three private schemas, and no direct EXECUTE on the four context functions. The inspected functions and private authorization/key relations are owned by the NOLOGIN context owner.
+
+The separate `sinau_poc` login is the PoC database-owner/test identity and inherits issuer/query memberships. It must not be used as the application runtime login.
+
+The existing same-connection PoC test 012 requires issuer → query → issuer role switches within one top-level XID. Therefore the current test architecture intentionally grants runtime SET membership to both NOLOGIN capability roles. The proposed threat model treats runtime as a trusted backend executor whose SQL is controlled by the application; it is not a security boundary against arbitrary SQL execution or SQL injection under that runtime identity. Removing these memberships without replacing the transaction/issuer/query architecture would invalidate the tested flow. This is a proposed interpretation, not a production role approval.
+
+Script 023 ended with ROLLBACK and changed no roles or grants.

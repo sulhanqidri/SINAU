@@ -1589,7 +1589,7 @@ Download and stage the tested revision:
 set -e
 
 SIGNER_COMMIT='70b2f3ccdadf14f306ca77104b6a5b4fb35328b0'
-MATRIX_COMMIT='fc1040f26994f327c85e1851eb653e82b34360d2'
+MATRIX_COMMIT='195704f9514bf84f6d292e08d9bdc9193fb65b08'
 
 curl -fL "https://raw.githubusercontent.com/sulhanqidri/SINAU/$SIGNER_COMMIT/docs/03-database/poc/019-sign-authorization-freshness-token.py" \
   -o "$HOME/019-sign-authorization-freshness-token.py"
